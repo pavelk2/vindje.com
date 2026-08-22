@@ -25,6 +25,7 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 PORT = int(os.environ.get("PORT", "8000"))
 
@@ -221,20 +222,21 @@ Reject anything that is the wrong kind of item, a service/ad, or contradicts a r
 Reply with ONLY JSON: {"matches": [{"n": <listing number>, "why": "<max 12 words, English>"}]}"""
 
 
-def filter_listings(requirements, listings):
-    if not requirements or not listings:
-        return None
+FILTER_CHUNK = 15  # listings per LLM call; chunks are checked concurrently
+
+
+def _filter_chunk(requirements, listings, base):
     lines = []
     for i, l in enumerate(listings):
         desc = l["description"][:300]
         attrs = "; ".join(l["attributes"][:8])
-        lines.append(f"[{i}] {l['title']} | {desc} | {attrs}")
+        lines.append(f"[{base + i}] {l['title']} | {desc} | {attrs}")
     result = llm_json(
         [
             {"role": "system", "content": FILTER_PROMPT % "\n".join("- " + r for r in requirements)},
             {"role": "user", "content": "\n".join(lines)},
         ],
-        max_tokens=6000,
+        max_tokens=4000,
     )
     matches = {}
     for m in result.get("matches", []):
@@ -242,14 +244,54 @@ def filter_listings(requirements, listings):
             n = int(m["n"])
         except (KeyError, TypeError, ValueError):
             continue
-        if 0 <= n < len(listings):
+        if base <= n < base + len(listings):
             matches[n] = str(m.get("why", ""))
     return matches
 
 
+def filter_listings(requirements, listings):
+    """Returns (matches dict, note or None). Raises only if every chunk fails."""
+    if not requirements or not listings:
+        return None, None
+    chunks = [(i, listings[i : i + FILTER_CHUNK])
+              for i in range(0, len(listings), FILTER_CHUNK)]
+    matches, failed = {}, []
+    with ThreadPoolExecutor(max_workers=min(4, len(chunks))) as ex:
+        futures = {ex.submit(_filter_chunk, requirements, chunk, base): (base, chunk)
+                   for base, chunk in chunks}
+        for fut in as_completed(futures):
+            base, chunk = futures[fut]
+            try:
+                matches.update(fut.result())
+            except Exception:
+                failed.append((base, chunk))
+    if failed and not matches and len(failed) == len(chunks):
+        raise RuntimeError("all filter batches failed")
+    note = None
+    if failed:
+        # keep un-checked listings rather than silently dropping them
+        for base, chunk in failed:
+            for i in range(len(chunk)):
+                matches.setdefault(base + i, "")
+        note = (f"AI check failed for {sum(len(c) for _, c in failed)} of "
+                f"{len(listings)} listings; those are shown unfiltered.")
+    return matches, note
+
+
 # ---------------------------------------------------------------- pipeline
 
-def smart_search(wish, postcode):
+_UNSET = object()
+
+
+def _num(v):
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def interpret(wish):
+    """Phase 1: parse the wish with the LLM. Returns (parsed_or_None, notes)."""
     notes = []
     parsed = None
     if OPENROUTER_API_KEY:
@@ -260,14 +302,24 @@ def smart_search(wish, postcode):
     else:
         notes.append("OPENROUTER_API_KEY not set — running as a plain search "
                      "without AI parsing/filtering.")
+    return parsed, notes
 
-    if parsed:
+
+def smart_search(wish, postcode, parsed=_UNSET, notes=None):
+    """Phase 2: search Marktplaats and AI-filter. Runs phase 1 first unless a
+    pre-parsed result (possibly None) is handed in."""
+    if parsed is _UNSET:
+        parsed, notes = interpret(wish)
+    notes = list(notes or [])
+
+    if isinstance(parsed, dict):
         terms = parsed.get("search_terms") or wish
-        distance = parsed.get("distance_meters")
-        price_min = parsed.get("price_min_euro")
-        price_max = parsed.get("price_max_euro")
+        distance = _num(parsed.get("distance_meters"))
+        price_min = _num(parsed.get("price_min_euro"))
+        price_max = _num(parsed.get("price_max_euro"))
         requirements = parsed.get("requirements") or []
     else:
+        parsed = None
         terms, distance, price_min, price_max, requirements = wish, None, None, None, []
 
     if distance and not postcode:
@@ -283,12 +335,15 @@ def smart_search(wish, postcode):
     kept = listings
     if parsed and requirements and listings:
         try:
-            matches = filter_listings(requirements, listings)
+            matches, fnote = filter_listings(requirements, listings)
+            if fnote:
+                notes.append(fnote)
             if matches is not None:
                 kept = []
                 for i, l in enumerate(listings):
                     if i in matches:
-                        l["why"] = matches[i]
+                        if matches[i]:
+                            l["why"] = matches[i]
                         kept.append(l)
         except Exception as e:
             notes.append(f"AI filtering failed ({e}); showing unfiltered results.")
@@ -318,6 +373,7 @@ HTML = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Marktplaats Smart Search</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
 <style>
   :root { --accent: #2d6a4f; --bg: #f6f5f2; --card: #fff; --ink: #1b1b1b; --muted: #6b7280; }
   * { box-sizing: border-box; }
@@ -371,6 +427,7 @@ HTML = """<!doctype html>
   </form>
   <div class="interp" id="interp"></div>
   <div id="notes"></div>
+  <div class="count" id="status"></div>
   <div class="spinner" id="spin"></div>
   <div class="count" id="count"></div>
   <div id="results"></div>
@@ -378,6 +435,16 @@ HTML = """<!doctype html>
 <script>
 const f = document.getElementById('f');
 const esc = s => (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function post(body) {
+  return fetch('/api/search', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body)
+  }).then(r => r.json());
+}
+
+let baseNotes = [];
+
 f.addEventListener('submit', async e => {
   e.preventDefault();
   const q = document.getElementById('q').value.trim();
@@ -390,39 +457,57 @@ f.addEventListener('submit', async e => {
   document.getElementById('count').textContent = '';
   document.getElementById('notes').innerHTML = '';
   document.getElementById('interp').style.display = 'none';
+  baseNotes = [];
+  const statusEl = document.getElementById('status');
+  const t0 = Date.now();
+  let stage = '&#129302; Understanding your wish&hellip;';
+  const tick = setInterval(() => {
+    const s = Math.round((Date.now() - t0) / 1000);
+    statusEl.innerHTML = stage + ' ' + s + 's' +
+      (s > 30 ? ' &mdash; free AI models are slow but thorough, hang in there' : '');
+  }, 1000);
   try {
-    const r = await fetch('/api/search', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({wish: q, postcode: pc})
-    });
-    const d = await r.json();
+    const p = await post({action: 'parse', wish: q});
+    if (p.error) throw new Error(p.error);
+    baseNotes = p.notes || [];
+    showInterp(p.parsed, p.ai);
+    showNotes([]);
+    stage = '&#128269; Searching Marktplaats &amp; AI-checking listings&hellip;';
+    const d = await post({action: 'results', wish: q, postcode: pc, parsed: p.parsed});
     if (d.error) throw new Error(d.error);
     render(d);
   } catch (err) {
-    document.getElementById('notes').innerHTML = '<div class="note">Error: ' + esc(err.message) + '</div>';
+    document.getElementById('notes').innerHTML += '<div class="note">Error: ' + esc(err.message) + '</div>';
   } finally {
+    clearInterval(tick);
+    statusEl.textContent = '';
     document.getElementById('go').disabled = false;
     document.getElementById('spin').style.display = 'none';
   }
 });
 document.getElementById('pc').value = localStorage.getItem('pc') || '';
 
-function render(d) {
-  const i = d.interpreted;
-  if (d.ai) {
-    let parts = ['Searching for <b>' + esc(i.search_terms) + '</b>'];
-    if (i.price_min_euro != null || i.price_max_euro != null)
-      parts.push('price <b>' + (i.price_min_euro ?? 0) + ' &ndash; ' + (i.price_max_euro ?? '&infin;') + ' &euro;</b>');
-    if (i.distance_meters) parts.push('within <b>' + (i.distance_meters / 1000) + ' km</b>');
-    if (i.requirements.length)
-      parts.push('must match: <b>' + i.requirements.map(esc).join('</b>, <b>') + '</b>');
-    const el = document.getElementById('interp');
-    el.innerHTML = '&#129302; ' + parts.join(' &middot; ');
-    el.style.display = 'block';
-  }
+function showInterp(i, ai) {
+  if (!ai || !i) return;
+  let parts = ['Searching for <b>' + esc(i.search_terms) + '</b>'];
+  if (i.price_min_euro != null || i.price_max_euro != null)
+    parts.push('price <b>' + (i.price_min_euro ?? 0) + ' &ndash; ' + (i.price_max_euro ?? '&infin;') + ' &euro;</b>');
+  if (i.distance_meters) parts.push('within <b>' + (i.distance_meters / 1000) + ' km</b>');
+  if ((i.requirements || []).length)
+    parts.push('must match: <b>' + i.requirements.map(esc).join('</b>, <b>') + '</b>');
+  const el = document.getElementById('interp');
+  el.innerHTML = '&#129302; ' + parts.join(' &middot; ');
+  el.style.display = 'block';
+}
+
+function showNotes(notes) {
   document.getElementById('notes').innerHTML =
-    (d.notes || []).map(n => '<div class="note">' + esc(n) + '</div>').join('');
+    baseNotes.concat(notes || []).map(n => '<div class="note">' + esc(n) + '</div>').join('');
+}
+
+function render(d) {
+  showInterp(d.interpreted, d.ai);
+  showNotes(d.notes);
   document.getElementById('count').textContent = d.ai
     ? d.results.length + ' match(es) after AI-checking ' + d.scanned +
       ' listings (of ' + d.total_on_marktplaats + ' raw hits on Marktplaats)'
@@ -454,9 +539,18 @@ def app(environ, start_response):
             payload = json.loads(environ["wsgi.input"].read(length).decode())
             wish = (payload.get("wish") or "").strip()
             postcode = (payload.get("postcode") or "").strip()
+            action = (payload.get("action") or "").strip()
             if not wish:
                 raise ValueError("Empty search")
-            body = json.dumps(smart_search(wish, postcode)).encode()
+            if action == "parse":
+                parsed, notes = interpret(wish)
+                result = {"ai": bool(parsed), "parsed": parsed, "notes": notes}
+            elif action == "results":
+                result = smart_search(wish, postcode,
+                                      parsed=payload.get("parsed"))
+            else:  # single-call pipeline (curl-friendly)
+                result = smart_search(wish, postcode)
+            body = json.dumps(result).encode()
             status = "200 OK"
         except Exception as e:
             body = json.dumps({"error": str(e)}).encode()
