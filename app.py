@@ -382,69 +382,176 @@ HTML = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Robin-Bobin</title>
+<meta name="theme-color" content="#f7f4ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101311" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root { --accent: #2d6a4f; --bg: #f6f5f2; --card: #fff; --ink: #1b1b1b; --muted: #6b7280; }
+  :root {
+    --accent: #17805a; --accent-2: #0e5f41; --accent-ink: #0b5138;
+    --bg: #f7f4ec; --card: #ffffff; --ink: #1a1e1b; --muted: #6d746c;
+    --line: #e6e2d7; --field: #f3f0e8;
+    --ok-bg: #d9f2e4; --ok-ink: #0b5138;
+    --off-bg: #efece4; --off-ink: #9aa095;
+    --warn-bg: #fdeecb; --warn-ink: #8a5a10;
+    --shadow: 0 1px 2px rgba(26,30,27,.05), 0 14px 34px -18px rgba(26,30,27,.28);
+    --shadow-lift: 0 2px 4px rgba(26,30,27,.06), 0 22px 44px -18px rgba(26,30,27,.34);
+    --glow: rgba(23,128,90,.14);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --accent: #3ecf8e; --accent-2: #2cb377; --accent-ink: #7fe3b6;
+      --bg: #101311; --card: #191d1a; --ink: #e9ece7; --muted: #909a8e;
+      --line: #272c27; --field: #21261f;
+      --ok-bg: #143526; --ok-ink: #7fe3b6;
+      --off-bg: #20241f; --off-ink: #737b71;
+      --warn-bg: #3a2c10; --warn-ink: #e8b45a;
+      --shadow: 0 1px 2px rgba(0,0,0,.5), 0 16px 36px -18px rgba(0,0,0,.7);
+      --shadow-lift: 0 2px 4px rgba(0,0,0,.5), 0 24px 48px -18px rgba(0,0,0,.8);
+      --glow: rgba(62,207,142,.10);
+    }
+  }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--ink); }
-  .wrap { max-width: 880px; margin: 0 auto; padding: 24px 16px 64px; }
-  h1 { font-size: 26px; margin: 8px 0 2px; }
-  .sub { color: var(--muted); margin: 0 0 20px; }
-  form { display: grid; gap: 10px; }
-  textarea { width: 100%; min-height: 84px; padding: 12px; font: inherit; border: 1px solid #d1d5db;
-             border-radius: 10px; resize: vertical; background: var(--card); }
-  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-  input[type=text] { padding: 10px 12px; font: inherit; border: 1px solid #d1d5db; border-radius: 10px;
-                     width: 170px; background: var(--card); }
-  button { padding: 10px 22px; font: inherit; font-weight: 600; color: #fff; background: var(--accent);
-           border: 0; border-radius: 10px; cursor: pointer; }
-  button:disabled { opacity: .6; cursor: wait; }
-  .examples { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 2px; }
-  .ex-label { color: var(--muted); font-size: 13px; }
-  .ex { background: var(--card); border: 1px dashed #d1d5db; border-radius: 999px;
-        padding: 6px 14px; font-size: 13px; color: var(--muted); cursor: pointer;
-        text-align: left; font-weight: 400; }
-  .ex:hover { border-color: var(--accent); color: var(--accent); }
-  .interp { background: #e8f0ec; border-radius: 10px; padding: 12px 14px; margin: 18px 0 6px;
-            font-size: 14px; display: none; }
-  .interp b { color: var(--accent); }
-  .note { color: #92400e; background: #fef3c7; border-radius: 8px; padding: 8px 12px;
-          font-size: 13px; margin-top: 8px; }
-  .count { color: var(--muted); font-size: 14px; margin: 14px 2px; }
-  .card { display: flex; gap: 14px; background: var(--card); border-radius: 12px; padding: 12px;
-          margin-bottom: 10px; text-decoration: none; color: inherit; border: 1px solid #e5e7eb; }
-  .card:hover { border-color: var(--accent); }
-  .card img { width: 110px; height: 110px; object-fit: cover; border-radius: 8px; background: #eee; flex: none; }
-  .noimg { width: 110px; height: 110px; border-radius: 8px; background: #e5e7eb; flex: none;
-           display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 12px; }
-  .card h3 { margin: 0 0 4px; font-size: 16px; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; color: var(--ink);
+    font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+    background: radial-gradient(1100px 460px at 50% -120px, var(--glow), transparent 65%), var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1020px; margin: 0 auto; padding: 34px 18px 80px; }
+
+  .hero { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }
+  .logo {
+    width: 58px; height: 58px; flex: none; border-radius: 18px; font-size: 29px;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    box-shadow: 0 10px 24px -10px var(--accent); transform: rotate(-6deg);
+  }
+  h1 { font-size: clamp(26px, 5vw, 34px); font-weight: 800; letter-spacing: -.02em; margin: 0; }
+  .sub { color: var(--muted); margin: 3px 0 0; font-size: clamp(14px, 2.5vw, 16px); }
+
+  .panel {
+    background: var(--card); border: 1px solid var(--line); border-radius: 22px;
+    box-shadow: var(--shadow); padding: 14px; display: grid; gap: 12px;
+    transition: box-shadow .25s ease;
+  }
+  .panel:focus-within { box-shadow: var(--shadow-lift), 0 0 0 3px var(--glow); }
+  textarea {
+    width: 100%; min-height: 92px; padding: 12px 10px 0; font: inherit; font-size: 16px;
+    border: 0; outline: none; resize: vertical; background: transparent; color: var(--ink);
+  }
+  textarea::placeholder, input::placeholder { color: var(--muted); opacity: .75; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+         border-top: 1px solid var(--line); padding-top: 12px; }
+  input[type=text] {
+    padding: 12px 14px; font: inherit; font-size: 16px; border: 1px solid var(--line);
+    border-radius: 13px; width: 180px; background: var(--field); color: var(--ink); outline: none;
+    transition: border-color .15s ease;
+  }
+  input[type=text]:focus { border-color: var(--accent); }
+  #go {
+    margin-left: auto; padding: 12px 30px; font: inherit; font-size: 16px; font-weight: 700;
+    color: #fff; border: 0; border-radius: 13px; cursor: pointer;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    box-shadow: 0 10px 22px -10px var(--accent);
+    transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+  }
+  #go:hover { transform: translateY(-1px); filter: brightness(1.06); }
+  #go:active { transform: translateY(0); }
+  #go:disabled { opacity: .6; cursor: wait; transform: none; }
+
+  .examples { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ex-label { color: var(--muted); font-size: 13px; font-weight: 600;
+              text-transform: uppercase; letter-spacing: .06em; }
+  .ex {
+    background: transparent; border: 1px dashed var(--line); border-radius: 999px;
+    padding: 7px 14px; font: inherit; font-size: 13px; color: var(--muted); cursor: pointer;
+    text-align: left; transition: all .15s ease;
+  }
+  .ex:hover { border-color: var(--accent); border-style: solid; color: var(--accent);
+              background: var(--glow); }
+
+  .interp {
+    background: var(--ok-bg); color: var(--ok-ink); border-radius: 14px;
+    padding: 13px 16px; margin: 18px 0 6px; font-size: 14px; line-height: 1.55; display: none;
+    animation: pop .3s ease both;
+  }
+  .interp b { color: inherit; font-weight: 700; }
+  .note { color: var(--warn-ink); background: var(--warn-bg); border-radius: 12px;
+          padding: 10px 14px; font-size: 13px; margin-top: 8px; animation: pop .3s ease both; }
+  .count { color: var(--muted); font-size: 14px; margin: 16px 4px 12px; min-height: 1em; }
+  .count:empty { margin: 0; min-height: 0; }
+
+  #results { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  @media (min-width: 860px) { #results { grid-template-columns: 1fr 1fr; } }
+
+  .card {
+    display: flex; gap: 14px; background: var(--card); border-radius: 18px; padding: 13px;
+    text-decoration: none; color: inherit; border: 1px solid var(--line);
+    box-shadow: var(--shadow); animation: pop .35s ease both;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, opacity .3s ease;
+  }
+  .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift);
+                border-color: var(--accent); }
+  .card img, .noimg { width: 104px; height: 104px; object-fit: cover; border-radius: 12px;
+                      background: var(--field); flex: none; }
+  @media (min-width: 640px) { .card img, .noimg { width: 118px; height: 118px; } }
+  .noimg { display: flex; align-items: center; justify-content: center;
+           color: var(--muted); font-size: 12px; }
+  .card > div:last-child { min-width: 0; }
+  .card h3 { margin: 0 0 4px; font-size: 16px; font-weight: 700; line-height: 1.3;
+             display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .meta { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
-  .price { font-weight: 700; color: var(--accent); }
-  .why { font-size: 13px; color: #065f46; background: #d1fae5; border-radius: 6px;
-         padding: 2px 8px; display: inline-block; margin-top: 6px; }
-  .why.pending { color: #6b7280; background: #e5e7eb; }
-  .why.off { color: #9ca3af; background: #f3f4f6; }
-  .why.warn { color: #92400e; background: #fef3c7; }
-  .card.rejected { opacity: .35; }
-  .desc { font-size: 13px; color: #374151; margin: 2px 0 0;
+  .price { font-weight: 800; color: var(--accent-ink); }
+  .desc { font-size: 13px; color: var(--muted); margin: 2px 0 0; line-height: 1.45;
           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .spinner { display: none; margin: 30px auto; border: 4px solid #e5e7eb; border-top-color: var(--accent);
-             border-radius: 50%; width: 34px; height: 34px; animation: spin 1s linear infinite; }
+  .why { font-size: 12.5px; font-weight: 600; color: var(--ok-ink); background: var(--ok-bg);
+         border-radius: 8px; padding: 3px 10px; display: inline-block; margin-top: 8px; }
+  .why.pending { color: var(--muted); background: var(--field);
+                 position: relative; overflow: hidden; }
+  .why.pending::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(100deg, transparent 30%, var(--glow) 50%, transparent 70%);
+    animation: shimmer 1.3s infinite;
+  }
+  .why.off { color: var(--off-ink); background: var(--off-bg); }
+  .why.warn { color: var(--warn-ink); background: var(--warn-bg); }
+  .card.rejected { opacity: .38; filter: saturate(.3); box-shadow: none; }
+  .card.rejected:hover { opacity: .8; filter: none; }
+
+  .spinner { display: none; margin: 34px auto; border: 4px solid var(--line);
+             border-top-color: var(--accent); border-radius: 50%; width: 36px; height: 36px;
+             animation: spin .9s linear infinite; }
+  footer { text-align: center; color: var(--muted); font-size: 12.5px; margin-top: 56px; }
+
   @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .01s !important; transition-duration: .01s !important; }
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>&#128269; Robin-Bobin</h1>
-  <p class="sub">Say what you want. AI searches Marktplaats and throws away the trash.</p>
-  <form id="f">
+  <header class="hero">
+    <div class="logo">&#128269;</div>
+    <div>
+      <h1>Robin-Bobin</h1>
+      <p class="sub">Say what you want. AI searches Marktplaats and throws away the trash.</p>
+    </div>
+  </header>
+  <form id="f" class="panel">
     <textarea id="q" placeholder="e.g. wooden closet with drawers and hangers, about 1.5-2 meter height, within 15 minutes driving distance, max &euro;150"></textarea>
     <div class="row">
       <input type="text" id="pc" placeholder="Your postcode (1012AB)" autocomplete="postal-code">
       <button id="go" type="submit">Search</button>
     </div>
     <div class="examples">
-      <span class="ex-label">Try:</span>
+      <span class="ex-label">Try</span>
       <button type="button" class="ex">vintage bikes that are in a perfect condition under 30 minutes driving distance</button>
       <button type="button" class="ex">Louis Poulsen lamps in perfect condition between 1950 and 2005 under 30 minutes driving</button>
       <button type="button" class="ex">very cheap art (under 50 EUR), that could be worth 500 EUR at resale</button>
@@ -456,6 +563,7 @@ HTML = """<!doctype html>
   <div class="spinner" id="spin"></div>
   <div class="count" id="count"></div>
   <div id="results"></div>
+  <footer>Robin-Bobin eats through Marktplaats so you don't have to &middot; listings link to marktplaats.nl</footer>
 </div>
 <script>
 const f = document.getElementById('f');
