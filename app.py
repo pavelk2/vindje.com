@@ -22,6 +22,7 @@ just without the smart parsing/filtering.
 import json
 import os
 import re
+import urllib.error
 import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -32,15 +33,16 @@ PORT = int(os.environ.get("PORT", "8000"))
 
 OPENROUTER_BASE_URL = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
-# Free models, tried in order. Override with OPENROUTER_MODEL.
+# Free models, tried in order (best quality first, ending with OpenRouter's
+# own free-model router as a catch-all). Override with OPENROUTER_MODEL.
 FREE_MODELS = [
     m.strip()
     for m in os.environ.get(
         "OPENROUTER_MODEL",
-        "meta-llama/llama-3.3-70b-instruct:free,"
-        "deepseek/deepseek-chat-v3-0324:free,"
-        "google/gemma-3-27b-it:free,"
-        "mistralai/mistral-small-3.1-24b-instruct:free",
+        "z-ai/glm-5.2:free,"
+        "nvidia/nemotron-3-ultra-550b-a55b:free,"
+        "google/gemma-4-31b-it:free,"
+        "openrouter/free",
     ).split(",")
     if m.strip()
 ]
@@ -52,28 +54,36 @@ def llm(messages, max_tokens=2000):
         raise RuntimeError("OPENROUTER_API_KEY is not set")
     last_err = None
     for model in FREE_MODELS:
-        body = json.dumps(
-            {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": 0}
-        ).encode()
-        req = urllib.request.Request(
-            OPENROUTER_BASE_URL.rstrip("/") + "/chat/completions",
-            data=body,
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": "Bearer " + OPENROUTER_API_KEY,
-                "HTTP-Referer": "https://github.com/pavelk2/marktplaats",
-                "X-Title": "Marktplaats Smart Search",
-            },
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                data = json.loads(resp.read().decode())
-            text = data["choices"][0]["message"]["content"]
-            if text and text.strip():
-                return text
-            last_err = RuntimeError(f"{model}: empty response")
-        except Exception as e:  # rate-limited/unavailable free model -> try next
-            last_err = e
+        # Top free models are reasoning models; ask for low effort to keep
+        # searches snappy. If a model rejects that parameter, retry without it.
+        for extra in ({"reasoning": {"effort": "low"}}, {}):
+            payload = {"model": model, "messages": messages,
+                       "max_tokens": max_tokens, "temperature": 0, **extra}
+            req = urllib.request.Request(
+                OPENROUTER_BASE_URL.rstrip("/") + "/chat/completions",
+                data=json.dumps(payload).encode(),
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + OPENROUTER_API_KEY,
+                    "HTTP-Referer": "https://github.com/pavelk2/marktplaats",
+                    "X-Title": "Marktplaats Smart Search",
+                },
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=120) as resp:
+                    data = json.loads(resp.read().decode())
+                text = data["choices"][0]["message"]["content"]
+                if text and text.strip():
+                    return text
+                last_err = RuntimeError(f"{model}: empty response")
+                break  # empty answer won't improve without the reasoning param
+            except urllib.error.HTTPError as e:
+                last_err = e
+                if e.code != 400:
+                    break  # rate-limited/unavailable -> next model
+            except Exception as e:
+                last_err = e
+                break
     raise RuntimeError(f"All models failed, last error: {last_err}")
 
 
@@ -113,7 +123,7 @@ def parse_wish(wish):
             {"role": "system", "content": PARSE_PROMPT},
             {"role": "user", "content": wish},
         ],
-        max_tokens=500,
+        max_tokens=2000,
     )
 
 
@@ -225,7 +235,7 @@ def filter_listings(requirements, listings):
             {"role": "system", "content": FILTER_PROMPT % "\n".join("- " + r for r in requirements)},
             {"role": "user", "content": "\n".join(lines)},
         ],
-        max_tokens=3000,
+        max_tokens=6000,
     )
     matches = {}
     for m in result.get("matches", []):

@@ -40,7 +40,7 @@ without the smart parsing and filtering.
 | Variable | Default | Purpose |
 |---|---|---|
 | `OPENROUTER_API_KEY` | — | Your OpenRouter key (free tier is enough) |
-| `OPENROUTER_MODEL` | a list of free models | Comma-separated models to try in order |
+| `OPENROUTER_MODEL` | `z-ai/glm-5.2:free`, then `nvidia/nemotron-3-ultra-550b-a55b:free`, `google/gemma-4-31b-it:free`, `openrouter/free` | Comma-separated models to try in order |
 | `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` | Any OpenAI-compatible endpoint |
 | `PORT` | `8000` | HTTP port |
 
