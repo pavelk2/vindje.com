@@ -228,9 +228,9 @@ FILTER_CHUNK = 15  # listings per LLM call; chunks are checked concurrently
 def _filter_chunk(requirements, listings, base):
     lines = []
     for i, l in enumerate(listings):
-        desc = l["description"][:300]
-        attrs = "; ".join(l["attributes"][:8])
-        lines.append(f"[{base + i}] {l['title']} | {desc} | {attrs}")
+        desc = str(l.get("description") or "")[:300]
+        attrs = "; ".join(str(a) for a in (l.get("attributes") or [])[:8])
+        lines.append(f"[{base + i}] {l.get('title', '')} | {desc} | {attrs}")
     result = llm_json(
         [
             {"role": "system", "content": FILTER_PROMPT % "\n".join("- " + r for r in requirements)},
@@ -305,13 +305,9 @@ def interpret(wish):
     return parsed, notes
 
 
-def smart_search(wish, postcode, parsed=_UNSET, notes=None):
-    """Phase 2: search Marktplaats and AI-filter. Runs phase 1 first unless a
-    pre-parsed result (possibly None) is handed in."""
-    if parsed is _UNSET:
-        parsed, notes = interpret(wish)
-    notes = list(notes or [])
-
+def search_params(parsed, wish, postcode):
+    """Turn a parsed wish (or None) into Marktplaats search parameters."""
+    notes = []
     if isinstance(parsed, dict):
         terms = parsed.get("search_terms") or wish
         distance = _num(parsed.get("distance_meters"))
@@ -319,13 +315,26 @@ def smart_search(wish, postcode, parsed=_UNSET, notes=None):
         price_max = _num(parsed.get("price_max_euro"))
         requirements = parsed.get("requirements") or []
     else:
-        parsed = None
         terms, distance, price_min, price_max, requirements = wish, None, None, None, []
-
     if distance and not postcode:
         notes.append("Your wish limits distance but no postcode was given — "
                      "add your postcode to enable the radius filter.")
         distance = None
+    return terms, distance, price_min, price_max, requirements, notes
+
+
+def smart_search(wish, postcode, parsed=_UNSET, notes=None):
+    """Phase 2: search Marktplaats and AI-filter. Runs phase 1 first unless a
+    pre-parsed result (possibly None) is handed in."""
+    if parsed is _UNSET:
+        parsed, notes = interpret(wish)
+    notes = list(notes or [])
+    if not isinstance(parsed, dict):
+        parsed = None
+
+    terms, distance, price_min, price_max, requirements, pnotes = \
+        search_params(parsed, wish, postcode)
+    notes.extend(pnotes)
 
     listings, total = search_marktplaats(
         terms, postcode=postcode, distance_meters=distance,
@@ -407,6 +416,10 @@ HTML = """<!doctype html>
   .price { font-weight: 700; color: var(--accent); }
   .why { font-size: 13px; color: #065f46; background: #d1fae5; border-radius: 6px;
          padding: 2px 8px; display: inline-block; margin-top: 6px; }
+  .why.pending { color: #6b7280; background: #e5e7eb; }
+  .why.off { color: #9ca3af; background: #f3f4f6; }
+  .why.warn { color: #92400e; background: #fef3c7; }
+  .card.rejected { opacity: .35; }
   .desc { font-size: 13px; color: #374151; margin: 2px 0 0;
           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .spinner { display: none; margin: 30px auto; border: 4px solid #e5e7eb; border-top-color: var(--accent);
@@ -444,6 +457,7 @@ function post(body) {
 }
 
 let baseNotes = [];
+let state = {listings: [], total: 0, matched: 0, rejected: 0, failed: 0, checked: 0};
 
 f.addEventListener('submit', async e => {
   e.preventDefault();
@@ -472,10 +486,25 @@ f.addEventListener('submit', async e => {
     baseNotes = p.notes || [];
     showInterp(p.parsed, p.ai);
     showNotes([]);
-    stage = '&#128269; Searching Marktplaats &amp; AI-checking listings&hellip;';
-    const d = await post({action: 'results', wish: q, postcode: pc, parsed: p.parsed});
+    stage = '&#128269; Searching Marktplaats&hellip;';
+    const d = await post({action: 'find', wish: q, postcode: pc, parsed: p.parsed});
     if (d.error) throw new Error(d.error);
-    render(d);
+    baseNotes = baseNotes.concat(d.notes || []);
+    showNotes([]);
+    const listings = d.listings || [];
+    const reqs = d.requirements || [];
+    state = {listings: listings, total: d.total_on_marktplaats,
+             matched: 0, rejected: 0, failed: 0, checked: 0};
+    const checking = p.ai && reqs.length > 0 && listings.length > 0;
+    renderCards(listings, checking);
+    document.getElementById('spin').style.display = 'none';
+    updateCount(checking);
+    if (checking) {
+      stage = '&#129302; AI-checking ' + listings.length + ' listings&hellip;';
+      await checkAll(listings, reqs);
+      finishOrder(listings);
+      updateCount(true);
+    }
   } catch (err) {
     document.getElementById('notes').innerHTML += '<div class="note">Error: ' + esc(err.message) + '</div>';
   } finally {
@@ -485,6 +514,91 @@ f.addEventListener('submit', async e => {
     document.getElementById('spin').style.display = 'none';
   }
 });
+
+async function checkAll(listings, reqs) {
+  const B = 15, batches = [];
+  for (let i = 0; i < listings.length; i += B) batches.push(listings.slice(i, i + B));
+  let next = 0;
+  async function worker() {
+    while (next < batches.length) {
+      const batch = batches[next++];
+      try {
+        const r = await post({action: 'check', requirements: reqs,
+          listings: batch.map(l => ({id: l.id, title: l.title,
+            description: l.description, attributes: l.attributes}))});
+        if (r.error) throw new Error(r.error);
+        for (const l of batch) applyVerdict(l, r.matches ? r.matches[l.id] : undefined, false);
+      } catch (err) {
+        for (const l of batch) applyVerdict(l, undefined, true);
+      }
+      updateCount(true);
+    }
+  }
+  await Promise.all([worker(), worker()]);  // 2 at a time: free tiers rate-limit
+}
+
+function applyVerdict(l, why, failed) {
+  const badge = document.getElementById('b-' + l.id);
+  const card = document.getElementById('c-' + l.id);
+  state.checked++;
+  if (!badge || !card) return;
+  if (failed) {
+    state.failed++; l._u = 1;
+    badge.className = 'why warn';
+    badge.innerHTML = '&#9888; could not check (AI overloaded) &mdash; judge for yourself';
+  } else if (why !== undefined) {
+    state.matched++; l._m = 1;
+    badge.className = 'why';
+    badge.innerHTML = '&#10003; ' + (why ? esc(why) : 'matches your requirements');
+  } else {
+    state.rejected++; l._r = 1;
+    card.classList.add('rejected');
+    badge.className = 'why off';
+    badge.innerHTML = '&#10007; not a match';
+  }
+}
+
+function finishOrder(listings) {
+  // matched first, then unchecked, rejected last
+  const res = document.getElementById('results');
+  const order = listings.filter(l => l._m)
+    .concat(listings.filter(l => l._u), listings.filter(l => l._r));
+  for (const l of order) {
+    const c = document.getElementById('c-' + l.id);
+    if (c) res.appendChild(c);
+  }
+}
+
+function updateCount(checking) {
+  const s = state, el = document.getElementById('count');
+  if (!checking) {
+    el.textContent = s.listings.length + ' listings (of ' + s.total + ' hits on Marktplaats)';
+    return;
+  }
+  let parts = ['&#10003; ' + s.matched + ' match(es)', s.rejected + ' filtered out'];
+  if (s.failed) parts.push(s.failed + ' unchecked');
+  let txt = parts.join(' &middot; ');
+  if (s.checked < s.listings.length) {
+    txt += ' &middot; AI is checking ' + (s.listings.length - s.checked) + ' more&hellip;';
+  } else {
+    txt += ' &middot; done (' + s.listings.length + ' scanned, ' + s.total + ' raw hits)';
+  }
+  el.innerHTML = txt;
+}
+
+function renderCards(listings, checking) {
+  document.getElementById('results').innerHTML = listings.map(l => `
+    <a class="card" id="c-${esc(l.id)}" href="${esc(l.url)}" target="_blank" rel="noopener">
+      ${l.image ? `<img src="${esc(l.image)}" alt="" loading="lazy">` : '<div class="noimg">no photo</div>'}
+      <div>
+        <h3>${esc(l.title)}</h3>
+        <div class="meta"><span class="price">${esc(l.price)}</span>
+          &middot; ${esc(l.city)}${l.distance_km != null ? ' &middot; ' + l.distance_km + ' km' : ''}</div>
+        <div class="desc">${esc(l.description)}</div>
+        ${checking ? `<span class="why pending" id="b-${esc(l.id)}">&#8987; AI checking&hellip;</span>` : ''}
+      </div>
+    </a>`).join('');
+}
 document.getElementById('pc').value = localStorage.getItem('pc') || '';
 
 function showInterp(i, ai) {
@@ -505,25 +619,6 @@ function showNotes(notes) {
     baseNotes.concat(notes || []).map(n => '<div class="note">' + esc(n) + '</div>').join('');
 }
 
-function render(d) {
-  showInterp(d.interpreted, d.ai);
-  showNotes(d.notes);
-  document.getElementById('count').textContent = d.ai
-    ? d.results.length + ' match(es) after AI-checking ' + d.scanned +
-      ' listings (of ' + d.total_on_marktplaats + ' raw hits on Marktplaats)'
-    : d.results.length + ' listings (of ' + d.total_on_marktplaats + ' hits)';
-  document.getElementById('results').innerHTML = d.results.map(l => `
-    <a class="card" href="${esc(l.url)}" target="_blank" rel="noopener">
-      ${l.image ? `<img src="${esc(l.image)}" alt="" loading="lazy">` : '<div class="noimg">no photo</div>'}
-      <div>
-        <h3>${esc(l.title)}</h3>
-        <div class="meta"><span class="price">${esc(l.price)}</span>
-          &middot; ${esc(l.city)}${l.distance_km != null ? ' &middot; ' + l.distance_km + ' km' : ''}</div>
-        <div class="desc">${esc(l.description)}</div>
-        ${l.why ? `<div class="why">&#10003; ${esc(l.why)}</div>` : ''}
-      </div>
-    </a>`).join('');
-}
 </script>
 </body>
 </html>"""
@@ -540,11 +635,30 @@ def app(environ, start_response):
             wish = (payload.get("wish") or "").strip()
             postcode = (payload.get("postcode") or "").strip()
             action = (payload.get("action") or "").strip()
-            if not wish:
+            if action == "check":
+                # validate one batch of listings against the requirements
+                requirements = [str(r) for r in (payload.get("requirements") or [])]
+                items = [i for i in (payload.get("listings") or [])
+                         if isinstance(i, dict)]
+                if not items:
+                    raise ValueError("No listings to check")
+                matches = _filter_chunk(requirements, items, 0)
+                result = {"matches": {str(items[n].get("id")): why
+                                      for n, why in matches.items()}}
+            elif not wish:
                 raise ValueError("Empty search")
-            if action == "parse":
+            elif action == "parse":
                 parsed, notes = interpret(wish)
                 result = {"ai": bool(parsed), "parsed": parsed, "notes": notes}
+            elif action == "find":
+                # search Marktplaats only — fast, no AI calls
+                terms, distance, pmin, pmax, reqs, notes = search_params(
+                    payload.get("parsed"), wish, postcode)
+                listings, total = search_marktplaats(
+                    terms, postcode=postcode, distance_meters=distance,
+                    price_min_euro=pmin, price_max_euro=pmax)
+                result = {"listings": listings, "total_on_marktplaats": total,
+                          "requirements": reqs, "notes": notes}
             elif action == "results":
                 result = smart_search(wish, postcode,
                                       parsed=payload.get("parsed"))
