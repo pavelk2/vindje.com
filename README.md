@@ -1,4 +1,6 @@
-# Marktplaats Smart Search
+# Robin-Bobin
+
+Smart search for Marktplaats.
 
 Marktplaats is littered with ads and inapplicable listings. Here you just say:
 

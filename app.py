@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Marktplaats Smart Search — describe what you want in plain language,
-get only the listings that actually match.
+Robin-Bobin — smart search for Marktplaats: describe what you want in
+plain language, get only the listings that actually match.
 
 How it works (single file, zero dependencies, Python 3.8+):
   1. A free LLM (via OpenRouter) turns your wish into a structured
@@ -66,7 +66,7 @@ def llm(messages, max_tokens=2000):
                     "Content-Type": "application/json",
                     "Authorization": "Bearer " + OPENROUTER_API_KEY,
                     "HTTP-Referer": "https://github.com/pavelk2/marktplaats",
-                    "X-Title": "Marktplaats Smart Search",
+                    "X-Title": "Robin-Bobin",
                 },
             )
             try:
@@ -381,7 +381,7 @@ HTML = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Marktplaats Smart Search</title>
+<title>Robin-Bobin</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
 <style>
   :root { --accent: #2d6a4f; --bg: #f6f5f2; --card: #fff; --ink: #1b1b1b; --muted: #6b7280; }
@@ -435,7 +435,7 @@ HTML = """<!doctype html>
 </head>
 <body>
 <div class="wrap">
-  <h1>&#128269; Marktplaats Smart Search</h1>
+  <h1>&#128269; Robin-Bobin</h1>
   <p class="sub">Say what you want. AI searches Marktplaats and throws away the trash.</p>
   <form id="f">
     <textarea id="q" placeholder="e.g. wooden closet with drawers and hangers, about 1.5-2 meter height, within 15 minutes driving distance, max &euro;150"></textarea>
@@ -708,7 +708,7 @@ if __name__ == "__main__":
         def log_message(self, fmt, *args):
             pass
 
-    print(f"Marktplaats Smart Search → http://localhost:{PORT}")
+    print(f"Robin-Bobin → http://localhost:{PORT}")
     if not OPENROUTER_API_KEY:
         print("!! OPENROUTER_API_KEY not set: plain search only, no AI. "
               "Get a free key at https://openrouter.ai/keys")
