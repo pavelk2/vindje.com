@@ -386,107 +386,131 @@ HTML = """<!doctype html>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
 <style>
   :root {
-    --ink: #1d1d1f; --muted: #6e6e73;
+    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
     --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
   }
   * { box-sizing: border-box; }
+  ::selection { background: var(--ink); color: #fff; }
   body {
     margin: 0; background: #fff; color: var(--ink);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
                  system-ui, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
   }
-  .wrap { max-width: 960px; margin: 0 auto; padding: 56px 20px 96px; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px 110px; }
 
-  h1 { font-size: clamp(32px, 6vw, 44px); font-weight: 700; letter-spacing: -.022em;
-       margin: 0 0 8px; }
-  .sub { color: var(--muted); font-size: clamp(15px, 2.5vw, 17px); margin: 0 0 36px;
-         letter-spacing: -.01em; }
+  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
 
-  form { display: grid; gap: 12px; }
-  textarea {
-    width: 100%; min-height: 100px; padding: 18px; font: inherit; font-size: 17px;
-    letter-spacing: -.01em; border: 0; border-radius: 18px; resize: vertical;
-    background: var(--field); color: var(--ink); outline: none;
-    transition: box-shadow .15s ease;
+  .hero { max-width: 660px; margin: 0 auto; }
+  h1 {
+    font-size: clamp(38px, 7.5vw, 62px); font-weight: 700; letter-spacing: -.035em;
+    line-height: 1.04; text-align: center; margin: clamp(48px, 9vh, 88px) 0 30px;
   }
-  textarea:focus { box-shadow: 0 0 0 1.5px var(--ink); }
-  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+  .box {
+    background: var(--field); border-radius: 26px; padding: 6px;
+    transition: box-shadow .18s ease;
+  }
+  .box:focus-within { box-shadow: 0 0 0 1.5px var(--ink); }
+  textarea {
+    width: 100%; min-height: 86px; padding: 16px 16px 4px; font: inherit;
+    font-size: 17px; letter-spacing: -.01em; line-height: 1.45; border: 0;
+    resize: none; background: transparent; color: var(--ink); outline: none;
+  }
+  textarea::placeholder, input::placeholder { color: var(--muted); }
+  .boxrow { display: flex; align-items: center; gap: 8px; padding: 6px; }
   input[type=text] {
-    padding: 12px 16px; font: inherit; font-size: 16px; border: 0; border-radius: 980px;
-    width: 180px; background: var(--field); color: var(--ink); outline: none;
-    transition: box-shadow .15s ease;
+    padding: 10px 16px; font: inherit; font-size: 15px; border: 0;
+    border-radius: 980px; width: 132px; background: #fff; color: var(--ink);
+    outline: none; transition: box-shadow .15s ease;
   }
   input[type=text]:focus { box-shadow: 0 0 0 1.5px var(--ink); }
   #go {
-    margin-left: auto; padding: 12px 30px; font: inherit; font-size: 16px; font-weight: 600;
-    color: #fff; background: var(--ink); border: 0; border-radius: 980px; cursor: pointer;
+    margin-left: auto; padding: 11px 26px; font: inherit; font-size: 15px;
+    font-weight: 600; color: #fff; background: var(--ink); border: 0;
+    border-radius: 980px; cursor: pointer;
     transition: opacity .15s ease, transform .1s ease;
   }
   #go:hover { opacity: .85; }
-  #go:active { transform: scale(.98); }
-  #go:disabled { opacity: .4; cursor: wait; transform: none; }
+  #go:active { transform: scale(.97); }
+  #go:disabled { opacity: .35; cursor: wait; transform: none; }
 
-  .examples { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
-  .ex-label { color: var(--muted); font-size: 13px; }
+  .examples { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+              margin-top: 16px; }
   .ex {
-    background: transparent; border: 1px solid var(--line2); border-radius: 980px;
-    padding: 7px 14px; font: inherit; font-size: 13px; color: var(--muted); cursor: pointer;
-    text-align: left; transition: color .15s ease, border-color .15s ease;
+    background: transparent; border: 1px solid var(--line); border-radius: 980px;
+    padding: 7px 15px; font: inherit; font-size: 13px; color: var(--muted);
+    cursor: pointer; transition: color .15s ease, border-color .15s ease;
   }
   .ex:hover { color: var(--ink); border-color: var(--ink); }
 
-  .interp { background: var(--field); border-radius: 14px; padding: 14px 18px;
-            margin: 28px 0 4px; font-size: 15px; line-height: 1.55; color: var(--muted);
-            display: none; animation: rise .3s ease both; }
-  .interp b { color: var(--ink); font-weight: 600; }
-  .note { background: var(--field); color: var(--ink); border-radius: 12px;
-          padding: 11px 16px; font-size: 13px; margin-top: 8px; animation: rise .3s ease both; }
-  .count { color: var(--muted); font-size: 14px; margin: 20px 2px 14px; min-height: 1em;
-           letter-spacing: -.01em; }
-  .count:empty { margin: 0; min-height: 0; }
+  .interp { display: none; flex-wrap: wrap; gap: 7px; justify-content: center;
+            margin: 26px 0 0; animation: rise .35s ease both; }
+  .tok {
+    font-size: 13px; padding: 6px 13px; border-radius: 980px;
+    border: 1px solid var(--line2); color: var(--body); background: #fff;
+  }
+  .tok.dark { background: var(--ink); border-color: var(--ink); color: #fff;
+              font-weight: 500; }
+
+  .note { background: var(--field); color: var(--body); border-radius: 12px;
+          padding: 11px 16px; font-size: 13px; margin: 14px auto 0;
+          max-width: 560px; text-align: center; animation: rise .3s ease both; }
+  #status { text-align: center; margin-top: 22px; }
+  .count { color: var(--muted); font-size: 14px; letter-spacing: -.01em;
+           min-height: 1em; }
+  .count:empty { min-height: 0; margin: 0; }
+
+  .spinner { display: none; margin: 36px auto 0; border: 2px solid var(--line);
+             border-top-color: var(--ink); border-radius: 50%; width: 26px;
+             height: 26px; animation: spin .7s linear infinite; }
+
+  .results-sec { margin-top: 44px; }
+  .bar { height: 2px; background: var(--line); border-radius: 2px; overflow: hidden;
+         margin: 0 1px 16px; opacity: 0; transition: opacity .4s ease; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--ink);
+           transition: width .45s ease; }
+  #count { margin: 0 2px 16px; }
 
   #results { display: grid; grid-template-columns: 1fr; gap: 12px; }
   @media (min-width: 860px) { #results { grid-template-columns: 1fr 1fr; } }
 
   .card {
-    display: flex; gap: 14px; background: #fff; border-radius: 18px; padding: 14px;
+    display: flex; gap: 15px; background: #fff; border-radius: 20px; padding: 13px;
     text-decoration: none; color: inherit; border: 1px solid var(--line);
     animation: rise .3s ease both;
-    transition: box-shadow .18s ease, border-color .18s ease, opacity .25s ease;
+    transition: box-shadow .18s ease, border-color .18s ease, opacity .3s ease;
   }
-  .card:hover { border-color: var(--line2); box-shadow: 0 8px 30px rgba(0,0,0,.07); }
-  .card img, .noimg { width: 100px; height: 100px; object-fit: cover; border-radius: 12px;
-                      background: var(--field); flex: none; }
-  @media (min-width: 640px) { .card img, .noimg { width: 116px; height: 116px; } }
+  .card:hover { border-color: var(--line2); box-shadow: 0 10px 34px rgba(0,0,0,.08); }
+  .card img, .noimg { width: 104px; height: 104px; object-fit: cover;
+                      border-radius: 13px; background: var(--field); flex: none; }
+  @media (min-width: 640px) { .card img, .noimg { width: 122px; height: 122px; } }
   .noimg { display: flex; align-items: center; justify-content: center;
-           color: var(--line2); font-size: 12px; }
-  .card > div:last-child { min-width: 0; }
-  .card h3 { margin: 0 0 4px; font-size: 16px; font-weight: 600; letter-spacing: -.015em;
-             line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2;
+           color: var(--line2); font-size: 11px; }
+  .card > div:last-child { min-width: 0; align-self: center; }
+  .card h3 { margin: 0 0 3px; font-size: 15.5px; font-weight: 600;
+             letter-spacing: -.015em; line-height: 1.32;
+             display: -webkit-box; -webkit-line-clamp: 2;
              -webkit-box-orient: vertical; overflow: hidden; }
-  .meta { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 3px; }
   .price { font-weight: 600; color: var(--ink); }
   .desc { font-size: 13px; color: var(--muted); margin: 2px 0 0; line-height: 1.5;
           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
           overflow: hidden; }
-  .why { font-size: 12px; font-weight: 500; color: #fff; background: var(--ink);
-         border-radius: 980px; padding: 4px 12px; display: inline-block; margin-top: 8px; }
-  .why.pending { color: var(--muted); background: var(--field); animation: fade 1.4s ease infinite; }
-  .why.off { color: var(--muted); background: transparent; border: 1px solid var(--line);
-             padding: 3px 11px; }
-  .why.warn { color: var(--muted); background: transparent; border: 1px dashed var(--line2);
-              padding: 3px 11px; }
-  .card.rejected { opacity: .3; }
-  .card.rejected:hover { opacity: .7; }
 
-  .spinner { display: none; margin: 40px auto; border: 3px solid var(--line);
-             border-top-color: var(--ink); border-radius: 50%; width: 30px; height: 30px;
-             animation: spin .8s linear infinite; }
+  .why { font-size: 12.5px; margin-top: 8px; display: inline-flex; gap: 6px;
+         align-items: baseline; color: var(--muted); line-height: 1.4; }
+  .why b { color: var(--ink); font-weight: 700; }
+  .why.pending { animation: fade 1.5s ease infinite; }
+  .why.warn { border: 1px dashed var(--line2); border-radius: 980px;
+              padding: 3px 11px; }
+  .card.rejected { opacity: .28; }
+  .card.rejected:hover { opacity: .75; }
 
   @keyframes spin { to { transform: rotate(360deg); } }
-  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-  @keyframes fade { 50% { opacity: .45; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(7px); }
+                    to { opacity: 1; transform: none; } }
+  @keyframes fade { 50% { opacity: .4; } }
   @media (prefers-reduced-motion: reduce) {
     * { animation-duration: .01s !important; transition-duration: .01s !important; }
   }
@@ -494,27 +518,33 @@ HTML = """<!doctype html>
 </head>
 <body>
 <div class="wrap">
-  <h1>Robin-Bobin</h1>
-  <p class="sub">Describe what you want. Get only the Marktplaats listings that match.</p>
-  <form id="f">
-    <textarea id="q" placeholder="Wooden closet with drawers and hangers, about 1.5&ndash;2 m tall, within 15 minutes driving, max &euro;150"></textarea>
-    <div class="row">
-      <input type="text" id="pc" placeholder="Postcode" autocomplete="postal-code">
-      <button id="go" type="submit">Search</button>
-    </div>
-    <div class="examples">
-      <span class="ex-label">Try</span>
-      <button type="button" class="ex">vintage bikes that are in a perfect condition under 30 minutes driving distance</button>
-      <button type="button" class="ex">Louis Poulsen lamps in perfect condition between 1950 and 2005 under 30 minutes driving</button>
-      <button type="button" class="ex">very cheap art (under 50 EUR), that could be worth 500 EUR at resale</button>
-    </div>
-  </form>
-  <div class="interp" id="interp"></div>
-  <div id="notes"></div>
-  <div class="count" id="status"></div>
-  <div class="spinner" id="spin"></div>
-  <div class="count" id="count"></div>
-  <div id="results"></div>
+  <div class="top">Robin-Bobin</div>
+  <section class="hero">
+    <h1>Say it. Find it.</h1>
+    <form id="f">
+      <div class="box">
+        <textarea id="q" rows="3" placeholder="Wooden closet with drawers and hangers, about 1.5&ndash;2 m tall, within 15 minutes driving, max &euro;150"></textarea>
+        <div class="boxrow">
+          <input type="text" id="pc" placeholder="Postcode" autocomplete="postal-code">
+          <button id="go" type="submit">Search</button>
+        </div>
+      </div>
+      <div class="examples">
+        <button type="button" class="ex" data-q="vintage bikes that are in a perfect condition under 30 minutes driving distance">Vintage bike, perfect condition</button>
+        <button type="button" class="ex" data-q="Louis Poulsen lamps in perfect condition between 1950 and 2005 under 30 minutes driving">Louis Poulsen lamp, 1950&ndash;2005</button>
+        <button type="button" class="ex" data-q="very cheap art (under 50 EUR), that could be worth 500 EUR at resale">Cheap art worth 10&times; at resale</button>
+      </div>
+    </form>
+    <div class="interp" id="interp"></div>
+    <div id="notes"></div>
+    <div class="count" id="status"></div>
+    <div class="spinner" id="spin"></div>
+  </section>
+  <section class="results-sec">
+    <div class="bar" id="bar"><i></i></div>
+    <div class="count" id="count"></div>
+    <div id="results"></div>
+  </section>
 </div>
 <script>
 const f = document.getElementById('f');
@@ -542,6 +572,9 @@ f.addEventListener('submit', async e => {
   document.getElementById('count').textContent = '';
   document.getElementById('notes').innerHTML = '';
   document.getElementById('interp').style.display = 'none';
+  const bar0 = document.getElementById('bar');
+  bar0.style.opacity = 0;
+  bar0.firstElementChild.style.width = '0';
   baseNotes = [];
   const statusEl = document.getElementById('status');
   const t0 = Date.now();
@@ -620,12 +653,11 @@ function applyVerdict(l, why, failed) {
   } else if (why !== undefined) {
     state.matched++; l._m = 1;
     badge.className = 'why';
-    badge.innerHTML = '&#10003; ' + (why ? esc(why) : 'matches your requirements');
+    badge.innerHTML = '<b>&#10003;</b> ' + (why ? esc(why) : 'Matches');
   } else {
     state.rejected++; l._r = 1;
     card.classList.add('rejected');
-    badge.className = 'why off';
-    badge.innerHTML = 'Not a match';
+    badge.remove();
   }
 }
 
@@ -642,17 +674,23 @@ function finishOrder(listings) {
 
 function updateCount(checking) {
   const s = state, el = document.getElementById('count');
+  const bar = document.getElementById('bar');
   if (!checking) {
-    el.textContent = s.listings.length + ' listings (of ' + s.total + ' hits on Marktplaats)';
+    el.textContent = s.listings.length + ' listings &middot; ' + s.total + ' hits on Marktplaats';
+    el.innerHTML = el.textContent;
     return;
   }
-  let parts = [s.matched + ' matches', s.rejected + ' filtered out'];
+  bar.style.opacity = 1;
+  bar.firstElementChild.style.width =
+    Math.round(s.checked / s.listings.length * 100) + '%';
+  let parts = [s.matched + (s.matched === 1 ? ' match' : ' matches'),
+               s.rejected + ' filtered out'];
   if (s.failed) parts.push(s.failed + ' unchecked');
   let txt = parts.join(' &middot; ');
   if (s.checked < s.listings.length) {
     txt += ' &middot; checking ' + (s.listings.length - s.checked) + ' more&hellip;';
   } else {
-    txt += ' &middot; ' + s.listings.length + ' scanned of ' + s.total + ' hits';
+    setTimeout(() => { bar.style.opacity = 0; }, 700);
   }
   el.innerHTML = txt;
 }
@@ -674,21 +712,29 @@ document.getElementById('pc').value = localStorage.getItem('pc') || '';
 
 document.querySelectorAll('.ex').forEach(b => b.addEventListener('click', () => {
   const q = document.getElementById('q');
-  q.value = b.textContent.trim();
+  q.value = b.dataset.q || b.textContent.trim();
   q.focus();
 }));
 
+document.getElementById('q').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    f.requestSubmit();
+  }
+});
+
 function showInterp(i, ai) {
   if (!ai || !i) return;
-  let parts = ['Searching for <b>' + esc(i.search_terms) + '</b>'];
-  if (i.price_min_euro != null || i.price_max_euro != null)
-    parts.push('price <b>' + (i.price_min_euro ?? 0) + ' &ndash; ' + (i.price_max_euro ?? '&infin;') + ' &euro;</b>');
-  if (i.distance_meters) parts.push('within <b>' + (i.distance_meters / 1000) + ' km</b>');
-  if ((i.requirements || []).length)
-    parts.push('must match: <b>' + i.requirements.map(esc).join('</b>, <b>') + '</b>');
+  const t = ['<span class="tok dark">' + esc(i.search_terms) + '</span>'];
+  const lo = i.price_min_euro, hi = i.price_max_euro;
+  if (lo != null && hi != null) t.push('<span class="tok">&euro;' + lo + '&ndash;' + hi + '</span>');
+  else if (hi != null) t.push('<span class="tok">under &euro;' + hi + '</span>');
+  else if (lo != null) t.push('<span class="tok">from &euro;' + lo + '</span>');
+  if (i.distance_meters) t.push('<span class="tok">within ' + (i.distance_meters / 1000) + ' km</span>');
+  (i.requirements || []).forEach(r => t.push('<span class="tok">' + esc(r) + '</span>'));
   const el = document.getElementById('interp');
-  el.innerHTML = parts.join(' &middot; ');
-  el.style.display = 'block';
+  el.innerHTML = t.join('');
+  el.style.display = 'flex';
 }
 
 function showNotes(notes) {
