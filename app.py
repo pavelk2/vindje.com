@@ -399,6 +399,12 @@ HTML = """<!doctype html>
   button { padding: 10px 22px; font: inherit; font-weight: 600; color: #fff; background: var(--accent);
            border: 0; border-radius: 10px; cursor: pointer; }
   button:disabled { opacity: .6; cursor: wait; }
+  .examples { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 2px; }
+  .ex-label { color: var(--muted); font-size: 13px; }
+  .ex { background: var(--card); border: 1px dashed #d1d5db; border-radius: 999px;
+        padding: 6px 14px; font-size: 13px; color: var(--muted); cursor: pointer;
+        text-align: left; font-weight: 400; }
+  .ex:hover { border-color: var(--accent); color: var(--accent); }
   .interp { background: #e8f0ec; border-radius: 10px; padding: 12px 14px; margin: 18px 0 6px;
             font-size: 14px; display: none; }
   .interp b { color: var(--accent); }
@@ -436,6 +442,12 @@ HTML = """<!doctype html>
     <div class="row">
       <input type="text" id="pc" placeholder="Your postcode (1012AB)" autocomplete="postal-code">
       <button id="go" type="submit">Search</button>
+    </div>
+    <div class="examples">
+      <span class="ex-label">Try:</span>
+      <button type="button" class="ex">vintage bikes that are in a perfect condition under 30 minutes driving distance</button>
+      <button type="button" class="ex">Louis Poulsen lamps in perfect condition between 1950 and 2005 under 30 minutes driving</button>
+      <button type="button" class="ex">very cheap art (under 50 EUR), that could be worth 500 EUR at resale</button>
     </div>
   </form>
   <div class="interp" id="interp"></div>
@@ -600,6 +612,12 @@ function renderCards(listings, checking) {
     </a>`).join('');
 }
 document.getElementById('pc').value = localStorage.getItem('pc') || '';
+
+document.querySelectorAll('.ex').forEach(b => b.addEventListener('click', () => {
+  const q = document.getElementById('q');
+  q.value = b.textContent.trim();
+  q.focus();
+}));
 
 function showInterp(i, ai) {
   if (!ai || !i) return;
