@@ -1,8 +1,9 @@
 # Robin-Bobin
 
-Smart search for Marktplaats.
+Smart search for Dutch second-hand marketplaces: **Marktplaats**,
+**Reliving**, **VNTG** and **Whoppah** — in one go.
 
-Marktplaats is littered with ads and inapplicable listings. Here you just say:
+Marketplaces are littered with ads and inapplicable listings. Here you just say:
 
 > *"wooden closet with drawers and hangers of about 1.5-2 meter height, within
 > 15 minutes driving distance"*
@@ -13,9 +14,12 @@ searching through trash.
 ## How it works
 
 1. **Parse** — a free LLM (via [OpenRouter](https://openrouter.ai)) turns your
-   wish (any language) into a real Marktplaats search: Dutch keywords, price
+   wish (any language) into a real search: Dutch + English keywords, price
    range, and a search radius (it even converts "15 minutes driving" into km).
-2. **Search** — the app queries Marktplaats' own search API with those filters.
+2. **Search** — the app queries Marktplaats' own search API with those filters,
+   and in parallel searches Reliving, VNTG and Whoppah (Dutch keywords for the
+   Dutch-first sites, English for VNTG). Results are merged, each card labeled
+   with its marketplace.
 3. **Filter** — the LLM reads every returned listing (title, description,
    attributes) and keeps only the ones that actually satisfy your requirements,
    each with a one-line reason.
@@ -34,8 +38,8 @@ OPENROUTER_API_KEY=sk-or-... python3 app.py
 Type what you want, add your postcode (needed for the distance filter), hit
 Search.
 
-Without an API key the app still works as a plain Marktplaats search — just
-without the smart parsing and filtering.
+Without an API key the app still works as a plain multi-marketplace search —
+just without the smart parsing and filtering.
 
 ## Configuration (all optional, via environment variables)
 
@@ -57,3 +61,11 @@ search and tells you so.
 - The app uses Marktplaats' public website search endpoint
   (`/lrp/api/search`) — the same one your browser calls. Be gentle with it;
   this is a personal search tool, not a scraper.
+- Reliving, VNTG and Whoppah have no documented public search API, so the app
+  fetches their public search-results page and reads the machine-readable
+  product data those pages embed anyway (schema.org JSON-LD and Next.js
+  hydration JSON). Each of these sources is best-effort: when a site is down,
+  blocks the request, or changes its markup, it simply contributes zero
+  results and the UI shows a note — the rest of the search still works. The
+  distance filter applies to Marktplaats only (the others ship nationwide),
+  while the price filter is applied to all sources.

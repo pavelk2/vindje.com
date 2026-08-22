@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
-Robin-Bobin — smart search for Marktplaats: describe what you want in
+Robin-Bobin — smart search for Dutch second-hand marketplaces
+(Marktplaats, Reliving, VNTG, Whoppah): describe what you want in
 plain language, get only the listings that actually match.
 
 How it works (single file, zero dependencies, Python 3.8+):
   1. A free LLM (via OpenRouter) turns your wish into a structured
-     Marktplaats search (Dutch keywords, price range, search radius).
-  2. We query Marktplaats' own search API.
+     search (Dutch + English keywords, price range, search radius).
+  2. We query Marktplaats' own search API, and read the product JSON
+     embedded in the public search pages of Reliving, VNTG and Whoppah.
   3. The LLM reads every result and keeps only the ones that really
      match your requirements (size, features, condition, ...).
 
@@ -19,6 +21,7 @@ Without a key the app still works as a plain Marktplaats search,
 just without the smart parsing/filtering.
 """
 
+import gzip
 import json
 import os
 import re
@@ -100,11 +103,13 @@ def llm_json(messages, max_tokens=2000):
 
 # ---------------------------------------------------------------- Step 1: parse the wish
 
-PARSE_PROMPT = """You convert a buyer's wish into a Marktplaats (Dutch classifieds) search.
+PARSE_PROMPT = """You convert a buyer's wish into a search across Dutch second-hand
+marketplaces (Marktplaats, Reliving, VNTG, Whoppah).
 The wish may be in any language. Reply with ONLY a JSON object:
 
 {
   "search_terms": "2-4 Dutch keywords a seller would use in a listing title",
+  "search_terms_en": "the same 2-4 keywords in English",
   "price_min_euro": null or number,
   "price_max_euro": null or number,
   "distance_meters": null or number (if the buyer limits distance/travel time; assume driving = 50 km/h, cycling = 15 km/h, walking = 5 km/h),
@@ -113,6 +118,7 @@ The wish may be in any language. Reply with ONLY a JSON object:
 
 Rules:
 - search_terms must be generic enough to find candidates (e.g. "kledingkast hout", not a full sentence). No commas.
+- search_terms_en are the same keywords in English (some marketplaces list in English).
 - requirements capture everything checkable from a listing's text: dimensions, materials, features, condition, colors...
 - Do NOT put price or distance into requirements; they go in their own fields."""
 
@@ -208,13 +214,448 @@ def format_price(price_info):
     }.get(ptype, ptype or "?")
 
 
+# ---------------------------------------------------------------- Step 2b: Reliving, VNTG, Whoppah
+#
+# These marketplaces have no documented public search API, so we fetch their
+# public search-results page and read the machine-readable product data such
+# pages embed anyway: JSON-LD structured data (for SEO) and Next.js hydration
+# JSON (__NEXT_DATA__ / flight data). Every source is best-effort: if a site
+# is down, blocks us, or changes its markup, it contributes zero results and
+# a note instead of breaking the search.
+
+EXTRA_SOURCES = [
+    {
+        "id": "reliving", "label": "Reliving",
+        "base": "https://www.reliving.nl", "lang": "nl",
+        "search_urls": [
+            "https://www.reliving.nl/search?q={q}",
+            "https://www.reliving.nl/zoeken?q={q}",
+            "https://www.reliving.nl/search?query={q}",
+        ],
+    },
+    {
+        "id": "vntg", "label": "VNTG",
+        "base": "https://www.vntg.com", "lang": "en",
+        "search_urls": [
+            "https://www.vntg.com/search/?q={q}",
+            "https://www.vntg.com/search/?query={q}",
+            "https://www.vntg.com/search?q={q}",
+        ],
+    },
+    {
+        "id": "whoppah", "label": "Whoppah",
+        "base": "https://www.whoppah.com", "lang": "nl",
+        "search_urls": [
+            "https://www.whoppah.com/nl/search?query={q}",
+            "https://www.whoppah.com/search?query={q}",
+            "https://www.whoppah.com/nl/search?q={q}",
+        ],
+    },
+]
+
+EXTRA_SOURCE_LIMIT = 48  # max listings kept per extra source
+
+
+def http_get(url, timeout=12):
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8",
+            "Accept-Language": "nl-NL,nl;q=0.9,en;q=0.8",
+            "Accept-Encoding": "gzip",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        data = resp.read()
+    if data[:2] == b"\x1f\x8b":
+        data = gzip.decompress(data)
+    return data.decode("utf-8", "replace")
+
+
+def _to_number(v):
+    """Tolerant '€ 1.250,00' / '1250' / 1250 -> float, else None."""
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    if not isinstance(v, str):
+        return None
+    s = re.sub(r"[^\d,.\-]", "", v)
+    if not s:
+        return None
+    if "," in s and "." in s:
+        if s.rfind(".") > s.rfind(","):
+            s = s.replace(",", "")  # 1,250.50
+        else:
+            s = s.replace(".", "").replace(",", ".")  # 1.250,00
+    elif "," in s:
+        head, _, tail = s.rpartition(",")
+        s = head.replace(",", "") + "." + tail if len(tail) <= 2 else s.replace(",", "")
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
+def _euro(value):
+    return "€" + f"{value:,.0f}".replace(",", ".")
+
+
+def _abs_url(u, base):
+    if not isinstance(u, str) or not u:
+        return ""
+    if u.startswith("//"):
+        return "https:" + u
+    if u.startswith("http"):
+        return u
+    return base + (u if u.startswith("/") else "/" + u)
+
+
+def _first_str(d, keys):
+    for k in keys:
+        v = d.get(k)
+        if isinstance(v, str) and v.strip():
+            return v.strip()
+    return ""
+
+
+def _strip_html(s):
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", s)).strip()
+
+
+# --- strategy 1: JSON-LD structured data (schema.org Product / ItemList) ---
+
+def _jsonld_products(html):
+    out = []
+    blocks = re.findall(
+        r'<script[^>]+application/ld\+json[^>]*>(.*?)</script>', html, re.S | re.I)
+    for block in blocks:
+        try:
+            data = json.loads(block.strip())
+        except ValueError:
+            continue
+        stack = data if isinstance(data, list) else [data]
+        while stack:
+            node = stack.pop()
+            if not isinstance(node, dict):
+                continue
+            ntype = node.get("@type") or ""
+            if isinstance(ntype, list):
+                ntype = ntype[0] if ntype else ""
+            if ntype == "Product":
+                out.append(node)
+            for key in ("@graph", "itemListElement", "mainEntity", "item"):
+                v = node.get(key)
+                if isinstance(v, list):
+                    stack.extend(v)
+                elif isinstance(v, dict):
+                    stack.append(v)
+    return out
+
+
+_CONDITIONS = {"NewCondition": "new", "UsedCondition": "used",
+               "RefurbishedCondition": "refurbished", "DamagedCondition": "damaged"}
+
+
+def _from_jsonld(p, base):
+    title = _first_str(p, ("name",))
+    if not title:
+        return None
+    offers = p.get("offers")
+    if isinstance(offers, list):
+        offers = offers[0] if offers and isinstance(offers[0], dict) else {}
+    if not isinstance(offers, dict):
+        offers = {}
+    price_value = _to_number(offers.get("price"))
+    if price_value is None:
+        price_value = _to_number(offers.get("lowPrice"))
+    url = p.get("url") or offers.get("url") or ""
+    if isinstance(url, dict):
+        url = url.get("@id", "")
+    image = p.get("image")
+    if isinstance(image, list):
+        image = image[0] if image else ""
+    if isinstance(image, dict):
+        image = image.get("url") or image.get("contentUrl") or ""
+    attrs = []
+    brand = p.get("brand")
+    if isinstance(brand, dict):
+        brand = brand.get("name")
+    if isinstance(brand, str) and brand.strip():
+        attrs.append("brand: " + brand.strip())
+    cond = str(p.get("itemCondition") or "")
+    for key, label in _CONDITIONS.items():
+        if key in cond:
+            attrs.append("condition: " + label)
+    return {
+        "title": title,
+        "description": _strip_html(str(p.get("description") or ""))[:400],
+        "price": _euro(price_value) if price_value is not None else "",
+        "price_value": price_value,
+        "city": "",
+        "distance_km": None,
+        "attributes": attrs,
+        "image": _abs_url(image if isinstance(image, str) else "", base),
+        "url": _abs_url(url if isinstance(url, str) else "", base),
+    }
+
+
+# --- strategy 2: embedded hydration JSON (__NEXT_DATA__, flight data) ---
+
+_TITLE_KEYS = ("title", "name")
+_PRICE_CENT_KEYS = ("priceCents", "price_cents", "priceInCents", "price_in_cents",
+                    "amountCents", "amount_cents", "cents")
+_PRICE_UNIT_KEYS = ("price", "salePrice", "sale_price", "currentPrice",
+                    "current_price", "amount", "value")
+_URL_KEYS = ("url", "href", "link", "path", "permalink", "slug", "handle")
+_IMAGE_KEYS = ("image", "imageUrl", "image_url", "thumbnail", "thumbnailUrl",
+               "thumbnail_url", "cover", "coverImage", "cover_image",
+               "mainImage", "main_image", "featuredImage", "photo")
+
+
+def _price_of(d):
+    """(euros or None) from a product-ish dict, understanding cents keys and
+    nested {amount, currency} shapes."""
+    for k in _PRICE_CENT_KEYS:
+        n = _to_number(d.get(k))
+        if n is not None:
+            return n / 100.0
+    for k in _PRICE_UNIT_KEYS:
+        v = d.get(k)
+        if isinstance(v, dict):
+            n = _price_of(v)
+            if n is not None:
+                return n
+            continue
+        n = _to_number(v)
+        if n is not None:
+            return n
+    return None
+
+
+def _looks_like_product(d):
+    if not isinstance(d, dict):
+        return False
+    title = _first_str(d, _TITLE_KEYS)
+    if len(title) < 3:
+        return False
+    has_price = any(k in d for k in _PRICE_CENT_KEYS + _PRICE_UNIT_KEYS)
+    has_link = (any(isinstance(d.get(k), str) and d[k] for k in _URL_KEYS)
+                or d.get("id") or d.get("uuid"))
+    return bool(has_price and has_link)
+
+
+def _walk_products(node, out, depth=0):
+    if depth > 14 or len(out) > 300:
+        return
+    if isinstance(node, dict):
+        if _looks_like_product(node):
+            out.append(node)
+        for v in node.values():
+            _walk_products(v, out, depth + 1)
+    elif isinstance(node, list):
+        for v in node:
+            _walk_products(v, out, depth + 1)
+
+
+def _from_embedded(d, base):
+    title = _first_str(d, _TITLE_KEYS)
+    price_value = _price_of(d)
+    image = ""
+    for k in _IMAGE_KEYS:
+        v = d.get(k)
+        if isinstance(v, list) and v:
+            v = v[0]
+        if isinstance(v, dict):
+            v = v.get("url") or v.get("src") or v.get("mediumUrl") or ""
+        if isinstance(v, str) and v.strip():
+            image = v.strip()
+            break
+    url = ""
+    for k in _URL_KEYS:
+        v = d.get(k)
+        if isinstance(v, str) and v.strip():
+            url = v.strip()
+            break
+    city = _first_str(d, ("city", "cityName", "locality"))
+    if not city and isinstance(d.get("location"), dict):
+        city = _first_str(d["location"], ("city", "cityName", "locality"))
+    attrs = []
+    for k in ("brand", "designer", "condition", "material", "color", "colour"):
+        v = d.get(k)
+        if isinstance(v, dict):
+            v = v.get("name") or v.get("title")
+        if isinstance(v, str) and v.strip():
+            attrs.append(f"{k}: {v.strip()}")
+    return {
+        "title": title,
+        "description": _strip_html(_first_str(d, ("description", "subtitle", "excerpt")))[:400],
+        "price": _euro(price_value) if price_value is not None else "",
+        "price_value": price_value,
+        "city": city,
+        "distance_km": None,
+        "attributes": attrs,
+        "image": _abs_url(image, base),
+        "url": _abs_url(url, base),
+        "id": d.get("id") or d.get("uuid"),
+    }
+
+
+def _next_data_products(html):
+    m = re.search(r'<script[^>]+id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.S)
+    if not m:
+        return []
+    try:
+        data = json.loads(m.group(1))
+    except ValueError:
+        return []
+    found = []
+    _walk_products(data, found)
+    return found
+
+
+def _flight_data_products(html):
+    """Next.js app-router pages stream data as self.__next_f.push([1,"..."])
+    chunks; scan the concatenated payload for product-shaped JSON objects."""
+    chunks = re.findall(
+        r'self\.__next_f\.push\(\[1,\s*"((?:\\.|[^"\\])*)"\]\)', html)
+    if not chunks:
+        return []
+    blob = "".join(chunks)
+    try:
+        blob = blob.encode("utf-8").decode("unicode_escape")
+        blob = blob.encode("latin-1", "ignore").decode("utf-8", "replace")
+    except Exception:
+        pass
+    blob = blob[:3_000_000]
+    dec = json.JSONDecoder()
+    found, pos = [], 0
+    for m in re.finditer(r'\[?{"', blob):
+        i = m.start()
+        if i < pos:
+            continue
+        try:
+            obj, end = dec.raw_decode(blob, i)
+        except ValueError:
+            continue
+        pos = end
+        _walk_products(obj, found)
+        if len(found) > 300:
+            break
+    return found
+
+
+def _extract_products(html, base):
+    """All strategies in order of cleanliness; first one that hits wins."""
+    listings = [l for l in (_from_jsonld(p, base) for p in _jsonld_products(html)) if l]
+    if not listings:
+        for finder in (_next_data_products, _flight_data_products):
+            listings = [_from_embedded(d, base) for d in finder(html)]
+            if listings:
+                break
+    seen, out = set(), []
+    for l in listings:
+        if not l.get("url"):  # a result card must link somewhere
+            continue
+        key = (l["title"].lower(), l["url"])
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(l)
+    return out
+
+
+def search_extra_source(src, terms, price_min_euro=None, price_max_euro=None,
+                        limit=EXTRA_SOURCE_LIMIT):
+    """Search one extra marketplace. Raises on network failure; returns []
+    when the site answers but we find no product data."""
+    q = urllib.parse.quote_plus(terms)
+    urls = src["search_urls"]
+    hit = src.get("_hit")
+    if hit in urls:  # remember which URL pattern worked last time
+        urls = [hit] + [u for u in urls if u != hit]
+    last_err, listings = None, []
+    for tmpl in urls:
+        try:
+            html = http_get(tmpl.format(q=q))
+        except Exception as e:
+            last_err = e
+            continue
+        listings = _extract_products(html, src["base"])
+        if listings:
+            src["_hit"] = tmpl
+            break
+    if not listings and last_err is not None:
+        raise last_err
+    if price_min_euro is not None or price_max_euro is not None:
+        lo = price_min_euro if price_min_euro is not None else 0
+        hi = price_max_euro if price_max_euro is not None else float("inf")
+        listings = [l for l in listings
+                    if l.get("price_value") is None or lo <= l["price_value"] <= hi]
+    return listings[:limit]
+
+
+# ---------------------------------------------------------------- search all sources
+
+
+def search_all(terms, terms_en, postcode=None, distance_meters=None,
+               price_min_euro=None, price_max_euro=None):
+    """Query Marktplaats + the extra marketplaces concurrently.
+    Returns (listings, sources_summary, notes)."""
+    notes, per_source, mp_total = [], {}, 0
+
+    def run_marktplaats():
+        return search_marktplaats(
+            terms, postcode=postcode, distance_meters=distance_meters,
+            price_min_euro=price_min_euro, price_max_euro=price_max_euro)
+
+    jobs = [("marktplaats", "Marktplaats", run_marktplaats)]
+    for src in EXTRA_SOURCES:
+        t = terms_en if (src.get("lang") == "en" and terms_en) else terms
+        jobs.append((src["id"], src["label"],
+                     lambda s=src, t=t: search_extra_source(
+                         s, t, price_min_euro, price_max_euro)))
+
+    with ThreadPoolExecutor(max_workers=len(jobs)) as ex:
+        futures = {ex.submit(job): sid for sid, _, job in jobs}
+        for fut in as_completed(futures):
+            sid = futures[fut]
+            try:
+                res = fut.result()
+            except Exception as e:
+                label = next(l for s, l, _ in jobs if s == sid)
+                notes.append(f"{label} search failed ({e}).")
+                res = ([], 0) if sid == "marktplaats" else []
+            if sid == "marktplaats":
+                per_source[sid], mp_total = res
+            else:
+                per_source[sid] = res
+
+    listings, sources = [], []
+    for sid, label, _ in jobs:
+        items = per_source.get(sid) or []
+        for i, l in enumerate(items):
+            l["source"] = sid
+            l["source_label"] = label
+            l["id"] = f"{sid}:{l.get('id') or i}"
+        listings.extend(items)
+        sources.append({"id": sid, "label": label, "count": len(items),
+                        "total": mp_total if sid == "marktplaats" else len(items)})
+    if distance_meters and postcode and any(
+            s["count"] for s in sources if s["id"] != "marktplaats"):
+        notes.append("The distance filter applies to Marktplaats only; other "
+                     "marketplaces ship nationwide.")
+    return listings, sources, notes
+
+
 # ---------------------------------------------------------------- Step 3: AI-filter results
 
-FILTER_PROMPT = """You are filtering Dutch classifieds listings for a buyer.
+FILTER_PROMPT = """You are filtering second-hand marketplace listings for a buyer.
 Buyer's requirements:
 %s
 
-Below are numbered listings (title / description / attributes, in Dutch).
+Below are numbered listings (title / description / attributes, in Dutch or English).
 Keep a listing only if it plausibly satisfies ALL requirements, or if the text
 doesn't contradict them and the item is clearly the right kind of thing.
 Reject anything that is the wrong kind of item, a service/ad, or contradicts a requirement.
@@ -306,25 +747,27 @@ def interpret(wish):
 
 
 def search_params(parsed, wish, postcode):
-    """Turn a parsed wish (or None) into Marktplaats search parameters."""
+    """Turn a parsed wish (or None) into search parameters."""
     notes = []
     if isinstance(parsed, dict):
         terms = parsed.get("search_terms") or wish
+        terms_en = parsed.get("search_terms_en") or terms
         distance = _num(parsed.get("distance_meters"))
         price_min = _num(parsed.get("price_min_euro"))
         price_max = _num(parsed.get("price_max_euro"))
         requirements = parsed.get("requirements") or []
     else:
-        terms, distance, price_min, price_max, requirements = wish, None, None, None, []
+        terms, terms_en = wish, wish
+        distance, price_min, price_max, requirements = None, None, None, []
     if distance and not postcode:
         notes.append("Your wish limits distance but no postcode was given — "
                      "add your postcode to enable the radius filter.")
         distance = None
-    return terms, distance, price_min, price_max, requirements, notes
+    return terms, terms_en, distance, price_min, price_max, requirements, notes
 
 
 def smart_search(wish, postcode, parsed=_UNSET, notes=None):
-    """Phase 2: search Marktplaats and AI-filter. Runs phase 1 first unless a
+    """Phase 2: search the marketplaces and AI-filter. Runs phase 1 first unless a
     pre-parsed result (possibly None) is handed in."""
     if parsed is _UNSET:
         parsed, notes = interpret(wish)
@@ -332,14 +775,15 @@ def smart_search(wish, postcode, parsed=_UNSET, notes=None):
     if not isinstance(parsed, dict):
         parsed = None
 
-    terms, distance, price_min, price_max, requirements, pnotes = \
+    terms, terms_en, distance, price_min, price_max, requirements, pnotes = \
         search_params(parsed, wish, postcode)
     notes.extend(pnotes)
 
-    listings, total = search_marktplaats(
-        terms, postcode=postcode, distance_meters=distance,
+    listings, sources, snotes = search_all(
+        terms, terms_en, postcode=postcode, distance_meters=distance,
         price_min_euro=price_min, price_max_euro=price_max,
     )
+    notes.extend(snotes)
 
     kept = listings
     if parsed and requirements and listings:
@@ -361,13 +805,14 @@ def smart_search(wish, postcode, parsed=_UNSET, notes=None):
         "wish": wish,
         "interpreted": {
             "search_terms": terms,
+            "search_terms_en": terms_en,
             "price_min_euro": price_min,
             "price_max_euro": price_max,
             "distance_meters": snap_radius(int(distance)) if distance and postcode else None,
             "requirements": requirements,
         },
         "scanned": len(listings),
-        "total_on_marktplaats": total,
+        "sources": sources,
         "results": kept,
         "ai": bool(parsed),
         "notes": notes,
@@ -558,7 +1003,7 @@ function post(body) {
 }
 
 let baseNotes = [];
-let state = {listings: [], total: 0, matched: 0, rejected: 0, failed: 0, checked: 0};
+let state = {listings: [], sources: [], matched: 0, rejected: 0, failed: 0, checked: 0};
 
 f.addEventListener('submit', async e => {
   e.preventDefault();
@@ -590,14 +1035,14 @@ f.addEventListener('submit', async e => {
     baseNotes = p.notes || [];
     showInterp(p.parsed, p.ai);
     showNotes([]);
-    stage = 'Searching Marktplaats&hellip;';
+    stage = 'Searching Marktplaats, Reliving, VNTG &amp; Whoppah&hellip;';
     const d = await post({action: 'find', wish: q, postcode: pc, parsed: p.parsed});
     if (d.error) throw new Error(d.error);
     baseNotes = baseNotes.concat(d.notes || []);
     showNotes([]);
     const listings = d.listings || [];
     const reqs = d.requirements || [];
-    state = {listings: listings, total: d.total_on_marktplaats,
+    state = {listings: listings, sources: d.sources || [],
              matched: 0, rejected: 0, failed: 0, checked: 0};
     const checking = p.ai && reqs.length > 0 && listings.length > 0;
     renderCards(listings, checking);
@@ -672,12 +1117,17 @@ function finishOrder(listings) {
   }
 }
 
+function sourceCounts() {
+  return (state.sources || []).filter(x => x.count > 0)
+    .map(x => esc(x.label) + ' ' + x.count).join(' &middot; ');
+}
+
 function updateCount(checking) {
   const s = state, el = document.getElementById('count');
   const bar = document.getElementById('bar');
   if (!checking) {
-    el.textContent = s.listings.length + ' listings &middot; ' + s.total + ' hits on Marktplaats';
-    el.innerHTML = el.textContent;
+    const by = sourceCounts();
+    el.innerHTML = s.listings.length + ' listings' + (by ? ' &middot; ' + by : '');
     return;
   }
   bar.style.opacity = 1;
@@ -696,17 +1146,23 @@ function updateCount(checking) {
 }
 
 function renderCards(listings, checking) {
-  document.getElementById('results').innerHTML = listings.map(l => `
+  document.getElementById('results').innerHTML = listings.map(l => {
+    const meta = [];
+    if (l.price) meta.push('<span class="price">' + esc(l.price) + '</span>');
+    if (l.city) meta.push(esc(l.city));
+    if (l.distance_km != null) meta.push(l.distance_km + ' km');
+    if (l.source_label) meta.push(esc(l.source_label));
+    return `
     <a class="card" id="c-${esc(l.id)}" href="${esc(l.url)}" target="_blank" rel="noopener">
       ${l.image ? `<img src="${esc(l.image)}" alt="" loading="lazy">` : '<div class="noimg">no photo</div>'}
       <div>
         <h3>${esc(l.title)}</h3>
-        <div class="meta"><span class="price">${esc(l.price)}</span>
-          &middot; ${esc(l.city)}${l.distance_km != null ? ' &middot; ' + l.distance_km + ' km' : ''}</div>
+        <div class="meta">${meta.join(' &middot; ')}</div>
         <div class="desc">${esc(l.description)}</div>
         ${checking ? `<span class="why pending" id="b-${esc(l.id)}">Checking&hellip;</span>` : ''}
       </div>
-    </a>`).join('');
+    </a>`;
+  }).join('');
 }
 document.getElementById('pc').value = localStorage.getItem('pc') || '';
 
@@ -726,6 +1182,8 @@ document.getElementById('q').addEventListener('keydown', e => {
 function showInterp(i, ai) {
   if (!ai || !i) return;
   const t = ['<span class="tok dark">' + esc(i.search_terms) + '</span>'];
+  if (i.search_terms_en && i.search_terms_en !== i.search_terms)
+    t.push('<span class="tok dark">' + esc(i.search_terms_en) + '</span>');
   const lo = i.price_min_euro, hi = i.price_max_euro;
   if (lo != null && hi != null) t.push('<span class="tok">&euro;' + lo + '&ndash;' + hi + '</span>');
   else if (hi != null) t.push('<span class="tok">under &euro;' + hi + '</span>');
@@ -774,14 +1232,14 @@ def app(environ, start_response):
                 parsed, notes = interpret(wish)
                 result = {"ai": bool(parsed), "parsed": parsed, "notes": notes}
             elif action == "find":
-                # search Marktplaats only — fast, no AI calls
-                terms, distance, pmin, pmax, reqs, notes = search_params(
-                    payload.get("parsed"), wish, postcode)
-                listings, total = search_marktplaats(
-                    terms, postcode=postcode, distance_meters=distance,
+                # search the marketplaces only — fast, no AI calls
+                terms, terms_en, distance, pmin, pmax, reqs, notes = \
+                    search_params(payload.get("parsed"), wish, postcode)
+                listings, sources, snotes = search_all(
+                    terms, terms_en, postcode=postcode, distance_meters=distance,
                     price_min_euro=pmin, price_max_euro=pmax)
-                result = {"listings": listings, "total_on_marktplaats": total,
-                          "requirements": reqs, "notes": notes}
+                result = {"listings": listings, "sources": sources,
+                          "requirements": reqs, "notes": notes + snotes}
             elif action == "results":
                 result = smart_search(wish, postcode,
                                       parsed=payload.get("parsed"))
