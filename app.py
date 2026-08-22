@@ -446,21 +446,18 @@ function render(d) {
 
 
 class Handler(BaseHTTPRequestHandler):
+    # Routing is by method only (GET -> page, POST -> search) so the same
+    # handler works standalone and behind Vercel's rewrites, where the
+    # function may see a rewritten path.
     def do_GET(self):
-        if self.path == "/" or self.path.startswith("/index"):
-            body = HTML.encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-        else:
-            self.send_error(404)
+        body = HTML.encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def do_POST(self):
-        if self.path != "/api/search":
-            self.send_error(404)
-            return
         try:
             length = int(self.headers.get("Content-Length", 0))
             payload = json.loads(self.rfile.read(length).decode())
