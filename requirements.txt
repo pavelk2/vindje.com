@@ -1,0 +1,2 @@
+# Standard library only — nothing to install.
+# This file exists so Vercel detects the project as a Python app.

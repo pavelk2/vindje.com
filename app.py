@@ -25,7 +25,6 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 PORT = int(os.environ.get("PORT", "8000"))
 
@@ -445,44 +444,47 @@ function render(d) {
 </html>"""
 
 
-class Handler(BaseHTTPRequestHandler):
-    # Routing is by method only (GET -> page, POST -> search) so the same
-    # handler works standalone and behind Vercel's rewrites, where the
-    # function may see a rewritten path.
-    def do_GET(self):
-        body = HTML.encode()
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
-
-    def do_POST(self):
+# WSGI application: GET -> the page, POST -> a search. Vercel's Python
+# runtime picks up the top-level `app` in a root app.py automatically;
+# locally the __main__ block below serves the same app.
+def app(environ, start_response):
+    if environ.get("REQUEST_METHOD") == "POST":
         try:
-            length = int(self.headers.get("Content-Length", 0))
-            payload = json.loads(self.rfile.read(length).decode())
+            length = int(environ.get("CONTENT_LENGTH") or 0)
+            payload = json.loads(environ["wsgi.input"].read(length).decode())
             wish = (payload.get("wish") or "").strip()
             postcode = (payload.get("postcode") or "").strip()
             if not wish:
                 raise ValueError("Empty search")
-            result = smart_search(wish, postcode)
-            body = json.dumps(result).encode()
-            self.send_response(200)
+            body = json.dumps(smart_search(wish, postcode)).encode()
+            status = "200 OK"
         except Exception as e:
             body = json.dumps({"error": str(e)}).encode()
-            self.send_response(500)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
-
-    def log_message(self, fmt, *args):
-        pass  # keep the console quiet
+            status = "500 Internal Server Error"
+        headers = [("Content-Type", "application/json")]
+    else:
+        body = HTML.encode()
+        status = "200 OK"
+        headers = [("Content-Type", "text/html; charset=utf-8")]
+    headers.append(("Content-Length", str(len(body))))
+    start_response(status, headers)
+    return [body]
 
 
 if __name__ == "__main__":
+    from socketserver import ThreadingMixIn
+    from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
+
+    class ThreadingWSGIServer(ThreadingMixIn, WSGIServer):
+        daemon_threads = True
+
+    class QuietHandler(WSGIRequestHandler):
+        def log_message(self, fmt, *args):
+            pass
+
     print(f"Marktplaats Smart Search → http://localhost:{PORT}")
     if not OPENROUTER_API_KEY:
         print("!! OPENROUTER_API_KEY not set: plain search only, no AI. "
               "Get a free key at https://openrouter.ai/keys")
-    ThreadingHTTPServer(("", PORT), Handler).serve_forever()
+    make_server("", PORT, app, server_class=ThreadingWSGIServer,
+                handler_class=QuietHandler).serve_forever()
