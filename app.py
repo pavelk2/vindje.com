@@ -115,7 +115,13 @@ The wish may be in any language. Reply with ONLY a JSON object:
 Rules:
 - search_terms must be generic enough to find candidates (e.g. "kledingkast hout", not a full sentence). No commas.
 - requirements capture everything checkable from a listing's text: dimensions, materials, features, condition, colors...
-- Do NOT put price or distance into requirements; they go in their own fields."""
+- Do NOT put price or distance into requirements; they go in their own fields.
+- Unless the buyer explicitly asked for a spare part, component, or accessory, the FIRST requirement must
+  state that the listing has to be the complete, whole item itself, and not a spare part, replacement part,
+  component, or accessory for it (e.g. buyer wants "a bicycle" -> requirement "must be a complete, ridable
+  bicycle, not a part or accessory such as a stem, derailleur, saddle, rack, or bike computer"). Marketplaces
+  are full of listings for parts/accessories that mention the whole product only to say they fit it, and a
+  plain keyword search cannot tell those apart, so this check matters."""
 
 
 def parse_wish(wish):
@@ -219,6 +225,10 @@ Below are numbered listings (title / description / attributes, in Dutch).
 Keep a listing only if it plausibly satisfies ALL requirements, or if the text
 doesn't contradict them and the item is clearly the right kind of thing.
 Reject anything that is the wrong kind of item, a service/ad, or contradicts a requirement.
+Watch especially for spare parts, replacement parts, components, and accessories that only
+mention the whole product to say they fit it (e.g. a stem, derailleur, saddle, rack, or bike
+computer is NOT a bicycle; a lamp shade or cord is NOT a lamp) — reject these unless the buyer
+actually asked for a part/accessory.
 
 Reply with ONLY JSON: {"matches": [{"n": <listing number>, "why": "<max 12 words, English>"}]}"""
 
