@@ -568,6 +568,9 @@ HTML = """<!doctype html>
   }
   .tok.dark { background: var(--ink); border-color: var(--ink); color: #fff;
               font-weight: 500; }
+  .interp-note { display: none; max-width: 560px; margin: 10px auto 0;
+                 font-size: 13px; color: var(--muted); text-align: center;
+                 line-height: 1.5; animation: rise .35s ease both; }
 
   .note { background: var(--field); color: var(--body); border-radius: 12px;
           padding: 11px 16px; font-size: 13px; margin: 14px auto 0;
@@ -681,6 +684,7 @@ HTML = """<!doctype html>
       </div>
     </form>
     <div class="interp" id="interp"></div>
+    <div class="interp-note" id="interpNote"></div>
     <div id="notes"></div>
     <div class="count" id="status"></div>
     <div class="spinner" id="spin"></div>
@@ -775,6 +779,7 @@ f.addEventListener('submit', async e => {
   document.getElementById('count').textContent = '';
   document.getElementById('notes').innerHTML = '';
   document.getElementById('interp').style.display = 'none';
+  document.getElementById('interpNote').style.display = 'none';
   document.getElementById('shareRow').style.display = 'none';
   shareUrl = null;
   hideNoMatchesModal();
@@ -992,10 +997,17 @@ function showInterp(i, ai) {
   else if (hi != null) t.push('<span class="tok">under &euro;' + hi + '</span>');
   else if (lo != null) t.push('<span class="tok">from &euro;' + lo + '</span>');
   if (i.distance_meters) t.push('<span class="tok">within ' + (i.distance_meters / 1000) + ' km</span>');
-  (i.requirements || []).forEach(r => t.push('<span class="tok">' + esc(r) + '</span>'));
+  const longReqs = [];
+  (i.requirements || []).forEach(r => {
+    if (r.length > 45) longReqs.push(r);
+    else t.push('<span class="tok">' + esc(r) + '</span>');
+  });
   const el = document.getElementById('interp');
   el.innerHTML = t.join('');
   el.style.display = 'flex';
+  const noteEl = document.getElementById('interpNote');
+  noteEl.innerHTML = longReqs.map(esc).join(' &middot; ');
+  noteEl.style.display = longReqs.length ? 'block' : 'none';
 }
 
 function showNotes(notes) {
