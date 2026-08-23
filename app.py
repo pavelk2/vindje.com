@@ -8,8 +8,9 @@ How it works (single file, zero dependencies, Python 3.8+):
      into a structured Marktplaats search (Dutch keywords, price range,
      search radius).
   2. We query Marktplaats' own search API.
-  3. The LLM reads every result and keeps only the ones that really
-     match your requirements (size, features, condition, ...).
+  3. The LLM reads every result — text and its first photo — and keeps
+     only the ones that really match your requirements (size, features,
+     condition, resale value, ...).
 
 Run:
   OPENROUTER_API_KEY=sk-or-... python3 app.py
@@ -225,31 +226,52 @@ FILTER_PROMPT = """You are filtering Dutch classifieds listings for a buyer.
 Buyer's requirements:
 %s
 
-Below are numbered listings (title / description / attributes, in Dutch).
-Keep a listing only if it plausibly satisfies ALL requirements, or if the text
-doesn't contradict them and the item is clearly the right kind of thing.
-Reject anything that is the wrong kind of item, a service/ad, or contradicts a requirement.
-Watch especially for spare parts, replacement parts, components, and accessories that only
-mention the whole product to say they fit it (e.g. a stem, derailleur, saddle, rack, or bike
-computer is NOT a bicycle; a lamp shade or cord is NOT a lamp) — reject these unless the buyer
-actually asked for a part/accessory.
+Below are numbered listings (title / description / attributes, in Dutch), each
+immediately followed by that listing's own photo. Use the photo together with
+the text — it's real evidence, not decoration: judge condition, materials,
+and whether the item visibly is what the title/description claims (sellers'
+words alone are not reliable, and a plain keyword search can't tell a genuine
+item from a look-alike or a misleading listing).
+
+Keep a listing only if it plausibly satisfies ALL requirements, or if the
+text and photo don't contradict them and the item is clearly the right kind
+of thing. Reject anything that is the wrong kind of item, a service/ad, or
+contradicts a requirement. Watch especially for spare parts, replacement
+parts, components, and accessories that only mention the whole product to
+say they fit it (e.g. a stem, derailleur, saddle, rack, or bike computer is
+NOT a bicycle; a lamp shade or cord is NOT a lamp) — reject these unless the
+buyer actually asked for a part/accessory.
+
+If a requirement asks about resale/market value (e.g. "worth at least
+€X"), you have no live pricing data or ability to look up comparable sales —
+give your best-informed judgment from brand/designer recognition, materials,
+and build quality visible in the photo, and treat it as a plausibility
+check, not an appraisal. Say so implicitly by keeping "why" honest (e.g.
+"looks like a genuine Artemide ITIS, plausible resale value" rather than
+asserting a precise price).
 
 Reply with ONLY JSON: {"matches": [{"n": <listing number>, "why": "<max 12 words, English>"}]}"""
 
 
-FILTER_CHUNK = 15  # listings per LLM call; chunks are checked concurrently
+FILTER_CHUNK = 8  # listings per LLM call; smaller than before since each one
+                  # now also carries an image, which costs far more tokens
+                  # than its text. Chunks are checked concurrently.
 
 
 def _filter_chunk(requirements, listings, base):
-    lines = []
+    content = []
     for i, l in enumerate(listings):
+        n = base + i
         desc = str(l.get("description") or "")[:300]
         attrs = "; ".join(str(a) for a in (l.get("attributes") or [])[:8])
-        lines.append(f"[{base + i}] {l.get('title', '')} | {desc} | {attrs}")
+        content.append({"type": "text", "text": f"[{n}] {l.get('title', '')} | {desc} | {attrs}"})
+        image = l.get("image")
+        if image:
+            content.append({"type": "image_url", "image_url": {"url": image}})
     result = llm_json(
         [
             {"role": "system", "content": FILTER_PROMPT % "\n".join("- " + r for r in requirements)},
-            {"role": "user", "content": "\n".join(lines)},
+            {"role": "user", "content": content},
         ],
         max_tokens=4000,
     )
