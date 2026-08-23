@@ -39,6 +39,26 @@ Search.
 Without an API key the app still works as a plain Marktplaats search — just
 without the smart parsing and filtering.
 
+## Sharing a search
+
+Every completed search is automatically saved (a frozen snapshot of the
+exact listings you saw, with their AI match/reject verdicts) and a "Copy
+share link" button appears once it's done. The link (`/s/<id>`) shows
+anyone who opens it precisely what you saw — no re-running of the search or
+the AI filtering, so it's instant and doesn't re-spend AI credits.
+
+This requires an [Upstash Redis](https://upstash.com) database (the free
+tier is plenty) as storage. Without it configured, saving/sharing just
+silently degrades to a no-op — search still works fully, only the "Copy
+share link" button never appears.
+
+1. Create an Upstash account, then create a Redis database (any region).
+   No schema or setup needed — it's a plain key-value store; each saved
+   search is written as one JSON value under a `search:<id>` key.
+2. On the database's page, grab the **REST URL** and **REST token** (under
+   "REST API") and set them as env vars below. The token is secret — it's
+   only ever used server-side, never sent to the browser.
+
 ## Configuration (all optional, via environment variables)
 
 | Variable | Default | Purpose |
@@ -46,6 +66,8 @@ without the smart parsing and filtering.
 | `OPENROUTER_API_KEY` | — | Your OpenRouter key, funded with credits |
 | `OPENROUTER_MODEL` | `anthropic/claude-haiku-4.5`, then `openrouter/free` | Comma-separated models to try in order |
 | `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` | Any OpenAI-compatible endpoint |
+| `UPSTASH_REDIS_REST_URL` | — | Your Upstash Redis REST URL, for saving/sharing searches |
+| `UPSTASH_REDIS_REST_TOKEN` | — | Upstash Redis REST token (secret, server-side only) |
 | `PORT` | `8000` | HTTP port |
 
 If the primary model errors or rate-limits, the app automatically falls
