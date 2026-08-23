@@ -12,9 +12,10 @@ searching through trash.
 
 ## How it works
 
-1. **Parse** — a free LLM (via [OpenRouter](https://openrouter.ai)) turns your
-   wish (any language) into a real Marktplaats search: Dutch keywords, price
-   range, and a search radius (it even converts "15 minutes driving" into km).
+1. **Parse** — an LLM (via [OpenRouter](https://openrouter.ai), Claude Haiku
+   4.5 by default) turns your wish (any language) into a real Marktplaats
+   search: Dutch keywords, price range, and a search radius (it even converts
+   "15 minutes driving" into km).
 2. **Search** — the app queries Marktplaats' own search API with those filters.
 3. **Filter** — the LLM reads every returned listing (title, description,
    attributes) and keeps only the ones that actually satisfy your requirements,
@@ -25,7 +26,8 @@ searching through trash.
 Requires only Python 3.8+ — **no dependencies to install**.
 
 ```bash
-# 1. Get a free API key at https://openrouter.ai/keys (free models cost €0)
+# 1. Get an API key at https://openrouter.ai/keys and add credits — the
+#    default model (Claude Haiku 4.5) is paid, not free
 # 2. Run:
 OPENROUTER_API_KEY=sk-or-... python3 app.py
 # 3. Open http://localhost:8000
@@ -41,14 +43,15 @@ without the smart parsing and filtering.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `OPENROUTER_API_KEY` | — | Your OpenRouter key (free tier is enough) |
-| `OPENROUTER_MODEL` | `z-ai/glm-5.2:free`, then `nvidia/nemotron-3-ultra-550b-a55b:free`, `google/gemma-4-31b-it:free`, `openrouter/free` | Comma-separated models to try in order |
+| `OPENROUTER_API_KEY` | — | Your OpenRouter key, funded with credits |
+| `OPENROUTER_MODEL` | `anthropic/claude-haiku-4.5`, then `openrouter/free` | Comma-separated models to try in order |
 | `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` | Any OpenAI-compatible endpoint |
 | `PORT` | `8000` | HTTP port |
 
-Free models are rate-limited and occasionally overloaded; the app automatically
-falls through the model list, and if all AI calls fail it degrades to a plain
-search and tells you so.
+If the primary model errors or rate-limits, the app automatically falls
+through the model list (ending with OpenRouter's free-model router as a
+last resort), and if all AI calls fail it degrades to a plain search and
+tells you so.
 
 ## Notes
 

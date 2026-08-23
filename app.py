@@ -4,8 +4,9 @@ Robin-Bobin — smart search for Marktplaats: describe what you want in
 plain language, get only the listings that actually match.
 
 How it works (single file, zero dependencies, Python 3.8+):
-  1. A free LLM (via OpenRouter) turns your wish into a structured
-     Marktplaats search (Dutch keywords, price range, search radius).
+  1. An LLM (via OpenRouter, Claude Haiku 4.5 by default) turns your wish
+     into a structured Marktplaats search (Dutch keywords, price range,
+     search radius).
   2. We query Marktplaats' own search API.
   3. The LLM reads every result and keeps only the ones that really
      match your requirements (size, features, condition, ...).
@@ -14,7 +15,8 @@ Run:
   OPENROUTER_API_KEY=sk-or-... python3 app.py
   open http://localhost:8000
 
-Get a free key at https://openrouter.ai/keys (free models cost nothing).
+Get a key at https://openrouter.ai/keys and add credits — the default
+model (Claude Haiku 4.5) is paid, not one of OpenRouter's free models.
 Without a key the app still works as a plain Marktplaats search,
 just without the smart parsing/filtering.
 """
@@ -33,15 +35,14 @@ PORT = int(os.environ.get("PORT", "8000"))
 
 OPENROUTER_BASE_URL = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
-# Free models, tried in order (best quality first, ending with OpenRouter's
-# own free-model router as a catch-all). Override with OPENROUTER_MODEL.
-FREE_MODELS = [
+# Models to try, in order (first is the primary paid model; the rest are
+# fallbacks used only if it errors or rate-limits). Override with
+# OPENROUTER_MODEL (comma-separated).
+MODELS = [
     m.strip()
     for m in os.environ.get(
         "OPENROUTER_MODEL",
-        "z-ai/glm-5.2:free,"
-        "nvidia/nemotron-3-ultra-550b-a55b:free,"
-        "google/gemma-4-31b-it:free,"
+        "anthropic/claude-haiku-4.5,"
         "openrouter/free",
     ).split(",")
     if m.strip()
@@ -49,13 +50,13 @@ FREE_MODELS = [
 
 
 def llm(messages, max_tokens=2000):
-    """Call the first free model that answers. Returns text or raises."""
+    """Call the first model that answers. Returns text or raises."""
     if not OPENROUTER_API_KEY:
         raise RuntimeError("OPENROUTER_API_KEY is not set")
     last_err = None
-    for model in FREE_MODELS:
-        # Top free models are reasoning models; ask for low effort to keep
-        # searches snappy. If a model rejects that parameter, retry without it.
+    for model in MODELS:
+        # Ask for low reasoning effort to keep searches snappy. If a model
+        # rejects that parameter, retry without it.
         for extra in ({"reasoning": {"effort": "low"}}, {}):
             payload = {"model": model, "messages": messages,
                        "max_tokens": max_tokens, "temperature": 0, **extra}
@@ -816,6 +817,6 @@ if __name__ == "__main__":
     print(f"Robin-Bobin → http://localhost:{PORT}")
     if not OPENROUTER_API_KEY:
         print("!! OPENROUTER_API_KEY not set: plain search only, no AI. "
-              "Get a free key at https://openrouter.ai/keys")
+              "Get a key (with credits) at https://openrouter.ai/keys")
     make_server("", PORT, app, server_class=ThreadingWSGIServer,
                 handler_class=QuietHandler).serve_forever()
