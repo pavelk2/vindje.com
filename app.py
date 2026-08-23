@@ -421,7 +421,11 @@ HTML = """<!doctype html>
   .hero { max-width: 660px; margin: 0 auto; }
   h1 {
     font-size: clamp(38px, 7.5vw, 62px); font-weight: 700; letter-spacing: -.035em;
-    line-height: 1.04; text-align: center; margin: clamp(48px, 9vh, 88px) 0 30px;
+    line-height: 1.04; text-align: center; margin: clamp(48px, 9vh, 88px) 0 10px;
+  }
+  .sub {
+    text-align: center; font-size: 18px; color: var(--body); line-height: 1.5;
+    margin: 0 auto 30px; max-width: 460px;
   }
 
   .box {
@@ -567,6 +571,7 @@ HTML = """<!doctype html>
   <div class="top"><a href="/" style="color:inherit;text-decoration:none">Robin-Bobin</a></div>
   <section class="hero">
     <h1>Say it. Find it.</h1>
+    <p class="sub">Robin-Bobin is an advanced AI-powered search for Marktplaats items.</p>
     <form id="f">
       <div class="box">
         <textarea id="q" rows="3" placeholder="Wooden closet with drawers and hangers, about 1.5&ndash;2 m tall, within 15 minutes driving, max &euro;150"></textarea>
