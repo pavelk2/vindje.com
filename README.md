@@ -93,6 +93,26 @@ and returns each one's full title, description, attributes, price,
 location, image and URL. Claude reads that data itself to decide which
 listings satisfy what you actually asked for.
 
+### Listing cards (MCP Apps)
+
+The server also declares an [MCP Apps](https://github.com/modelcontextprotocol/ext-apps)
+(SEP-1865) `ui://marktplaats/listing-cards` resource on the search tool
+(`listing_cards_ui.py`). On a host that supports MCP Apps, this renders each
+search result as a photo card (image, price, title, city/distance) with a
+link straight to the listing, the way the Booking.com MCP server renders
+hotel cards — instead of, or alongside, Claude's plain-text answer. It's
+dependency-free (hand-rolled `postMessage`/JSON-RPC handshake, no npm
+package or build step) and purely additive: a host that ignores `ui://`
+resources just falls back to the tool's normal text/structured output.
+
+**Known limitation:** as of this writing, claude.ai's MCP Apps host support
+for *custom* remote connectors (Settings → Connectors → Add custom
+connector — the way this server is added) doesn't reliably render the
+widget yet and can fall back to text-only, even for a spec-compliant server
+([anthropics/claude-ai-mcp#471](https://github.com/anthropics/claude-ai-mcp/issues/471)).
+Nothing is lost either way — the tool's normal text answer works regardless
+— but don't be surprised if the cards don't show up yet on claude.ai.
+
 ### Run it locally first
 
 ```bash

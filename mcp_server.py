@@ -20,11 +20,13 @@ Local test:
 """
 
 import os
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
 from app import ALLOWED_RADII, search_marktplaats
+from listing_cards_ui import LISTING_CARDS_HTML, LISTING_CARDS_UI_RESOURCE_URI
 
 INSTRUCTIONS = """This server searches Marktplaats.nl, the largest Dutch classifieds
 site, and returns raw listing data. It does not run any AI itself.
@@ -57,7 +59,24 @@ mcp = FastMCP(
 )
 
 
-@mcp.tool()
+@mcp.resource(
+    LISTING_CARDS_UI_RESOURCE_URI,
+    name="Marktplaats listing cards",
+    description="Renders search_marktplaats_listings results as a grid of photo cards.",
+    mime_type="text/html;profile=mcp-app",
+)
+def listing_cards_ui() -> str:
+    return LISTING_CARDS_HTML
+
+
+@mcp.tool(
+    meta={
+        "ui": {
+            "resourceUri": LISTING_CARDS_UI_RESOURCE_URI,
+            "visibility": ["model", "app"],
+        }
+    }
+)
 def search_marktplaats_listings(
     query: str,
     postcode: str | None = None,
@@ -65,7 +84,7 @@ def search_marktplaats_listings(
     price_min_euro: float | None = None,
     price_max_euro: float | None = None,
     limit: int = 60,
-) -> dict:
+) -> dict[str, Any]:
     """Search live listings on Marktplaats.nl (Dutch classifieds).
 
     This performs a real, live search — it does not filter or judge results
