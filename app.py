@@ -738,6 +738,9 @@ async function saveSearch(payload) {
     const r = await post(payload);
     if (r && r.id) {
       shareUrl = location.origin + r.url;
+      // Every search is saved automatically, so the address bar itself
+      // becomes the shareable link — not just the copy button below.
+      history.pushState({shareId: r.id}, '', r.url);
       document.getElementById('shareRow').style.display = 'block';
     }
   } catch (err) { /* sharing is best-effort, never blocks a search */ }
@@ -762,6 +765,9 @@ f.addEventListener('submit', async e => {
   if (!q) return;
   const pc = document.getElementById('pc').value.trim();
   localStorage.setItem('pc', pc);
+  // Starting a fresh search leaves any previously-shared URL behind;
+  // the address bar gets the new search's own link once it's saved.
+  if (location.pathname !== '/') history.pushState({}, '', '/');
   document.getElementById('go').disabled = true;
   document.getElementById('spin').style.display = 'block';
   document.getElementById('results').innerHTML = '';
@@ -1216,8 +1222,11 @@ HISTORY_HTML = """<!doctype html>
     transition: box-shadow .18s ease, background .18s ease;
   }
   .entry:hover { background: #eeeef1; box-shadow: 0 8px 26px rgba(0,0,0,.06); }
+  .entry-main { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
   .entry .wish { font-size: 15px; font-weight: 600; letter-spacing: -.01em;
-                 line-height: 1.4; min-width: 0; overflow-wrap: break-word; }
+                 line-height: 1.4; overflow-wrap: break-word; }
+  .entry .url { font-size: 12px; color: var(--muted); overflow-wrap: anywhere;
+                font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
   .entry .meta { flex: none; font-size: 12.5px; color: var(--muted); text-align: right;
                  white-space: nowrap; }
 
@@ -1287,6 +1296,8 @@ def render_history(entries, origin=""):
             if not share_id:
                 continue
             wish = html.escape(str(e.get("wish") or "")[:500])
+            path = "/s/" + share_id
+            url = html.escape((origin + path) if origin else path)
             count = e.get("count")
             ts = e.get("ts")
             when = ""
@@ -1296,8 +1307,9 @@ def render_history(entries, origin=""):
                          (when, f"{count} results" if count is not None else "") if b]
             meta = " &middot; ".join(meta_bits)
             items.append(
-                f'<a class="entry" href="/s/{html.escape(share_id)}">'
-                f'<span class="wish">{wish}</span>'
+                f'<a class="entry" href="{html.escape(path)}">'
+                f'<span class="entry-main"><span class="wish">{wish}</span>'
+                f'<span class="url">{url}</span></span>'
                 f'<span class="meta">{meta}</span></a>'
             )
         inner = '<ul class="history-list">' + "".join(
