@@ -502,16 +502,21 @@ HTML = """<!doctype html>
   .why { font-size: 12.5px; margin-top: 8px; display: inline-flex; gap: 6px;
          align-items: baseline; color: var(--muted); line-height: 1.4; }
   .why b { color: var(--ink); font-weight: 700; }
-  .why.pending { animation: fade 1.5s ease infinite; }
+  .why.pending { align-items: center; }
+  .why.pending::before {
+    content: ''; width: 11px; height: 11px; border-radius: 50%; flex: none;
+    border: 2px solid var(--line2); border-top-color: var(--ink);
+    animation: spin .7s linear infinite;
+  }
   .why.warn { border: 1px dashed var(--line2); border-radius: 980px;
               padding: 3px 11px; }
-  .card.rejected { opacity: .28; }
-  .card.rejected:hover { opacity: .75; }
+  .card.pending { opacity: .5; }
+  .card.rejected { opacity: .1; }
+  .card.rejected:hover { opacity: .6; }
 
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes rise { from { opacity: 0; transform: translateY(7px); }
                     to { opacity: 1; transform: none; } }
-  @keyframes fade { 50% { opacity: .4; } }
   @media (prefers-reduced-motion: reduce) {
     * { animation-duration: .01s !important; transition-duration: .01s !important; }
   }
@@ -647,6 +652,7 @@ function applyVerdict(l, why, failed) {
   const card = document.getElementById('c-' + l.id);
   state.checked++;
   if (!badge || !card) return;
+  card.classList.remove('pending');
   if (failed) {
     state.failed++; l._u = 1;
     badge.className = 'why warn';
@@ -698,7 +704,7 @@ function updateCount(checking) {
 
 function renderCards(listings, checking) {
   document.getElementById('results').innerHTML = listings.map(l => `
-    <a class="card" id="c-${esc(l.id)}" href="${esc(l.url)}" target="_blank" rel="noopener">
+    <a class="card${checking ? ' pending' : ''}" id="c-${esc(l.id)}" href="${esc(l.url)}" target="_blank" rel="noopener">
       ${l.image ? `<img src="${esc(l.image)}" alt="" loading="lazy">` : '<div class="noimg">no photo</div>'}
       <div>
         <h3>${esc(l.title)}</h3>
