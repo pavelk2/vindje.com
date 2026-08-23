@@ -392,13 +392,16 @@ HTML = """<!doctype html>
   }
   * { box-sizing: border-box; }
   ::selection { background: var(--ink); color: #fff; }
+  html, body { height: 100%; }
   body {
     margin: 0; background: #fff; color: var(--ink);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
                  system-ui, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+    display: flex; flex-direction: column; min-height: 100vh;
   }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px 110px; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
+          flex: 1 0 auto; }
 
   .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
 
@@ -523,7 +526,7 @@ HTML = """<!doctype html>
     * { animation-duration: .01s !important; transition-duration: .01s !important; }
   }
 
-  .footer { margin-top: 70px; border-top: 1px solid var(--line); }
+  .footer { flex-shrink: 0; margin-top: 70px; border-top: 1px solid var(--line); }
   .footer-inner { max-width: 1040px; margin: 0 auto; padding: 22px 20px 30px;
                   display: flex; align-items: center; justify-content: space-between;
                   flex-wrap: wrap; gap: 12px; }
@@ -790,13 +793,16 @@ HOW_IT_WORKS_HTML = """<!doctype html>
   }
   * { box-sizing: border-box; }
   ::selection { background: var(--ink); color: #fff; }
+  html, body { height: 100%; }
   body {
     margin: 0; background: #fff; color: var(--ink);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
                  system-ui, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+    display: flex; flex-direction: column; min-height: 100vh;
   }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 60px; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
+          flex: 1 0 auto; }
   .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
   .top a { color: inherit; text-decoration: none; }
 
@@ -832,7 +838,7 @@ HOW_IT_WORKS_HTML = """<!doctype html>
   .aside { margin: 20px auto 0; font-size: 13px; color: var(--muted); max-width: 480px; }
   .aside a { color: inherit; }
 
-  .footer { margin-top: 70px; border-top: 1px solid var(--line); }
+  .footer { flex-shrink: 0; margin-top: 70px; border-top: 1px solid var(--line); }
   .footer-inner { max-width: 1040px; margin: 0 auto; padding: 22px 20px 30px;
                   display: flex; align-items: center; justify-content: space-between;
                   flex-wrap: wrap; gap: 12px; }
