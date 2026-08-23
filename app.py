@@ -479,7 +479,7 @@ HTML = """<!doctype html>
   .card {
     display: flex; gap: 15px; background: #fff; border-radius: 20px; padding: 13px;
     text-decoration: none; color: inherit; border: 1px solid var(--line);
-    animation: rise .3s ease both;
+    animation: rise .3s ease backwards;
     transition: box-shadow .18s ease, border-color .18s ease, opacity .3s ease;
   }
   .card:hover { border-color: var(--line2); box-shadow: 0 10px 34px rgba(0,0,0,.08); }
