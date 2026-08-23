@@ -4,7 +4,7 @@ Robin-Bobin — smart search for Marktplaats: describe what you want in
 plain language, get only the listings that actually match.
 
 How it works (single file, zero dependencies, Python 3.8+):
-  1. An LLM (via OpenRouter, Claude Haiku 4.5 by default) turns your wish
+  1. An LLM (via OpenRouter, GPT-5.6 Luna by default) turns your wish
      into a structured Marktplaats search (Dutch keywords, price range,
      search radius).
   2. We query Marktplaats' own search API.
@@ -16,7 +16,7 @@ Run:
   open http://localhost:8000
 
 Get a key at https://openrouter.ai/keys and add credits — the default
-model (Claude Haiku 4.5) is paid, not one of OpenRouter's free models.
+model (GPT-5.6 Luna) is paid, not one of OpenRouter's free models.
 Without a key the app still works as a plain Marktplaats search,
 just without the smart parsing/filtering.
 """
@@ -46,7 +46,7 @@ MODELS = [
     m.strip()
     for m in os.environ.get(
         "OPENROUTER_MODEL",
-        "anthropic/claude-haiku-4.5,"
+        "openai/gpt-5.6-luna,"
         "openrouter/free",
     ).split(",")
     if m.strip()
