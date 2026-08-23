@@ -1,2 +1,6 @@
-# Standard library only — nothing to install.
-# This file exists so Vercel detects the project as a Python app.
+# app.py itself is standard library only. This file also exists so Vercel
+# detects the project as a Python app.
+#
+# mcp is only needed for the MCP server (mcp_server.py / api/mcp.py), which
+# exposes Marktplaats search as a tool for Claude, with no AI on our side.
+mcp==1.29.0
