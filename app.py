@@ -700,6 +700,7 @@ HTML = """<!doctype html>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
       <a href="/history">History</a>
+      <a href="/credits">Credits</a>
       <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
     </nav>
   </div>
@@ -1169,6 +1170,130 @@ HOW_IT_WORKS_HTML = """<!doctype html>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
       <a href="/history">History</a>
+      <a href="/credits">Credits</a>
+      <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>"""
+
+
+CREDITS_HTML = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Credits &middot; vindje.com</title>
+<meta name="description" content="Who and what made vindje.com happen &mdash; the idea, the model choices, and the name.">
+<link rel="canonical" href="__ORIGIN__/credits">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="vindje.com">
+<meta property="og:title" content="Credits &middot; vindje.com">
+<meta property="og:description" content="Who and what made vindje.com happen &mdash; the idea, the model choices, and the name.">
+<meta property="og:url" content="__ORIGIN__/credits">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Credits &middot; vindje.com">
+<meta name="twitter:description" content="Who and what made vindje.com happen &mdash; the idea, the model choices, and the name.">
+<meta name="theme-color" content="#ffffff">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"vindje.com","item":"__ORIGIN__/"},{"@type":"ListItem","position":2,"name":"Credits","item":"__ORIGIN__/credits"}]}
+</script>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
+<style>
+  :root {
+    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
+    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
+  }
+  * { box-sizing: border-box; }
+  ::selection { background: var(--ink); color: #fff; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: #fff; color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
+                 system-ui, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
+          flex: 1 0 auto; }
+  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  .top a { color: inherit; text-decoration: none; }
+
+  .hero { max-width: 620px; margin: 0 auto; text-align: center; }
+  h1 {
+    font-size: clamp(34px, 6.5vw, 52px); font-weight: 700; letter-spacing: -.035em;
+    line-height: 1.06; margin: clamp(40px, 8vh, 64px) 0 14px;
+  }
+  .sub { font-size: 18px; color: var(--body); line-height: 1.5; margin: 0 auto 8px; }
+
+  .list { list-style: none; margin: 56px 0 0; padding: 0; display: grid; gap: 16px; }
+  .item {
+    background: var(--field);
+    border-radius: 20px; padding: 22px 22px; text-align: left;
+    animation: rise .35s ease backwards;
+  }
+  .item h3 { margin: 0 0 6px; font-size: 17px; font-weight: 700; letter-spacing: -.015em; }
+  .item p { margin: 0; font-size: 14.5px; color: var(--body); line-height: 1.55; }
+  .item p a { color: inherit; }
+
+  .aside { margin: 36px auto 0; font-size: 13px; color: var(--muted); max-width: 480px; text-align: center; }
+  .aside a { color: inherit; }
+
+  .footer { flex-shrink: 0; margin-top: 70px; border-top: 1px solid var(--line); }
+  .footer-inner { max-width: 1040px; margin: 0 auto; padding: 22px 20px 30px;
+                  display: flex; align-items: center; justify-content: space-between;
+                  flex-wrap: wrap; gap: 12px; }
+  .footer-brand { font-size: 13px; color: var(--muted); }
+  .footer-links { display: flex; gap: 22px; }
+  .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; }
+  .footer-links a:hover { color: var(--ink); }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(7px); }
+                    to { opacity: 1; transform: none; } }
+  .item:nth-child(1) { animation-delay: .02s; }
+  .item:nth-child(2) { animation-delay: .08s; }
+  .item:nth-child(3) { animation-delay: .14s; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .01s !important; transition-duration: .01s !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="/">vindje.com</a></div>
+  <section class="hero">
+    <h1>Credits</h1>
+    <p class="sub">vindje.com came together as a mix of ideas, tinkering, and a
+       little AI help along the way. Here's who and what gets the credit.</p>
+  </section>
+
+  <ul class="list">
+    <li class="item">
+      <h3>The idea</h3>
+      <p>The idea belongs to Robin, from
+         <a href="https://www.linkedin.com/feed/update/urn:li:activity:7495530682232954880/?dashCommentUrn=urn%3Ali%3Afsd_comment%3A%287495539903926292481%2Curn%3Ali%3Aactivity%3A7495530682232954880%29" target="_blank" rel="noopener">his reply in this LinkedIn thread</a>.</p>
+    </li>
+    <li class="item">
+      <h3>The model</h3>
+      <p>Phanos suggested moving from free OpenRouter models to Claude Haiku,
+         and later to GPT 5.6 Luna.</p>
+    </li>
+    <li class="item">
+      <h3>The name</h3>
+      <p>Claude suggested the name vindje.com.</p>
+    </li>
+  </ul>
+
+  <p class="aside">Know something that belongs here? <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Let us know</a>.</p>
+</div>
+<footer class="footer">
+  <div class="footer-inner">
+    <span class="footer-brand">vindje.com</span>
+    <nav class="footer-links">
+      <a href="/how-it-works">How it works</a>
+      <a href="/history">History</a>
+      <a href="/credits">Credits</a>
       <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
     </nav>
   </div>
@@ -1263,6 +1388,7 @@ HISTORY_HTML = """<!doctype html>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
       <a href="/history">History</a>
+      <a href="/credits">Credits</a>
       <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
     </nav>
   </div>
@@ -1281,6 +1407,7 @@ SITEMAP_XML = """<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>__ORIGIN__/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
   <url><loc>__ORIGIN__/how-it-works</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>__ORIGIN__/credits</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
 </urlset>
 """
 
@@ -1402,6 +1529,9 @@ def app(environ, start_response):
             headers = [("Content-Type", "application/xml; charset=utf-8")]
         elif path == "/how-it-works":
             body = HOW_IT_WORKS_HTML.replace("__ORIGIN__", origin).encode()
+            headers = [("Content-Type", "text/html; charset=utf-8")]
+        elif path == "/credits":
+            body = CREDITS_HTML.replace("__ORIGIN__", origin).encode()
             headers = [("Content-Type", "text/html; charset=utf-8")]
         elif path == "/history":
             try:
