@@ -116,7 +116,13 @@ The wish may be in any language. Reply with ONLY a JSON object:
 Rules:
 - search_terms must be generic enough to find candidates (e.g. "kledingkast hout", not a full sentence). No commas.
 - requirements capture everything checkable from a listing's text: dimensions, materials, features, condition, colors...
-- Do NOT put price or distance into requirements; they go in their own fields."""
+- Do NOT put price or distance into requirements; they go in their own fields.
+- Unless the buyer explicitly asked for a spare part, component, or accessory, the FIRST requirement must
+  state that the listing has to be the complete, whole item itself, and not a spare part, replacement part,
+  component, or accessory for it (e.g. buyer wants "a bicycle" -> requirement "must be a complete, ridable
+  bicycle, not a part or accessory such as a stem, derailleur, saddle, rack, or bike computer"). Marketplaces
+  are full of listings for parts/accessories that mention the whole product only to say they fit it, and a
+  plain keyword search cannot tell those apart, so this check matters."""
 
 
 def parse_wish(wish):
@@ -220,6 +226,10 @@ Below are numbered listings (title / description / attributes, in Dutch).
 Keep a listing only if it plausibly satisfies ALL requirements, or if the text
 doesn't contradict them and the item is clearly the right kind of thing.
 Reject anything that is the wrong kind of item, a service/ad, or contradicts a requirement.
+Watch especially for spare parts, replacement parts, components, and accessories that only
+mention the whole product to say they fit it (e.g. a stem, derailleur, saddle, rack, or bike
+computer is NOT a bicycle; a lamp shade or cord is NOT a lamp) — reject these unless the buyer
+actually asked for a part/accessory.
 
 Reply with ONLY JSON: {"matches": [{"n": <listing number>, "why": "<max 12 words, English>"}]}"""
 
@@ -443,8 +453,21 @@ HTML = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Robin-Bobin</title>
+<title>Robin-Bobin &mdash; Smart AI Search for Marktplaats</title>
+<meta name="description" content="Describe what you want to buy in plain language. Robin-Bobin turns it into a real Marktplaats search and uses AI to read every listing, keeping only the ones that actually match.">
+<link rel="canonical" href="__ORIGIN__/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Robin-Bobin">
+<meta property="og:title" content="Robin-Bobin &mdash; Smart AI Search for Marktplaats">
+<meta property="og:description" content="Describe what you want to buy in plain language and get only the Marktplaats listings that actually match &mdash; no more scrolling through junk.">
+<meta property="og:url" content="__ORIGIN__/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Robin-Bobin &mdash; Smart AI Search for Marktplaats">
+<meta name="twitter:description" content="Describe what you want to buy in plain language and get only the Marktplaats listings that actually match.">
 <meta name="theme-color" content="#ffffff">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"Robin-Bobin","url":"__ORIGIN__/","description":"Describe what you want to buy in plain language and get only the Marktplaats listings that actually match, filtered by AI.","applicationCategory":"ShoppingApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}
+</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
 <style>
   :root {
@@ -614,7 +637,7 @@ HTML = """<!doctype html>
 <div class="wrap">
   <div class="top"><a href="/" style="color:inherit;text-decoration:none">Robin-Bobin</a></div>
   <section class="hero">
-    <h1>Say it. Find it.</h1>
+    <h1>Advanced search for Marktplaats</h1>
     <form id="f">
       <div class="box">
         <textarea id="q" rows="3" placeholder="Wooden closet with drawers and hangers, about 1.5&ndash;2 m tall, within 15 minutes driving, max &euro;150"></textarea>
@@ -856,7 +879,7 @@ function updateCount(checking) {
 function cardShell(l, extraClass, badgeHtml) {
   return `
     <a class="card${extraClass ? ' ' + extraClass : ''}" id="c-${esc(l.id)}" href="${esc(l.url)}" target="_blank" rel="noopener">
-      ${l.image ? `<img src="${esc(l.image)}" alt="" loading="lazy">` : '<div class="noimg">no photo</div>'}
+      ${l.image ? `<img src="${esc(l.image)}" alt="${esc(l.title)}" loading="lazy">` : '<div class="noimg">no photo</div>'}
       <div>
         <h3>${esc(l.title)}</h3>
         <div class="meta"><span class="price">${esc(l.price)}</span>
@@ -968,8 +991,21 @@ HOW_IT_WORKS_HTML = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>How it works &middot; Robin-Bobin</title>
+<title>How Robin-Bobin's AI Search Works &middot; Marktplaats</title>
+<meta name="description" content="See how Robin-Bobin turns a plain-language wish into a Marktplaats search, then uses AI to read every listing and keep only the ones that really match.">
+<link rel="canonical" href="__ORIGIN__/how-it-works">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Robin-Bobin">
+<meta property="og:title" content="How Robin-Bobin's AI Search Works &middot; Marktplaats">
+<meta property="og:description" content="See how Robin-Bobin turns a plain-language wish into a Marktplaats search, then uses AI to keep only the listings that really match.">
+<meta property="og:url" content="__ORIGIN__/how-it-works">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="How Robin-Bobin's AI Search Works &middot; Marktplaats">
+<meta name="twitter:description" content="See how Robin-Bobin turns a plain-language wish into a Marktplaats search, then keeps only the listings that really match.">
 <meta name="theme-color" content="#ffffff">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Robin-Bobin","item":"__ORIGIN__/"},{"@type":"ListItem","position":2,"name":"How it works","item":"__ORIGIN__/how-it-works"}]}
+</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
 <style>
   :root {
@@ -1105,7 +1141,21 @@ HOW_IT_WORKS_HTML = """<!doctype html>
 </html>"""
 
 
-def render_page(record, error=None):
+ROBOTS_TXT = """User-agent: *
+Allow: /
+
+Sitemap: __ORIGIN__/sitemap.xml
+"""
+
+SITEMAP_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>__ORIGIN__/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>__ORIGIN__/how-it-works</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+</urlset>
+"""
+
+
+def render_page(record, origin="", error=None):
     """Render the app shell, optionally pre-loaded with a saved (shared) search."""
     if error:
         shared_json = json.dumps({"error": error})
@@ -1121,7 +1171,7 @@ def render_page(record, error=None):
         })
     else:
         shared_json = "null"
-    return HTML.replace("__SHARED_DATA__", shared_json)
+    return HTML.replace("__SHARED_DATA__", shared_json).replace("__ORIGIN__", origin)
 
 
 # WSGI application: GET -> the page, POST -> a search. Vercel's Python
@@ -1175,22 +1225,35 @@ def app(environ, start_response):
         headers = [("Content-Type", "application/json")]
     else:
         path = (environ.get("PATH_INFO") or "/").rstrip("/") or "/"
+        scheme = environ.get(
+            "HTTP_X_FORWARDED_PROTO", environ.get("wsgi.url_scheme", "https")
+        ).split(",")[0].strip()
+        host = environ.get("HTTP_HOST") or environ.get("SERVER_NAME") or "localhost"
+        origin = f"{scheme}://{host}"
         status = "200 OK"
-        if path == "/how-it-works":
-            body = HOW_IT_WORKS_HTML.encode()
+        if path == "/robots.txt":
+            body = ROBOTS_TXT.replace("__ORIGIN__", origin).encode()
+            headers = [("Content-Type", "text/plain; charset=utf-8")]
+        elif path == "/sitemap.xml":
+            body = SITEMAP_XML.replace("__ORIGIN__", origin).encode()
+            headers = [("Content-Type", "application/xml; charset=utf-8")]
+        elif path == "/how-it-works":
+            body = HOW_IT_WORKS_HTML.replace("__ORIGIN__", origin).encode()
+            headers = [("Content-Type", "text/html; charset=utf-8")]
         elif path.startswith("/s/") and len(path) > 3:
             try:
                 record = get_search(path[3:])
             except Exception:
                 record = None
             if record:
-                body = render_page(record).encode()
+                body = render_page(record, origin=origin).encode()
             else:
-                body = render_page(None, error="Shared search not found.").encode()
+                body = render_page(None, origin=origin, error="Shared search not found.").encode()
                 status = "404 Not Found"
+            headers = [("Content-Type", "text/html; charset=utf-8")]
         else:
-            body = render_page(None).encode()
-        headers = [("Content-Type", "text/html; charset=utf-8")]
+            body = render_page(None, origin=origin).encode()
+            headers = [("Content-Type", "text/html; charset=utf-8")]
     headers.append(("Content-Length", str(len(body))))
     start_response(status, headers)
     return [body]
