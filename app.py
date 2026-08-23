@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Robin-Bobin — smart search for Marktplaats: describe what you want in
+vindje.com — smart search for Marktplaats: describe what you want in
 plain language, get only the listings that actually match.
 
 How it works (single file, zero dependencies, Python 3.8+):
@@ -71,7 +71,7 @@ def llm(messages, max_tokens=2000):
                     "Content-Type": "application/json",
                     "Authorization": "Bearer " + OPENROUTER_API_KEY,
                     "HTTP-Referer": "https://github.com/pavelk2/marktplaats",
-                    "X-Title": "Robin-Bobin",
+                    "X-Title": "vindje.com",
                 },
             )
             try:
@@ -481,20 +481,20 @@ HTML = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Robin-Bobin &mdash; Smart AI Search for Marktplaats</title>
-<meta name="description" content="Describe what you want to buy in plain language. Robin-Bobin turns it into a real Marktplaats search and uses AI to read every listing, keeping only the ones that actually match.">
+<title>vindje.com &mdash; Smart AI Search for Marktplaats</title>
+<meta name="description" content="Describe what you want to buy in plain language. vindje.com turns it into a real Marktplaats search and uses AI to read every listing, keeping only the ones that actually match.">
 <link rel="canonical" href="__ORIGIN__/">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Robin-Bobin">
-<meta property="og:title" content="Robin-Bobin &mdash; Smart AI Search for Marktplaats">
+<meta property="og:site_name" content="vindje.com">
+<meta property="og:title" content="vindje.com &mdash; Smart AI Search for Marktplaats">
 <meta property="og:description" content="Describe what you want to buy in plain language and get only the Marktplaats listings that actually match &mdash; no more scrolling through junk.">
 <meta property="og:url" content="__ORIGIN__/">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Robin-Bobin &mdash; Smart AI Search for Marktplaats">
+<meta name="twitter:title" content="vindje.com &mdash; Smart AI Search for Marktplaats">
 <meta name="twitter:description" content="Describe what you want to buy in plain language and get only the Marktplaats listings that actually match.">
 <meta name="theme-color" content="#ffffff">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"Robin-Bobin","url":"__ORIGIN__/","description":"Describe what you want to buy in plain language and get only the Marktplaats listings that actually match, filtered by AI.","applicationCategory":"ShoppingApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"vindje.com","url":"__ORIGIN__/","description":"Describe what you want to buy in plain language and get only the Marktplaats listings that actually match, filtered by AI.","applicationCategory":"ShoppingApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}
 </script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
 <style>
@@ -663,7 +663,7 @@ HTML = """<!doctype html>
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><a href="/" style="color:inherit;text-decoration:none">Robin-Bobin</a></div>
+  <div class="top"><a href="/" style="color:inherit;text-decoration:none">vindje.com</a></div>
   <section class="hero">
     <h1>Advanced search for Marktplaats</h1>
     <form id="f">
@@ -696,7 +696,7 @@ HTML = """<!doctype html>
 </div>
 <footer class="footer">
   <div class="footer-inner">
-    <span class="footer-brand">Robin-Bobin</span>
+    <span class="footer-brand">vindje.com</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
       <a href="/history">History</a>
@@ -1026,20 +1026,20 @@ HOW_IT_WORKS_HTML = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>How Robin-Bobin's AI Search Works &middot; Marktplaats</title>
-<meta name="description" content="See how Robin-Bobin turns a plain-language wish into a Marktplaats search, then uses AI to read every listing and keep only the ones that really match.">
+<title>How vindje.com's AI Search Works &middot; Marktplaats</title>
+<meta name="description" content="See how vindje.com turns a plain-language wish into a Marktplaats search, then uses AI to read every listing and keep only the ones that really match.">
 <link rel="canonical" href="__ORIGIN__/how-it-works">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Robin-Bobin">
-<meta property="og:title" content="How Robin-Bobin's AI Search Works &middot; Marktplaats">
-<meta property="og:description" content="See how Robin-Bobin turns a plain-language wish into a Marktplaats search, then uses AI to keep only the listings that really match.">
+<meta property="og:site_name" content="vindje.com">
+<meta property="og:title" content="How vindje.com's AI Search Works &middot; Marktplaats">
+<meta property="og:description" content="See how vindje.com turns a plain-language wish into a Marktplaats search, then uses AI to keep only the listings that really match.">
 <meta property="og:url" content="__ORIGIN__/how-it-works">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="How Robin-Bobin's AI Search Works &middot; Marktplaats">
-<meta name="twitter:description" content="See how Robin-Bobin turns a plain-language wish into a Marktplaats search, then keeps only the listings that really match.">
+<meta name="twitter:title" content="How vindje.com's AI Search Works &middot; Marktplaats">
+<meta name="twitter:description" content="See how vindje.com turns a plain-language wish into a Marktplaats search, then keeps only the listings that really match.">
 <meta name="theme-color" content="#ffffff">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Robin-Bobin","item":"__ORIGIN__/"},{"@type":"ListItem","position":2,"name":"How it works","item":"__ORIGIN__/how-it-works"}]}
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"vindje.com","item":"__ORIGIN__/"},{"@type":"ListItem","position":2,"name":"How it works","item":"__ORIGIN__/how-it-works"}]}
 </script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
 <style>
@@ -1115,10 +1115,10 @@ HOW_IT_WORKS_HTML = """<!doctype html>
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><a href="/">Robin-Bobin</a></div>
+  <div class="top"><a href="/">vindje.com</a></div>
   <section class="hero">
-    <h1>How Robin-Bobin works</h1>
-    <p class="sub">Marktplaats is full of listings that almost fit. Robin-Bobin reads
+    <h1>How vindje.com works</h1>
+    <p class="sub">Marktplaats is full of listings that almost fit. vindje.com reads
        every one of them for you, like a friend who actually knows what you're
        looking for &mdash; and only shows you the ones that do.</p>
   </section>
@@ -1139,7 +1139,7 @@ HOW_IT_WORKS_HTML = """<!doctype html>
       <span class="n">2</span>
       <div>
         <h3>It searches Marktplaats for you</h3>
-        <p>Robin-Bobin queries Marktplaats' own search directly and pulls in
+        <p>vindje.com queries Marktplaats' own search directly and pulls in
            every listing that could plausibly match &mdash; titles, descriptions,
            photos, prices, and distance, all at once.</p>
       </div>
@@ -1165,7 +1165,7 @@ HOW_IT_WORKS_HTML = """<!doctype html>
 </div>
 <footer class="footer">
   <div class="footer-inner">
-    <span class="footer-brand">Robin-Bobin</span>
+    <span class="footer-brand">vindje.com</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
       <a href="/history">History</a>
@@ -1182,8 +1182,8 @@ HISTORY_HTML = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Search History &middot; Robin-Bobin</title>
-<meta name="description" content="Every search run on Robin-Bobin, newest first &mdash; open any one of them to see the exact results it found.">
+<title>Search History &middot; vindje.com</title>
+<meta name="description" content="Every search run on vindje.com, newest first &mdash; open any one of them to see the exact results it found.">
 <link rel="canonical" href="__ORIGIN__/history">
 <meta name="robots" content="noindex, follow">
 <meta name="theme-color" content="#ffffff">
@@ -1251,7 +1251,7 @@ HISTORY_HTML = """<!doctype html>
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><a href="/">Robin-Bobin</a></div>
+  <div class="top"><a href="/">vindje.com</a></div>
   <h1>Search history</h1>
   <p class="sub">Every search anyone has run, newest first. Open one to see the exact
      results it found &mdash; searches aren't tied to any account, so this is everyone's.</p>
@@ -1259,7 +1259,7 @@ HISTORY_HTML = """<!doctype html>
 </div>
 <footer class="footer">
   <div class="footer-inner">
-    <span class="footer-brand">Robin-Bobin</span>
+    <span class="footer-brand">vindje.com</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
       <a href="/history">History</a>
@@ -1440,7 +1440,7 @@ if __name__ == "__main__":
         def log_message(self, fmt, *args):
             pass
 
-    print(f"Robin-Bobin → http://localhost:{PORT}")
+    print(f"vindje.com → http://localhost:{PORT}")
     if not OPENROUTER_API_KEY:
         print("!! OPENROUTER_API_KEY not set: plain search only, no AI. "
               "Get a key (with credits) at https://openrouter.ai/keys")
