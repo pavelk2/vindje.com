@@ -60,3 +60,44 @@ tells you so.
 - The app uses Marktplaats' public website search endpoint
   (`/lrp/api/search`) — the same one your browser calls. Be gentle with it;
   this is a personal search tool, not a scraper.
+
+## MCP server (use your own Claude subscription instead of OpenRouter)
+
+`mcp_server.py` exposes Marktplaats search as an [MCP](https://modelcontextprotocol.io)
+tool. It runs **no AI at all** — it only fetches and returns raw listings.
+Add it to Claude as a custom connector and Claude itself (using your normal
+subscription, no API key) does the parsing of your wish into Dutch keywords
+and the judging of which listings actually match.
+
+### Deploy
+
+It deploys alongside the web app on the same Vercel project (`api/mcp.py` +
+the `/mcp` rewrite in `vercel.json`). Push to your Vercel-connected repo and
+the MCP endpoint is live at:
+
+```
+https://<your-app>.vercel.app/mcp
+```
+
+### Add it to Claude.ai
+
+Settings → Connectors → Add custom connector → paste that URL. No
+authentication is required (it's a read-only proxy onto public Marktplaats
+search results, so there's nothing sensitive to protect).
+
+### The tool
+
+`search_marktplaats_listings(query, postcode=None, radius_km=None, price_min_euro=None, price_max_euro=None, limit=60)`
+— searches live Marktplaats listings by Dutch keywords, price and radius,
+and returns each one's full title, description, attributes, price,
+location, image and URL. Claude reads that data itself to decide which
+listings satisfy what you actually asked for.
+
+### Run it locally first
+
+```bash
+pip install mcp uvicorn
+python3 mcp_server.py
+# MCP endpoint at http://localhost:8001/mcp — point an MCP client
+# (e.g. `npx @modelcontextprotocol/inspector`) at it to try it out.
+```
