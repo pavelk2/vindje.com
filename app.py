@@ -511,8 +511,10 @@ HTML = """<!doctype html>
   .why.warn { border: 1px dashed var(--line2); border-radius: 980px;
               padding: 3px 11px; }
   .card.pending { opacity: .5; }
-  .card.rejected { opacity: .1; }
-  .card.rejected:hover { opacity: .6; }
+  .card.matched { border-color: var(--ink); box-shadow: 0 0 0 1.5px var(--ink); }
+  .card.matched:hover { box-shadow: 0 0 0 1.5px var(--ink), 0 10px 34px rgba(0,0,0,.08); }
+  .card.rejected { opacity: .08; filter: grayscale(60%); }
+  .card.rejected:hover { opacity: .55; filter: none; }
 
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes rise { from { opacity: 0; transform: translateY(7px); }
@@ -659,6 +661,7 @@ function applyVerdict(l, why, failed) {
     badge.innerHTML = 'Not checked';
   } else if (why !== undefined) {
     state.matched++; l._m = 1;
+    card.classList.add('matched');
     badge.className = 'why';
     badge.innerHTML = '<b>&#10003;</b> ' + (why ? esc(why) : 'Matches');
   } else {
