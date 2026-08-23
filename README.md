@@ -47,35 +47,17 @@ share link" button appears once it's done. The link (`/s/<id>`) shows
 anyone who opens it precisely what you saw — no re-running of the search or
 the AI filtering, so it's instant and doesn't re-spend AI credits.
 
-This requires a [Supabase](https://supabase.com) project (any free-tier one
-works) as storage. Without it configured, saving/sharing just silently
-degrades to a no-op — search still works fully, only the "Copy share link"
-button never appears.
+This requires an [Upstash Redis](https://upstash.com) database (the free
+tier is plenty) as storage. Without it configured, saving/sharing just
+silently degrades to a no-op — search still works fully, only the "Copy
+share link" button never appears.
 
-1. Create a Supabase project, then in its SQL editor run:
-
-   ```sql
-   create table if not exists searches (
-     id text primary key,
-     created_at timestamptz not null default now(),
-     wish text not null,
-     postcode text,
-     interpreted jsonb,
-     results jsonb,
-     scanned integer,
-     total_on_marktplaats integer,
-     ai boolean,
-     notes jsonb
-   );
-   alter table searches enable row level security;
-   -- no policies: the app writes/reads only via the secret service_role
-   -- key server-side, which bypasses RLS; nothing is reachable with the
-   -- public anon key.
-   ```
-
-2. Grab the project's URL and its **`service_role`** key (Project Settings →
-   API — this key is secret, never expose it to the browser) and set them as
-   env vars below.
+1. Create an Upstash account, then create a Redis database (any region).
+   No schema or setup needed — it's a plain key-value store; each saved
+   search is written as one JSON value under a `search:<id>` key.
+2. On the database's page, grab the **REST URL** and **REST token** (under
+   "REST API") and set them as env vars below. The token is secret — it's
+   only ever used server-side, never sent to the browser.
 
 ## Configuration (all optional, via environment variables)
 
@@ -84,8 +66,8 @@ button never appears.
 | `OPENROUTER_API_KEY` | — | Your OpenRouter key, funded with credits |
 | `OPENROUTER_MODEL` | `anthropic/claude-haiku-4.5`, then `openrouter/free` | Comma-separated models to try in order |
 | `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` | Any OpenAI-compatible endpoint |
-| `SUPABASE_URL` | — | Your Supabase project URL, for saving/sharing searches |
-| `SUPABASE_SERVICE_KEY` | — | Supabase `service_role` secret key (server-side only) |
+| `UPSTASH_REDIS_REST_URL` | — | Your Upstash Redis REST URL, for saving/sharing searches |
+| `UPSTASH_REDIS_REST_TOKEN` | — | Upstash Redis REST token (secret, server-side only) |
 | `PORT` | `8000` | HTTP port |
 
 If the primary model errors or rate-limits, the app automatically falls

@@ -280,40 +280,39 @@ def filter_listings(requirements, listings):
     return matches, note
 
 
-# ---------------------------------------------------------------- sharing (Supabase)
+# ---------------------------------------------------------------- sharing (Upstash Redis)
 
 # Every completed search is saved (frozen snapshot) and given a short
 # share id, so a link to /s/<id> shows the exact same results later, to
-# anyone. Uses Supabase's PostgREST HTTP API directly via urllib — no
-# extra dependency. Configure with SUPABASE_URL and SUPABASE_SERVICE_KEY
-# (the secret service_role key; never expose it to the browser).
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
-SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+# anyone. Uses Upstash Redis' HTTP REST API directly via urllib — no
+# extra dependency. Configure with UPSTASH_REDIS_REST_URL and
+# UPSTASH_REDIS_REST_TOKEN (from the Upstash console; the token is
+# secret and only ever used server-side).
+UPSTASH_REDIS_REST_URL = os.environ.get("UPSTASH_REDIS_REST_URL", "").rstrip("/")
+UPSTASH_REDIS_REST_TOKEN = os.environ.get("UPSTASH_REDIS_REST_TOKEN", "")
 
 
-def supabase_request(method, path, body=None, params=None):
-    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
-        raise RuntimeError("Supabase is not configured (SUPABASE_URL / SUPABASE_SERVICE_KEY)")
-    url = f"{SUPABASE_URL}/rest/v1/{path}"
-    if params:
-        url += "?" + urllib.parse.urlencode(params)
+def upstash_command(*args):
+    if not UPSTASH_REDIS_REST_URL or not UPSTASH_REDIS_REST_TOKEN:
+        raise RuntimeError(
+            "Upstash Redis is not configured (UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN)"
+        )
     req = urllib.request.Request(
-        url,
-        data=json.dumps(body).encode() if body is not None else None,
-        method=method,
+        UPSTASH_REDIS_REST_URL,
+        data=json.dumps(list(args)).encode(),
         headers={
-            "apikey": SUPABASE_SERVICE_KEY,
-            "Authorization": "Bearer " + SUPABASE_SERVICE_KEY,
+            "Authorization": "Bearer " + UPSTASH_REDIS_REST_TOKEN,
             "Content-Type": "application/json",
-            "Prefer": "return=representation",
         },
     )
     try:
         with urllib.request.urlopen(req, timeout=15) as resp:
-            raw = resp.read()
+            data = json.loads(resp.read().decode())
     except urllib.error.HTTPError as e:
-        raise RuntimeError(f"Supabase error {e.code}: {e.read().decode(errors='replace')[:300]}")
-    return json.loads(raw.decode()) if raw else None
+        raise RuntimeError(f"Upstash error {e.code}: {e.read().decode(errors='replace')[:300]}")
+    if isinstance(data, dict) and data.get("error"):
+        raise RuntimeError(f"Upstash error: {data['error']}")
+    return data.get("result")
 
 
 def save_search(record):
@@ -322,7 +321,6 @@ def save_search(record):
         raise ValueError("Nothing to share yet")
     share_id = secrets.token_urlsafe(9)
     row = {
-        "id": share_id,
         "wish": str(record["wish"])[:500],
         "postcode": str(record["postcode"])[:20] if record.get("postcode") else None,
         "interpreted": record.get("interpreted"),
@@ -332,16 +330,14 @@ def save_search(record):
         "ai": bool(record.get("ai")),
         "notes": (record.get("notes") or [])[:20],
     }
-    supabase_request("POST", "searches", body=row)
+    upstash_command("SET", f"search:{share_id}", json.dumps(row))
     return share_id
 
 
 def get_search(share_id):
     """Look up a previously saved search by its share id."""
-    rows = supabase_request(
-        "GET", "searches", params={"id": f"eq.{share_id}", "select": "*", "limit": "1"}
-    )
-    return rows[0] if rows else None
+    raw = upstash_command("GET", f"search:{share_id}")
+    return json.loads(raw) if raw else None
 
 
 # ---------------------------------------------------------------- pipeline
