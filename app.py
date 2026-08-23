@@ -24,9 +24,11 @@ just without the smart parsing/filtering.
 
 import html
 import json
+import logging
 import os
 import re
 import secrets
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -35,6 +37,50 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 PORT = int(os.environ.get("PORT", "8000"))
+
+# ---------------------------------------------------------------- logging
+#
+# Plain stdlib logging to stdout. Vercel's Python runtime captures a
+# function's stdout/stderr into its log viewer, so this shows up there with
+# no extra setup. Set LOG_LEVEL=DEBUG for full request/response previews,
+# or LOG_LEVEL=WARNING to quiet it down.
+logging.basicConfig(
+    level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)s %(message)s",
+    stream=sys.stdout,
+)
+log = logging.getLogger("vindje")
+
+
+def _new_req_id():
+    """Short id to correlate every log line from one HTTP request, including
+    the parallel LLM calls made for its filter chunks."""
+    return secrets.token_hex(4)
+
+
+def _preview(value, n=200):
+    s = str(value)
+    return s if len(s) <= n else s[: n] + f"...(+{len(s) - n} more chars)"
+
+
+def _summarize_messages(messages):
+    """One-line shape of an outgoing LLM request (roles, text sizes, image
+    counts) — logged instead of the full payload so a photo-heavy filter
+    chunk doesn't flood the log with URLs, while still making it obvious
+    whether images were actually included in the request."""
+    parts = []
+    for m in messages:
+        content = m.get("content")
+        if isinstance(content, str):
+            parts.append(f"{m.get('role')}=text({len(content)}c)")
+        elif isinstance(content, list):
+            n_text = sum(1 for b in content if b.get("type") == "text")
+            n_img = sum(1 for b in content if b.get("type") == "image_url")
+            parts.append(f"{m.get('role')}=text:{n_text}/image:{n_img}")
+        else:
+            parts.append(f"{m.get('role')}=?")
+    return " ".join(parts)
+
 
 # ---------------------------------------------------------------- LLM (OpenRouter)
 
@@ -53,11 +99,14 @@ MODELS = [
     if m.strip()
 ]
 
+log.info("vindje.com module loaded: models=%s api_key_set=%s", MODELS, bool(OPENROUTER_API_KEY))
 
-def llm(messages, max_tokens=2000):
+
+def llm(messages, max_tokens=2000, req_id="-"):
     """Call the first model that answers. Returns text or raises."""
     if not OPENROUTER_API_KEY:
         raise RuntimeError("OPENROUTER_API_KEY is not set")
+    shape = _summarize_messages(messages)
     last_err = None
     for model in MODELS:
         # Ask for low reasoning effort to keep searches snappy. If a model
@@ -75,33 +124,57 @@ def llm(messages, max_tokens=2000):
                     "X-Title": "vindje.com",
                 },
             )
+            t0 = time.time()
+            log.info("[%s] llm: -> model=%s reasoning=%s %s",
+                     req_id, model, bool(extra), shape)
             try:
                 with urllib.request.urlopen(req, timeout=120) as resp:
                     data = json.loads(resp.read().decode())
                 text = data["choices"][0]["message"]["content"]
+                elapsed = time.time() - t0
                 if text and text.strip():
+                    log.info("[%s] llm: <- model=%s OK in %.2fs, %d chars: %s",
+                             req_id, model, elapsed, len(text), _preview(text))
                     return text
                 last_err = RuntimeError(f"{model}: empty response")
+                log.warning("[%s] llm: <- model=%s EMPTY response in %.2fs",
+                            req_id, model, elapsed)
                 break  # empty answer won't improve without the reasoning param
             except urllib.error.HTTPError as e:
+                elapsed = time.time() - t0
                 last_err = e
+                try:
+                    err_body = e.read().decode(errors="replace")
+                except Exception:
+                    err_body = ""
+                log.warning("[%s] llm: <- model=%s HTTP %s in %.2fs: %s",
+                            req_id, model, e.code, elapsed, _preview(err_body, 500))
                 if e.code != 400:
                     break  # rate-limited/unavailable -> next model
             except Exception as e:
+                elapsed = time.time() - t0
                 last_err = e
+                log.warning("[%s] llm: <- model=%s ERROR in %.2fs: %s",
+                            req_id, model, elapsed, e)
                 break
+    log.error("[%s] llm: ALL MODELS FAILED, last error: %s", req_id, last_err)
     raise RuntimeError(f"All models failed, last error: {last_err}")
 
 
-def llm_json(messages, max_tokens=2000):
+def llm_json(messages, max_tokens=2000, req_id="-"):
     """llm() + tolerant JSON extraction (models love code fences)."""
-    text = llm(messages, max_tokens=max_tokens)
+    text = llm(messages, max_tokens=max_tokens, req_id=req_id)
     text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip(), flags=re.MULTILINE)
     start = text.find("{")
     end = text.rfind("}")
     if start == -1 or end == -1:
+        log.warning("[%s] llm_json: no JSON braces in response: %s", req_id, _preview(text))
         raise ValueError("No JSON in model response: " + text[:200])
-    return json.loads(text[start : end + 1])
+    try:
+        return json.loads(text[start : end + 1])
+    except ValueError:
+        log.warning("[%s] llm_json: JSON parse failed on: %s", req_id, _preview(text))
+        raise
 
 
 # ---------------------------------------------------------------- Step 1: parse the wish
@@ -129,14 +202,21 @@ Rules:
   plain keyword search cannot tell those apart, so this check matters."""
 
 
-def parse_wish(wish):
-    return llm_json(
+def parse_wish(wish, req_id="-"):
+    log.info("[%s] parse_wish: wish=%r", req_id, _preview(wish, 150))
+    parsed = llm_json(
         [
             {"role": "system", "content": PARSE_PROMPT},
             {"role": "user", "content": wish},
         ],
         max_tokens=2000,
+        req_id=req_id,
     )
+    log.info("[%s] parse_wish: terms=%r requirements=%d price=[%s,%s] distance_m=%s",
+             req_id, parsed.get("search_terms"), len(parsed.get("requirements") or []),
+             parsed.get("price_min_euro"), parsed.get("price_max_euro"),
+             parsed.get("distance_meters"))
+    return parsed
 
 
 # ---------------------------------------------------------------- Step 2: search Marktplaats
@@ -150,7 +230,8 @@ def snap_radius(meters):
 
 
 def search_marktplaats(terms, postcode=None, distance_meters=None,
-                       price_min_euro=None, price_max_euro=None, limit=60):
+                       price_min_euro=None, price_max_euro=None, limit=60,
+                       req_id="-"):
     params = [
         ("query", terms),
         ("limit", str(limit)),
@@ -172,8 +253,15 @@ def search_marktplaats(terms, postcode=None, distance_meters=None,
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
         },
     )
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        data = json.loads(resp.read().decode())
+    t0 = time.time()
+    log.info("[%s] search_marktplaats: terms=%r postcode=%s distance_m=%s price=[%s,%s] limit=%d",
+             req_id, terms, postcode, distance_meters, price_min_euro, price_max_euro, limit)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode())
+    except Exception as e:
+        log.warning("[%s] search_marktplaats: FAILED in %.2fs: %s", req_id, time.time() - t0, e)
+        raise
 
     listings = []
     for raw in data.get("listings", []):
@@ -204,7 +292,11 @@ def search_marktplaats(terms, postcode=None, distance_meters=None,
                 "url": "https://www.marktplaats.nl" + raw.get("vipUrl", ""),
             }
         )
-    return listings, data.get("totalResultCount", len(listings))
+    total = data.get("totalResultCount", len(listings))
+    with_image = sum(1 for l in listings if l["image"])
+    log.info("[%s] search_marktplaats: got %d listings (%d with image) of %d total, in %.2fs",
+             req_id, len(listings), with_image, total, time.time() - t0)
+    return listings, total
 
 
 def format_price(price_info):
@@ -258,8 +350,9 @@ FILTER_CHUNK = 8  # listings per LLM call; smaller than before since each one
                   # than its text. Chunks are checked concurrently.
 
 
-def _filter_chunk(requirements, listings, base):
+def _filter_chunk(requirements, listings, base, req_id="-"):
     content = []
+    n_images = 0
     for i, l in enumerate(listings):
         n = base + i
         desc = str(l.get("description") or "")[:300]
@@ -268,12 +361,15 @@ def _filter_chunk(requirements, listings, base):
         image = l.get("image")
         if image:
             content.append({"type": "image_url", "image_url": {"url": image}})
+            n_images += 1
+    log.info("[%s] filter_chunk base=%d: %d listings, %d with image", req_id, base, len(listings), n_images)
     result = llm_json(
         [
             {"role": "system", "content": FILTER_PROMPT % "\n".join("- " + r for r in requirements)},
             {"role": "user", "content": content},
         ],
         max_tokens=4000,
+        req_id=req_id,
     )
     matches = {}
     for m in result.get("matches", []):
@@ -283,26 +379,34 @@ def _filter_chunk(requirements, listings, base):
             continue
         if base <= n < base + len(listings):
             matches[n] = str(m.get("why", ""))
+    log.info("[%s] filter_chunk base=%d: %d/%d matched: %s",
+             req_id, base, len(matches), len(listings),
+             {k: v for k, v in matches.items()})
     return matches
 
 
-def filter_listings(requirements, listings):
+def filter_listings(requirements, listings, req_id="-"):
     """Returns (matches dict, note or None). Raises only if every chunk fails."""
     if not requirements or not listings:
         return None, None
     chunks = [(i, listings[i : i + FILTER_CHUNK])
               for i in range(0, len(listings), FILTER_CHUNK)]
+    log.info("[%s] filter_listings: %d listings in %d chunk(s), %d requirements",
+             req_id, len(listings), len(chunks), len(requirements))
+    t0 = time.time()
     matches, failed = {}, []
     with ThreadPoolExecutor(max_workers=min(4, len(chunks))) as ex:
-        futures = {ex.submit(_filter_chunk, requirements, chunk, base): (base, chunk)
+        futures = {ex.submit(_filter_chunk, requirements, chunk, base, req_id): (base, chunk)
                    for base, chunk in chunks}
         for fut in as_completed(futures):
             base, chunk = futures[fut]
             try:
                 matches.update(fut.result())
-            except Exception:
+            except Exception as e:
+                log.warning("[%s] filter_listings: chunk base=%d FAILED: %s", req_id, base, e)
                 failed.append((base, chunk))
     if failed and not matches and len(failed) == len(chunks):
+        log.error("[%s] filter_listings: all %d chunks failed", req_id, len(chunks))
         raise RuntimeError("all filter batches failed")
     note = None
     if failed:
@@ -312,6 +416,8 @@ def filter_listings(requirements, listings):
                 matches.setdefault(base + i, "")
         note = (f"AI check failed for {sum(len(c) for _, c in failed)} of "
                 f"{len(listings)} listings; those are shown unfiltered.")
+    log.info("[%s] filter_listings: done in %.2fs, %d matched of %d, %d chunk(s) failed",
+             req_id, time.time() - t0, len(matches), len(listings), len(failed))
     return matches, note
 
 
@@ -412,14 +518,15 @@ def _num(v):
         return None
 
 
-def interpret(wish):
+def interpret(wish, req_id="-"):
     """Phase 1: parse the wish with the LLM. Returns (parsed_or_None, notes)."""
     notes = []
     parsed = None
     if OPENROUTER_API_KEY:
         try:
-            parsed = parse_wish(wish)
+            parsed = parse_wish(wish, req_id=req_id)
         except Exception as e:
+            log.warning("[%s] interpret: parse_wish failed: %s", req_id, e)
             notes.append(f"AI query parsing failed ({e}); using your text as-is.")
     else:
         notes.append("OPENROUTER_API_KEY not set — running as a plain search "
@@ -445,11 +552,13 @@ def search_params(parsed, wish, postcode):
     return terms, distance, price_min, price_max, requirements, notes
 
 
-def smart_search(wish, postcode, parsed=_UNSET, notes=None):
+def smart_search(wish, postcode, parsed=_UNSET, notes=None, req_id="-"):
     """Phase 2: search Marktplaats and AI-filter. Runs phase 1 first unless a
     pre-parsed result (possibly None) is handed in."""
+    t0 = time.time()
+    log.info("[%s] smart_search: wish=%r postcode=%s", req_id, _preview(wish, 150), postcode)
     if parsed is _UNSET:
-        parsed, notes = interpret(wish)
+        parsed, notes = interpret(wish, req_id=req_id)
     notes = list(notes or [])
     if not isinstance(parsed, dict):
         parsed = None
@@ -461,12 +570,13 @@ def smart_search(wish, postcode, parsed=_UNSET, notes=None):
     listings, total = search_marktplaats(
         terms, postcode=postcode, distance_meters=distance,
         price_min_euro=price_min, price_max_euro=price_max,
+        req_id=req_id,
     )
 
     kept = listings
     if parsed and requirements and listings:
         try:
-            matches, fnote = filter_listings(requirements, listings)
+            matches, fnote = filter_listings(requirements, listings, req_id=req_id)
             if fnote:
                 notes.append(fnote)
             if matches is not None:
@@ -477,8 +587,11 @@ def smart_search(wish, postcode, parsed=_UNSET, notes=None):
                             l["why"] = matches[i]
                         kept.append(l)
         except Exception as e:
+            log.warning("[%s] smart_search: filter_listings failed: %s", req_id, e)
             notes.append(f"AI filtering failed ({e}); showing unfiltered results.")
 
+    log.info("[%s] smart_search: done in %.2fs, kept %d of %d scanned (%d on Marktplaats)",
+             req_id, time.time() - t0, len(kept), len(listings), total)
     return {
         "wish": wish,
         "interpreted": {
@@ -1490,13 +1603,18 @@ def render_page(record, origin="", error=None):
 # runtime picks up the top-level `app` in a root app.py automatically;
 # locally the __main__ block below serves the same app.
 def app(environ, start_response):
+    req_id = _new_req_id()
+    t0 = time.time()
     if environ.get("REQUEST_METHOD") == "POST":
+        action = "-"
         try:
             length = int(environ.get("CONTENT_LENGTH") or 0)
             payload = json.loads(environ["wsgi.input"].read(length).decode())
             wish = (payload.get("wish") or "").strip()
             postcode = (payload.get("postcode") or "").strip()
-            action = (payload.get("action") or "").strip()
+            action = (payload.get("action") or "").strip() or "pipeline"
+            log.info("[%s] POST action=%s wish=%r postcode=%s",
+                     req_id, action, _preview(wish, 150), postcode)
             if action == "check":
                 # validate one batch of listings against the requirements
                 requirements = [str(r) for r in (payload.get("requirements") or [])]
@@ -1504,7 +1622,7 @@ def app(environ, start_response):
                          if isinstance(i, dict)]
                 if not items:
                     raise ValueError("No listings to check")
-                matches = _filter_chunk(requirements, items, 0)
+                matches = _filter_chunk(requirements, items, 0, req_id=req_id)
                 result = {"matches": {str(items[n].get("id")): why
                                       for n, why in matches.items()}}
             elif action == "save":
@@ -1513,7 +1631,7 @@ def app(environ, start_response):
             elif not wish:
                 raise ValueError("Empty search")
             elif action == "parse":
-                parsed, notes = interpret(wish)
+                parsed, notes = interpret(wish, req_id=req_id)
                 result = {"ai": bool(parsed), "parsed": parsed, "notes": notes}
             elif action == "find":
                 # search Marktplaats only — fast, no AI calls
@@ -1521,19 +1639,23 @@ def app(environ, start_response):
                     payload.get("parsed"), wish, postcode)
                 listings, total = search_marktplaats(
                     terms, postcode=postcode, distance_meters=distance,
-                    price_min_euro=pmin, price_max_euro=pmax)
+                    price_min_euro=pmin, price_max_euro=pmax, req_id=req_id)
                 result = {"listings": listings, "total_on_marktplaats": total,
                           "requirements": reqs, "notes": notes}
             elif action == "results":
                 result = smart_search(wish, postcode,
-                                      parsed=payload.get("parsed"))
+                                      parsed=payload.get("parsed"), req_id=req_id)
             else:  # single-call pipeline (curl-friendly)
-                result = smart_search(wish, postcode)
+                result = smart_search(wish, postcode, req_id=req_id)
             body = json.dumps(result).encode()
             status = "200 OK"
         except Exception as e:
+            log.warning("[%s] POST action=%s FAILED after %.2fs: %s",
+                        req_id, action, time.time() - t0, e)
             body = json.dumps({"error": str(e)}).encode()
             status = "500 Internal Server Error"
+        log.info("[%s] POST action=%s -> %s in %.2fs, %d bytes",
+                 req_id, action, status, time.time() - t0, len(body))
         headers = [("Content-Type", "application/json")]
     else:
         path = (environ.get("PATH_INFO") or "/").rstrip("/") or "/"
@@ -1576,6 +1698,8 @@ def app(environ, start_response):
         else:
             body = render_page(None, origin=origin).encode()
             headers = [("Content-Type", "text/html; charset=utf-8")]
+        log.info("[%s] GET %s -> %s in %.2fs, %d bytes",
+                 req_id, path, status, time.time() - t0, len(body))
     headers.append(("Content-Length", str(len(body))))
     start_response(status, headers)
     return [body]
