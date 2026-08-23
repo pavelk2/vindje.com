@@ -392,13 +392,16 @@ HTML = """<!doctype html>
   }
   * { box-sizing: border-box; }
   ::selection { background: var(--ink); color: #fff; }
+  html, body { height: 100%; }
   body {
     margin: 0; background: #fff; color: var(--ink);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
                  system-ui, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+    display: flex; flex-direction: column; min-height: 100vh;
   }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px 110px; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
+          flex: 1 0 auto; }
 
   .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
 
@@ -523,6 +526,15 @@ HTML = """<!doctype html>
     * { animation-duration: .01s !important; transition-duration: .01s !important; }
   }
 
+  .footer { flex-shrink: 0; margin-top: 70px; border-top: 1px solid var(--line); }
+  .footer-inner { max-width: 1040px; margin: 0 auto; padding: 22px 20px 30px;
+                  display: flex; align-items: center; justify-content: space-between;
+                  flex-wrap: wrap; gap: 12px; }
+  .footer-brand { font-size: 13px; color: var(--muted); }
+  .footer-links { display: flex; gap: 22px; }
+  .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; }
+  .footer-links a:hover { color: var(--ink); }
+
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4);
                    align-items: center; justify-content: center; z-index: 100; padding: 20px; }
   .modal-overlay.show { display: flex; }
@@ -539,7 +551,7 @@ HTML = """<!doctype html>
 </head>
 <body>
 <div class="wrap">
-  <div class="top">Robin-Bobin</div>
+  <div class="top"><a href="/" style="color:inherit;text-decoration:none">Robin-Bobin</a></div>
   <section class="hero">
     <h1>Say it. Find it.</h1>
     <form id="f">
@@ -567,6 +579,15 @@ HTML = """<!doctype html>
     <div id="results"></div>
   </section>
 </div>
+<footer class="footer">
+  <div class="footer-inner">
+    <span class="footer-brand">Robin-Bobin</span>
+    <nav class="footer-links">
+      <a href="/how-it-works">How it works</a>
+      <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
+    </nav>
+  </div>
+</footer>
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <h2>No good matches found</h2>
@@ -795,6 +816,147 @@ document.addEventListener('keydown', e => {
 </html>"""
 
 
+HOW_IT_WORKS_HTML = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How it works &middot; Robin-Bobin</title>
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
+<style>
+  :root {
+    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
+    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
+  }
+  * { box-sizing: border-box; }
+  ::selection { background: var(--ink); color: #fff; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: #fff; color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
+                 system-ui, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
+          flex: 1 0 auto; }
+  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  .top a { color: inherit; text-decoration: none; }
+
+  .hero { max-width: 620px; margin: 0 auto; text-align: center; }
+  h1 {
+    font-size: clamp(34px, 6.5vw, 52px); font-weight: 700; letter-spacing: -.035em;
+    line-height: 1.06; margin: clamp(40px, 8vh, 64px) 0 14px;
+  }
+  .sub { font-size: 18px; color: var(--body); line-height: 1.5; margin: 0 auto 8px; }
+
+  .steps { list-style: none; margin: 56px 0 0; padding: 0; display: grid; gap: 16px; }
+  .step {
+    display: flex; gap: 18px; align-items: flex-start; background: var(--field);
+    border-radius: 20px; padding: 22px 22px; text-align: left;
+    animation: rise .35s ease backwards;
+  }
+  .step .n {
+    flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--ink);
+    color: #fff; font-weight: 700; font-size: 15px; display: flex; align-items: center;
+    justify-content: center;
+  }
+  .step h3 { margin: 3px 0 4px; font-size: 17px; font-weight: 700; letter-spacing: -.015em; }
+  .step p { margin: 0; font-size: 14.5px; color: var(--body); line-height: 1.55; }
+
+  .cta { text-align: center; margin: 56px 0 0; }
+  .cta a {
+    display: inline-block; padding: 13px 30px; font-size: 15px; font-weight: 600;
+    color: #fff; background: var(--ink); border-radius: 980px; text-decoration: none;
+    transition: opacity .15s ease;
+  }
+  .cta a:hover { opacity: .85; }
+
+  .aside { margin: 20px auto 0; font-size: 13px; color: var(--muted); max-width: 480px; }
+  .aside a { color: inherit; }
+
+  .footer { flex-shrink: 0; margin-top: 70px; border-top: 1px solid var(--line); }
+  .footer-inner { max-width: 1040px; margin: 0 auto; padding: 22px 20px 30px;
+                  display: flex; align-items: center; justify-content: space-between;
+                  flex-wrap: wrap; gap: 12px; }
+  .footer-brand { font-size: 13px; color: var(--muted); }
+  .footer-links { display: flex; gap: 22px; }
+  .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; }
+  .footer-links a:hover { color: var(--ink); }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(7px); }
+                    to { opacity: 1; transform: none; } }
+  .step:nth-child(1) { animation-delay: .02s; }
+  .step:nth-child(2) { animation-delay: .08s; }
+  .step:nth-child(3) { animation-delay: .14s; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .01s !important; transition-duration: .01s !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="/">Robin-Bobin</a></div>
+  <section class="hero">
+    <h1>How Robin-Bobin works</h1>
+    <p class="sub">Marktplaats is full of listings that almost fit. Robin-Bobin reads
+       every one of them for you, like a friend who actually knows what you're
+       looking for &mdash; and only shows you the ones that do.</p>
+  </section>
+
+  <ol class="steps">
+    <li class="step">
+      <span class="n">1</span>
+      <div>
+        <h3>Tell it what you want, in plain words</h3>
+        <p>Describe your wish however it comes to mind, in any language &mdash;
+           "a wooden closet with drawers and hangers, about 1.5&ndash;2 m tall,
+           within 15 minutes driving, max &euro;150." An AI reads that and turns
+           it into a real Marktplaats search: Dutch keywords, a price range, and
+           a search radius.</p>
+      </div>
+    </li>
+    <li class="step">
+      <span class="n">2</span>
+      <div>
+        <h3>It searches Marktplaats for you</h3>
+        <p>Robin-Bobin queries Marktplaats' own search directly and pulls in
+           every listing that could plausibly match &mdash; titles, descriptions,
+           photos, prices, and distance, all at once.</p>
+      </div>
+    </li>
+    <li class="step">
+      <span class="n">3</span>
+      <div>
+        <h3>It reads each listing and keeps only the real matches</h3>
+        <p>Instead of you scrolling through dozens of near-misses, the AI checks
+           every result against what you actually asked for &mdash; size, condition,
+           features, whatever you mentioned &mdash; and shows only the listings
+           that hold up, each with a one-line reason why.</p>
+      </div>
+    </li>
+  </ol>
+
+  <div class="cta">
+    <a href="/">Try a search</a>
+  </div>
+  <p class="aside">No account needed. Nothing is stored &mdash; every search
+     talks to Marktplaats live.</p>
+</div>
+<footer class="footer">
+  <div class="footer-inner">
+    <span class="footer-brand">Robin-Bobin</span>
+    <nav class="footer-links">
+      <a href="/how-it-works">How it works</a>
+      <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>"""
+
+
 # WSGI application: GET -> the page, POST -> a search. Vercel's Python
 # runtime picks up the top-level `app` in a root app.py automatically;
 # locally the __main__ block below serves the same app.
@@ -842,7 +1004,8 @@ def app(environ, start_response):
             status = "500 Internal Server Error"
         headers = [("Content-Type", "application/json")]
     else:
-        body = HTML.encode()
+        path = (environ.get("PATH_INFO") or "/").rstrip("/") or "/"
+        body = (HOW_IT_WORKS_HTML if path == "/how-it-works" else HTML).encode()
         status = "200 OK"
         headers = [("Content-Type", "text/html; charset=utf-8")]
     headers.append(("Content-Length", str(len(body))))
