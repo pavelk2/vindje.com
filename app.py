@@ -502,7 +502,12 @@ HTML = """<!doctype html>
   .why { font-size: 12.5px; margin-top: 8px; display: inline-flex; gap: 6px;
          align-items: baseline; color: var(--muted); line-height: 1.4; }
   .why b { color: var(--ink); font-weight: 700; }
-  .why.pending { animation: fade 1.5s ease infinite; }
+  .why.pending { align-items: center; }
+  .why.pending::before {
+    content: ''; width: 11px; height: 11px; border-radius: 50%; flex: none;
+    border: 2px solid var(--line2); border-top-color: var(--ink);
+    animation: spin .7s linear infinite;
+  }
   .why.warn { border: 1px dashed var(--line2); border-radius: 980px;
               padding: 3px 11px; }
   .card.pending { opacity: .5; }
@@ -512,7 +517,6 @@ HTML = """<!doctype html>
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes rise { from { opacity: 0; transform: translateY(7px); }
                     to { opacity: 1; transform: none; } }
-  @keyframes fade { 50% { opacity: .4; } }
   @media (prefers-reduced-motion: reduce) {
     * { animation-duration: .01s !important; transition-duration: .01s !important; }
   }
