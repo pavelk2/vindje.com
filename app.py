@@ -21,14 +21,17 @@ Without a key the app still works as a plain Marktplaats search,
 just without the smart parsing/filtering.
 """
 
+import html
 import json
 import os
 import re
 import secrets
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
 
 PORT = int(os.environ.get("PORT", "8000"))
 
@@ -325,22 +328,35 @@ def upstash_command(*args):
     return data.get("result")
 
 
+HISTORY_KEY = "history"
+HISTORY_MAX = 500
+
+
 def save_search(record):
     """Persist a completed search (frozen results) and return its share id."""
     if not record.get("wish"):
         raise ValueError("Nothing to share yet")
     share_id = secrets.token_urlsafe(9)
+    wish = str(record["wish"])[:500]
+    results = (record.get("results") or [])[:200]
     row = {
-        "wish": str(record["wish"])[:500],
+        "wish": wish,
         "postcode": str(record["postcode"])[:20] if record.get("postcode") else None,
         "interpreted": record.get("interpreted"),
-        "results": (record.get("results") or [])[:200],
+        "results": results,
         "scanned": record.get("scanned"),
         "total_on_marktplaats": record.get("total_on_marktplaats"),
         "ai": bool(record.get("ai")),
         "notes": (record.get("notes") or [])[:20],
+        "ts": time.time(),
     }
     upstash_command("SET", f"search:{share_id}", json.dumps(row))
+    # Every saved search is also appended to a public history list so it
+    # shows up on /history. Searches aren't tied to any user or account,
+    # so there's nothing identifiable in it beyond the wish text itself.
+    entry = json.dumps({"id": share_id, "wish": wish, "ts": row["ts"], "count": len(results)})
+    upstash_command("LPUSH", HISTORY_KEY, entry)
+    upstash_command("LTRIM", HISTORY_KEY, "0", str(HISTORY_MAX - 1))
     return share_id
 
 
@@ -348,6 +364,18 @@ def get_search(share_id):
     """Look up a previously saved search by its share id."""
     raw = upstash_command("GET", f"search:{share_id}")
     return json.loads(raw) if raw else None
+
+
+def get_history(limit=HISTORY_MAX):
+    """Most recent saved searches, newest first, for the /history page."""
+    raw = upstash_command("LRANGE", HISTORY_KEY, "0", str(limit - 1))
+    entries = []
+    for item in raw or []:
+        try:
+            entries.append(json.loads(item))
+        except (TypeError, ValueError):
+            continue
+    return entries
 
 
 # ---------------------------------------------------------------- pipeline
@@ -671,6 +699,7 @@ HTML = """<!doctype html>
     <span class="footer-brand">Robin-Bobin</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
+      <a href="/history">History</a>
       <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
     </nav>
   </div>
@@ -709,6 +738,9 @@ async function saveSearch(payload) {
     const r = await post(payload);
     if (r && r.id) {
       shareUrl = location.origin + r.url;
+      // Every search is saved automatically, so the address bar itself
+      // becomes the shareable link — not just the copy button below.
+      history.pushState({shareId: r.id}, '', r.url);
       document.getElementById('shareRow').style.display = 'block';
     }
   } catch (err) { /* sharing is best-effort, never blocks a search */ }
@@ -733,6 +765,9 @@ f.addEventListener('submit', async e => {
   if (!q) return;
   const pc = document.getElementById('pc').value.trim();
   localStorage.setItem('pc', pc);
+  // Starting a fresh search leaves any previously-shared URL behind;
+  // the address bar gets the new search's own link once it's saved.
+  if (location.pathname !== '/') history.pushState({}, '', '/');
   document.getElementById('go').disabled = true;
   document.getElementById('spin').style.display = 'block';
   document.getElementById('results').innerHTML = '';
@@ -1133,6 +1168,101 @@ HOW_IT_WORKS_HTML = """<!doctype html>
     <span class="footer-brand">Robin-Bobin</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
+      <a href="/history">History</a>
+      <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>"""
+
+
+HISTORY_HTML = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Search History &middot; Robin-Bobin</title>
+<meta name="description" content="Every search run on Robin-Bobin, newest first &mdash; open any one of them to see the exact results it found.">
+<link rel="canonical" href="__ORIGIN__/history">
+<meta name="robots" content="noindex, follow">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
+<style>
+  :root {
+    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
+    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
+  }
+  * { box-sizing: border-box; }
+  ::selection { background: var(--ink); color: #fff; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: #fff; color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
+                 system-ui, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
+          flex: 1 0 auto; }
+  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  .top a { color: inherit; text-decoration: none; }
+
+  h1 {
+    font-size: clamp(30px, 5.5vw, 42px); font-weight: 700; letter-spacing: -.03em;
+    line-height: 1.08; margin: clamp(32px, 6vh, 52px) 0 8px;
+  }
+  .sub { font-size: 15.5px; color: var(--muted); line-height: 1.5; margin: 0 0 36px; }
+
+  .history-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .entry {
+    display: flex; gap: 14px; align-items: baseline; justify-content: space-between;
+    background: var(--field); border-radius: 16px; padding: 16px 18px;
+    text-decoration: none; color: inherit; animation: rise .3s ease backwards;
+    transition: box-shadow .18s ease, background .18s ease;
+  }
+  .entry:hover { background: #eeeef1; box-shadow: 0 8px 26px rgba(0,0,0,.06); }
+  .entry-main { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .entry .wish { font-size: 15px; font-weight: 600; letter-spacing: -.01em;
+                 line-height: 1.4; overflow-wrap: break-word; }
+  .entry .url { font-size: 12px; color: var(--muted); overflow-wrap: anywhere;
+                font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .entry .meta { flex: none; font-size: 12.5px; color: var(--muted); text-align: right;
+                 white-space: nowrap; }
+
+  .empty { text-align: center; color: var(--muted); font-size: 14.5px;
+           padding: 60px 0; }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); }
+                    to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .01s !important; transition-duration: .01s !important; }
+  }
+
+  .footer { flex-shrink: 0; margin-top: 70px; border-top: 1px solid var(--line); }
+  .footer-inner { max-width: 1040px; margin: 0 auto; padding: 22px 20px 30px;
+                  display: flex; align-items: center; justify-content: space-between;
+                  flex-wrap: wrap; gap: 12px; }
+  .footer-brand { font-size: 13px; color: var(--muted); }
+  .footer-links { display: flex; gap: 22px; }
+  .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; }
+  .footer-links a:hover { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="/">Robin-Bobin</a></div>
+  <h1>Search history</h1>
+  <p class="sub">Every search anyone has run, newest first. Open one to see the exact
+     results it found &mdash; searches aren't tied to any account, so this is everyone's.</p>
+  __ENTRIES__
+</div>
+<footer class="footer">
+  <div class="footer-inner">
+    <span class="footer-brand">Robin-Bobin</span>
+    <nav class="footer-links">
+      <a href="/how-it-works">How it works</a>
+      <a href="/history">History</a>
       <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
     </nav>
   </div>
@@ -1153,6 +1283,39 @@ SITEMAP_XML = """<?xml version="1.0" encoding="UTF-8"?>
   <url><loc>__ORIGIN__/how-it-works</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
 </urlset>
 """
+
+
+def render_history(entries, origin=""):
+    """Render the /history page listing every saved search, newest first."""
+    if not entries:
+        inner = '<p class="empty">No searches yet &mdash; run one to see it here.</p>'
+    else:
+        items = []
+        for e in entries:
+            share_id = str(e.get("id") or "")
+            if not share_id:
+                continue
+            wish = html.escape(str(e.get("wish") or "")[:500])
+            path = "/s/" + share_id
+            url = html.escape((origin + path) if origin else path)
+            count = e.get("count")
+            ts = e.get("ts")
+            when = ""
+            if isinstance(ts, (int, float)):
+                when = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%d %b %Y, %H:%M")
+            meta_bits = [html.escape(b) for b in
+                         (when, f"{count} results" if count is not None else "") if b]
+            meta = " &middot; ".join(meta_bits)
+            items.append(
+                f'<a class="entry" href="{html.escape(path)}">'
+                f'<span class="entry-main"><span class="wish">{wish}</span>'
+                f'<span class="url">{url}</span></span>'
+                f'<span class="meta">{meta}</span></a>'
+            )
+        inner = '<ul class="history-list">' + "".join(
+            f"<li>{item}</li>" for item in items
+        ) + "</ul>"
+    return HISTORY_HTML.replace("__ENTRIES__", inner).replace("__ORIGIN__", origin)
 
 
 def render_page(record, origin="", error=None):
@@ -1239,6 +1402,13 @@ def app(environ, start_response):
             headers = [("Content-Type", "application/xml; charset=utf-8")]
         elif path == "/how-it-works":
             body = HOW_IT_WORKS_HTML.replace("__ORIGIN__", origin).encode()
+            headers = [("Content-Type", "text/html; charset=utf-8")]
+        elif path == "/history":
+            try:
+                entries = get_history()
+            except Exception:
+                entries = []
+            body = render_history(entries, origin=origin).encode()
             headers = [("Content-Type", "text/html; charset=utf-8")]
         elif path.startswith("/s/") and len(path) > 3:
             try:
