@@ -3,6 +3,7 @@
   "rewrites": [
     { "source": "/", "destination": "/api/index" },
     { "source": "/how-it-works", "destination": "/api/index" },
+    { "source": "/credits", "destination": "/api/index" },
     { "source": "/history", "destination": "/api/index" },
     { "source": "/robots.txt", "destination": "/api/index" },
     { "source": "/sitemap.xml", "destination": "/api/index" },
