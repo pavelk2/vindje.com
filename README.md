@@ -12,8 +12,8 @@ searching through trash.
 
 ## How it works
 
-1. **Parse** — an LLM (via [OpenRouter](https://openrouter.ai), Claude Haiku
-   4.5 by default) turns your wish (any language) into a real Marktplaats
+1. **Parse** — an LLM (via [OpenRouter](https://openrouter.ai), GPT-5.6
+   Luna by default) turns your wish (any language) into a real Marktplaats
    search: Dutch keywords, price range, and a search radius (it even converts
    "15 minutes driving" into km).
 2. **Search** — the app queries Marktplaats' own search API with those filters.
@@ -27,7 +27,7 @@ Requires only Python 3.8+ — **no dependencies to install**.
 
 ```bash
 # 1. Get an API key at https://openrouter.ai/keys and add credits — the
-#    default model (Claude Haiku 4.5) is paid, not free
+#    default model (GPT-5.6 Luna) is paid, not free
 # 2. Run:
 OPENROUTER_API_KEY=sk-or-... python3 app.py
 # 3. Open http://localhost:8000
@@ -64,7 +64,7 @@ share link" button never appears.
 | Variable | Default | Purpose |
 |---|---|---|
 | `OPENROUTER_API_KEY` | — | Your OpenRouter key, funded with credits |
-| `OPENROUTER_MODEL` | `anthropic/claude-haiku-4.5`, then `openrouter/free` | Comma-separated models to try in order |
+| `OPENROUTER_MODEL` | `openai/gpt-5.6-luna`, then `openrouter/free` | Comma-separated models to try in order |
 | `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` | Any OpenAI-compatible endpoint |
 | `UPSTASH_REDIS_REST_URL` | — | Your Upstash Redis REST URL, for saving/sharing searches |
 | `UPSTASH_REDIS_REST_TOKEN` | — | Upstash Redis REST token (secret, server-side only) |
