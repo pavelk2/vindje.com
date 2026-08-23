@@ -505,8 +505,9 @@ HTML = """<!doctype html>
   .why.pending { animation: fade 1.5s ease infinite; }
   .why.warn { border: 1px dashed var(--line2); border-radius: 980px;
               padding: 3px 11px; }
-  .card.rejected { opacity: .28; }
-  .card.rejected:hover { opacity: .75; }
+  .card.pending { opacity: .5; }
+  .card.rejected { opacity: .1; }
+  .card.rejected:hover { opacity: .6; }
 
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes rise { from { opacity: 0; transform: translateY(7px); }
@@ -647,6 +648,7 @@ function applyVerdict(l, why, failed) {
   const card = document.getElementById('c-' + l.id);
   state.checked++;
   if (!badge || !card) return;
+  card.classList.remove('pending');
   if (failed) {
     state.failed++; l._u = 1;
     badge.className = 'why warn';
@@ -698,7 +700,7 @@ function updateCount(checking) {
 
 function renderCards(listings, checking) {
   document.getElementById('results').innerHTML = listings.map(l => `
-    <a class="card" id="c-${esc(l.id)}" href="${esc(l.url)}" target="_blank" rel="noopener">
+    <a class="card${checking ? ' pending' : ''}" id="c-${esc(l.id)}" href="${esc(l.url)}" target="_blank" rel="noopener">
       ${l.image ? `<img src="${esc(l.image)}" alt="" loading="lazy">` : '<div class="noimg">no photo</div>'}
       <div>
         <h3>${esc(l.title)}</h3>
