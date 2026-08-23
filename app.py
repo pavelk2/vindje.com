@@ -571,7 +571,7 @@ HTML = """<!doctype html>
   <div class="top"><a href="/" style="color:inherit;text-decoration:none">Robin-Bobin</a></div>
   <section class="hero">
     <h1>Say it. Find it.</h1>
-    <p class="sub">Robin-Bobin is an advanced AI-powered search for Marktplaats items.</p>
+    <p class="sub">Robin-Bobin is an advanced AI-powered search for Marktplaats.</p>
     <form id="f">
       <div class="box">
         <textarea id="q" rows="3" placeholder="Wooden closet with drawers and hangers, about 1.5&ndash;2 m tall, within 15 minutes driving, max &euro;150"></textarea>
