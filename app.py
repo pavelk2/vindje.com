@@ -570,7 +570,7 @@ HTML = """<!doctype html>
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <h2>No good matches found</h2>
-    <p>Try to make the range of the search wider &mdash; a bigger distance, a wider price range, or looser requirements.</p>
+    <p>Try to make the range of the search wider: a bigger distance, a wider price range, or looser requirements.</p>
     <button id="modalClose" type="button">Got it</button>
   </div>
 </div>
