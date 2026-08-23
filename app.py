@@ -382,8 +382,21 @@ HTML = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Robin-Bobin</title>
+<title>Robin-Bobin &mdash; Smart AI Search for Marktplaats</title>
+<meta name="description" content="Describe what you want to buy in plain language. Robin-Bobin turns it into a real Marktplaats search and uses AI to read every listing, keeping only the ones that actually match.">
+<link rel="canonical" href="__ORIGIN__/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Robin-Bobin">
+<meta property="og:title" content="Robin-Bobin &mdash; Smart AI Search for Marktplaats">
+<meta property="og:description" content="Describe what you want to buy in plain language and get only the Marktplaats listings that actually match &mdash; no more scrolling through junk.">
+<meta property="og:url" content="__ORIGIN__/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Robin-Bobin &mdash; Smart AI Search for Marktplaats">
+<meta name="twitter:description" content="Describe what you want to buy in plain language and get only the Marktplaats listings that actually match.">
 <meta name="theme-color" content="#ffffff">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"Robin-Bobin","url":"__ORIGIN__/","description":"Describe what you want to buy in plain language and get only the Marktplaats listings that actually match, filtered by AI.","applicationCategory":"ShoppingApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}
+</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
 <style>
   :root {
@@ -753,7 +766,7 @@ function updateCount(checking) {
 function renderCards(listings, checking) {
   document.getElementById('results').innerHTML = listings.map(l => `
     <a class="card${checking ? ' pending' : ''}" id="c-${esc(l.id)}" href="${esc(l.url)}" target="_blank" rel="noopener">
-      ${l.image ? `<img src="${esc(l.image)}" alt="" loading="lazy">` : '<div class="noimg">no photo</div>'}
+      ${l.image ? `<img src="${esc(l.image)}" alt="${esc(l.title)}" loading="lazy">` : '<div class="noimg">no photo</div>'}
       <div>
         <h3>${esc(l.title)}</h3>
         <div class="meta"><span class="price">${esc(l.price)}</span>
@@ -821,8 +834,21 @@ HOW_IT_WORKS_HTML = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>How it works &middot; Robin-Bobin</title>
+<title>How Robin-Bobin's AI Search Works &middot; Marktplaats</title>
+<meta name="description" content="See how Robin-Bobin turns a plain-language wish into a Marktplaats search, then uses AI to read every listing and keep only the ones that really match.">
+<link rel="canonical" href="__ORIGIN__/how-it-works">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Robin-Bobin">
+<meta property="og:title" content="How Robin-Bobin's AI Search Works &middot; Marktplaats">
+<meta property="og:description" content="See how Robin-Bobin turns a plain-language wish into a Marktplaats search, then uses AI to keep only the listings that really match.">
+<meta property="og:url" content="__ORIGIN__/how-it-works">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="How Robin-Bobin's AI Search Works &middot; Marktplaats">
+<meta name="twitter:description" content="See how Robin-Bobin turns a plain-language wish into a Marktplaats search, then keeps only the listings that really match.">
 <meta name="theme-color" content="#ffffff">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Robin-Bobin","item":"__ORIGIN__/"},{"@type":"ListItem","position":2,"name":"How it works","item":"__ORIGIN__/how-it-works"}]}
+</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
 <style>
   :root {
@@ -957,6 +983,20 @@ HOW_IT_WORKS_HTML = """<!doctype html>
 </html>"""
 
 
+ROBOTS_TXT = """User-agent: *
+Allow: /
+
+Sitemap: __ORIGIN__/sitemap.xml
+"""
+
+SITEMAP_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>__ORIGIN__/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>__ORIGIN__/how-it-works</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+</urlset>
+"""
+
+
 # WSGI application: GET -> the page, POST -> a search. Vercel's Python
 # runtime picks up the top-level `app` in a root app.py automatically;
 # locally the __main__ block below serves the same app.
@@ -1005,9 +1045,24 @@ def app(environ, start_response):
         headers = [("Content-Type", "application/json")]
     else:
         path = (environ.get("PATH_INFO") or "/").rstrip("/") or "/"
-        body = (HOW_IT_WORKS_HTML if path == "/how-it-works" else HTML).encode()
-        status = "200 OK"
-        headers = [("Content-Type", "text/html; charset=utf-8")]
+        scheme = environ.get(
+            "HTTP_X_FORWARDED_PROTO", environ.get("wsgi.url_scheme", "https")
+        ).split(",")[0].strip()
+        host = environ.get("HTTP_HOST") or environ.get("SERVER_NAME") or "localhost"
+        origin = f"{scheme}://{host}"
+        if path == "/robots.txt":
+            body = ROBOTS_TXT.replace("__ORIGIN__", origin).encode()
+            status = "200 OK"
+            headers = [("Content-Type", "text/plain; charset=utf-8")]
+        elif path == "/sitemap.xml":
+            body = SITEMAP_XML.replace("__ORIGIN__", origin).encode()
+            status = "200 OK"
+            headers = [("Content-Type", "application/xml; charset=utf-8")]
+        else:
+            page = HOW_IT_WORKS_HTML if path == "/how-it-works" else HTML
+            body = page.replace("__ORIGIN__", origin).encode()
+            status = "200 OK"
+            headers = [("Content-Type", "text/html; charset=utf-8")]
     headers.append(("Content-Length", str(len(body))))
     start_response(status, headers)
     return [body]
