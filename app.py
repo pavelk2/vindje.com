@@ -24,6 +24,7 @@ just without the smart parsing/filtering.
 import json
 import os
 import re
+import secrets
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -277,6 +278,70 @@ def filter_listings(requirements, listings):
         note = (f"AI check failed for {sum(len(c) for _, c in failed)} of "
                 f"{len(listings)} listings; those are shown unfiltered.")
     return matches, note
+
+
+# ---------------------------------------------------------------- sharing (Supabase)
+
+# Every completed search is saved (frozen snapshot) and given a short
+# share id, so a link to /s/<id> shows the exact same results later, to
+# anyone. Uses Supabase's PostgREST HTTP API directly via urllib — no
+# extra dependency. Configure with SUPABASE_URL and SUPABASE_SERVICE_KEY
+# (the secret service_role key; never expose it to the browser).
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+
+
+def supabase_request(method, path, body=None, params=None):
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        raise RuntimeError("Supabase is not configured (SUPABASE_URL / SUPABASE_SERVICE_KEY)")
+    url = f"{SUPABASE_URL}/rest/v1/{path}"
+    if params:
+        url += "?" + urllib.parse.urlencode(params)
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode() if body is not None else None,
+        method=method,
+        headers={
+            "apikey": SUPABASE_SERVICE_KEY,
+            "Authorization": "Bearer " + SUPABASE_SERVICE_KEY,
+            "Content-Type": "application/json",
+            "Prefer": "return=representation",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            raw = resp.read()
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"Supabase error {e.code}: {e.read().decode(errors='replace')[:300]}")
+    return json.loads(raw.decode()) if raw else None
+
+
+def save_search(record):
+    """Persist a completed search (frozen results) and return its share id."""
+    if not record.get("wish"):
+        raise ValueError("Nothing to share yet")
+    share_id = secrets.token_urlsafe(9)
+    row = {
+        "id": share_id,
+        "wish": str(record["wish"])[:500],
+        "postcode": str(record["postcode"])[:20] if record.get("postcode") else None,
+        "interpreted": record.get("interpreted"),
+        "results": (record.get("results") or [])[:200],
+        "scanned": record.get("scanned"),
+        "total_on_marktplaats": record.get("total_on_marktplaats"),
+        "ai": bool(record.get("ai")),
+        "notes": (record.get("notes") or [])[:20],
+    }
+    supabase_request("POST", "searches", body=row)
+    return share_id
+
+
+def get_search(share_id):
+    """Look up a previously saved search by its share id."""
+    rows = supabase_request(
+        "GET", "searches", params={"id": f"eq.{share_id}", "select": "*", "limit": "1"}
+    )
+    return rows[0] if rows else None
 
 
 # ---------------------------------------------------------------- pipeline
@@ -576,6 +641,9 @@ HTML = """<!doctype html>
   <section class="results-sec">
     <div class="bar" id="bar"><i></i></div>
     <div class="count" id="count"></div>
+    <div id="shareRow" style="display:none;margin:0 2px 16px">
+      <button type="button" id="shareBtn" class="ex">Copy share link</button>
+    </div>
     <div id="results"></div>
   </section>
 </div>
@@ -596,6 +664,7 @@ HTML = """<!doctype html>
   </div>
 </div>
 <script>
+const SHARED = __SHARED_DATA__;
 const f = document.getElementById('f');
 const esc = s => (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function post(body) {
@@ -607,7 +676,37 @@ function post(body) {
 }
 
 let baseNotes = [];
+let shareUrl = null;
 let state = {listings: [], total: 0, matched: 0, rejected: 0, failed: 0, checked: 0};
+
+function orderResults(listings, checking) {
+  if (!checking) return listings.map(l => ({...l, matched: false, rejected: false, unchecked: false}));
+  return listings.filter(l => l._m).concat(listings.filter(l => l._u), listings.filter(l => l._r))
+    .map(l => ({...l, matched: !!l._m, rejected: !!l._r, unchecked: !!l._u}));
+}
+
+async function saveSearch(payload) {
+  try {
+    const r = await post(payload);
+    if (r && r.id) {
+      shareUrl = location.origin + r.url;
+      document.getElementById('shareRow').style.display = 'block';
+    }
+  } catch (err) { /* sharing is best-effort, never blocks a search */ }
+}
+
+document.getElementById('shareBtn').addEventListener('click', async () => {
+  if (!shareUrl) return;
+  const btn = document.getElementById('shareBtn');
+  try {
+    await navigator.clipboard.writeText(shareUrl);
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  } catch (err) {
+    prompt('Copy this link:', shareUrl);
+  }
+});
 
 f.addEventListener('submit', async e => {
   e.preventDefault();
@@ -621,6 +720,8 @@ f.addEventListener('submit', async e => {
   document.getElementById('count').textContent = '';
   document.getElementById('notes').innerHTML = '';
   document.getElementById('interp').style.display = 'none';
+  document.getElementById('shareRow').style.display = 'none';
+  shareUrl = null;
   hideNoMatchesModal();
   const bar0 = document.getElementById('bar');
   bar0.style.opacity = 0;
@@ -662,6 +763,12 @@ f.addEventListener('submit', async e => {
     if ((checking && state.matched === 0) || (!checking && listings.length === 0)) {
       showNoMatchesModal();
     }
+    await saveSearch({
+      action: 'save', wish: q, postcode: pc,
+      interpreted: p.parsed || null, ai: !!p.ai, notes: baseNotes,
+      scanned: state.listings.length, total_on_marktplaats: state.total,
+      results: orderResults(state.listings, checking),
+    });
   } catch (err) {
     document.getElementById('notes').innerHTML += '<div class="note">Error: ' + esc(err.message) + '</div>';
   } finally {
@@ -750,20 +857,64 @@ function updateCount(checking) {
   el.innerHTML = txt;
 }
 
-function renderCards(listings, checking) {
-  document.getElementById('results').innerHTML = listings.map(l => `
-    <a class="card${checking ? ' pending' : ''}" id="c-${esc(l.id)}" href="${esc(l.url)}" target="_blank" rel="noopener">
+function cardShell(l, extraClass, badgeHtml) {
+  return `
+    <a class="card${extraClass ? ' ' + extraClass : ''}" id="c-${esc(l.id)}" href="${esc(l.url)}" target="_blank" rel="noopener">
       ${l.image ? `<img src="${esc(l.image)}" alt="" loading="lazy">` : '<div class="noimg">no photo</div>'}
       <div>
         <h3>${esc(l.title)}</h3>
         <div class="meta"><span class="price">${esc(l.price)}</span>
           &middot; ${esc(l.city)}${l.distance_km != null ? ' &middot; ' + l.distance_km + ' km' : ''}</div>
         <div class="desc">${esc(l.description)}</div>
-        ${checking ? `<span class="why pending" id="b-${esc(l.id)}">Checking&hellip;</span>` : ''}
+        ${badgeHtml || ''}
       </div>
-    </a>`).join('');
+    </a>`;
 }
-document.getElementById('pc').value = localStorage.getItem('pc') || '';
+
+function renderCards(listings, checking) {
+  document.getElementById('results').innerHTML = listings.map(l => cardShell(
+    l, checking ? 'pending' : '',
+    checking ? `<span class="why pending" id="b-${esc(l.id)}">Checking&hellip;</span>` : ''
+  )).join('');
+}
+
+function renderSharedResults(rec) {
+  document.getElementById('spin').style.display = 'none';
+  document.getElementById('q').value = rec.wish || '';
+  document.getElementById('pc').value = rec.postcode || '';
+  showInterp(rec.interpreted, rec.ai);
+  baseNotes = (rec.notes || []).concat(['Shared search results — click the logo above to start a new search.']);
+  showNotes([]);
+  const results = rec.results || [];
+  document.getElementById('results').innerHTML = results.map(l => {
+    if (l.matched) return cardShell(l, 'matched', '<span class="why"><b>&#10003;</b> ' + (l.why ? esc(l.why) : 'Matches') + '</span>');
+    if (l.rejected) return cardShell(l, 'rejected', '');
+    if (l.unchecked) return cardShell(l, '', '<span class="why warn">Not checked</span>');
+    return cardShell(l, '', '');
+  }).join('');
+  const matched = results.filter(l => l.matched).length;
+  const rejected = results.filter(l => l.rejected).length;
+  const unchecked = results.filter(l => l.unchecked).length;
+  const countEl = document.getElementById('count');
+  if (matched + rejected + unchecked > 0) {
+    let parts = [matched + (matched === 1 ? ' match' : ' matches'), rejected + ' filtered out'];
+    if (unchecked) parts.push(unchecked + ' unchecked');
+    countEl.innerHTML = parts.join(' &middot; ');
+  } else {
+    countEl.textContent = results.length + ' listings' +
+      (rec.total_on_marktplaats != null ? ' · ' + rec.total_on_marktplaats + ' hits on Marktplaats' : '');
+  }
+}
+if (SHARED) {
+  if (SHARED.error) {
+    document.getElementById('spin').style.display = 'none';
+    document.getElementById('notes').innerHTML = '<div class="note">' + esc(SHARED.error) + '</div>';
+  } else {
+    renderSharedResults(SHARED);
+  }
+} else {
+  document.getElementById('pc').value = localStorage.getItem('pc') || '';
+}
 
 document.querySelectorAll('.ex').forEach(b => b.addEventListener('click', () => {
   const q = document.getElementById('q');
@@ -941,8 +1092,9 @@ HOW_IT_WORKS_HTML = """<!doctype html>
   <div class="cta">
     <a href="/">Try a search</a>
   </div>
-  <p class="aside">No account needed. Nothing is stored &mdash; every search
-     talks to Marktplaats live.</p>
+  <p class="aside">No account needed. Every search talks to Marktplaats
+     live; a completed search's results are saved so you can share a link
+     to them, showing anyone who opens it exactly what you saw.</p>
 </div>
 <footer class="footer">
   <div class="footer-inner">
@@ -955,6 +1107,25 @@ HOW_IT_WORKS_HTML = """<!doctype html>
 </footer>
 </body>
 </html>"""
+
+
+def render_page(record, error=None):
+    """Render the app shell, optionally pre-loaded with a saved (shared) search."""
+    if error:
+        shared_json = json.dumps({"error": error})
+    elif record:
+        shared_json = json.dumps({
+            "wish": record.get("wish"),
+            "postcode": record.get("postcode"),
+            "interpreted": record.get("interpreted"),
+            "ai": record.get("ai"),
+            "notes": record.get("notes") or [],
+            "results": record.get("results") or [],
+            "total_on_marktplaats": record.get("total_on_marktplaats"),
+        })
+    else:
+        shared_json = "null"
+    return HTML.replace("__SHARED_DATA__", shared_json)
 
 
 # WSGI application: GET -> the page, POST -> a search. Vercel's Python
@@ -978,6 +1149,9 @@ def app(environ, start_response):
                 matches = _filter_chunk(requirements, items, 0)
                 result = {"matches": {str(items[n].get("id")): why
                                       for n, why in matches.items()}}
+            elif action == "save":
+                share_id = save_search(payload)
+                result = {"id": share_id, "url": "/s/" + share_id}
             elif not wish:
                 raise ValueError("Empty search")
             elif action == "parse":
@@ -1005,8 +1179,21 @@ def app(environ, start_response):
         headers = [("Content-Type", "application/json")]
     else:
         path = (environ.get("PATH_INFO") or "/").rstrip("/") or "/"
-        body = (HOW_IT_WORKS_HTML if path == "/how-it-works" else HTML).encode()
         status = "200 OK"
+        if path == "/how-it-works":
+            body = HOW_IT_WORKS_HTML.encode()
+        elif path.startswith("/s/") and len(path) > 3:
+            try:
+                record = get_search(path[3:])
+            except Exception:
+                record = None
+            if record:
+                body = render_page(record).encode()
+            else:
+                body = render_page(None, error="Shared search not found.").encode()
+                status = "404 Not Found"
+        else:
+            body = render_page(None).encode()
         headers = [("Content-Type", "text/html; charset=utf-8")]
     headers.append(("Content-Length", str(len(body))))
     start_response(status, headers)
