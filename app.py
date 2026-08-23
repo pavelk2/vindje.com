@@ -522,6 +522,19 @@ HTML = """<!doctype html>
   @media (prefers-reduced-motion: reduce) {
     * { animation-duration: .01s !important; transition-duration: .01s !important; }
   }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4);
+                   align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: #fff; border-radius: 20px; padding: 30px 26px 26px; max-width: 360px;
+           width: 100%; text-align: center; animation: rise .25s ease both;
+           box-shadow: 0 20px 60px rgba(0,0,0,.22); }
+  .modal h2 { margin: 0 0 10px; font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
+  .modal p { margin: 0 0 22px; font-size: 14px; color: var(--body); line-height: 1.5; }
+  .modal button { padding: 10px 26px; font: inherit; font-size: 14px; font-weight: 600;
+                   color: #fff; background: var(--ink); border: 0; border-radius: 980px;
+                   cursor: pointer; transition: opacity .15s ease; }
+  .modal button:hover { opacity: .85; }
 </style>
 </head>
 <body>
@@ -554,6 +567,13 @@ HTML = """<!doctype html>
     <div id="results"></div>
   </section>
 </div>
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2>No good matches found</h2>
+    <p>Try to make the range of the search wider &mdash; a bigger distance, a wider price range, or looser requirements.</p>
+    <button id="modalClose" type="button">Got it</button>
+  </div>
+</div>
 <script>
 const f = document.getElementById('f');
 const esc = s => (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -580,6 +600,7 @@ f.addEventListener('submit', async e => {
   document.getElementById('count').textContent = '';
   document.getElementById('notes').innerHTML = '';
   document.getElementById('interp').style.display = 'none';
+  hideNoMatchesModal();
   const bar0 = document.getElementById('bar');
   bar0.style.opacity = 0;
   bar0.firstElementChild.style.width = '0';
@@ -616,6 +637,9 @@ f.addEventListener('submit', async e => {
       await checkAll(listings, reqs);
       finishOrder(listings);
       updateCount(true);
+    }
+    if ((checking && state.matched === 0) || (!checking && listings.length === 0)) {
+      showNoMatchesModal();
     }
   } catch (err) {
     document.getElementById('notes').innerHTML += '<div class="note">Error: ' + esc(err.message) + '</div>';
@@ -751,6 +775,20 @@ function showNotes(notes) {
   document.getElementById('notes').innerHTML =
     baseNotes.concat(notes || []).map(n => '<div class="note">' + esc(n) + '</div>').join('');
 }
+
+function showNoMatchesModal() {
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function hideNoMatchesModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+document.getElementById('modalClose').addEventListener('click', hideNoMatchesModal);
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target.id === 'modalOverlay') hideNoMatchesModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') hideNoMatchesModal();
+});
 
 </script>
 </body>
