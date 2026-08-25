@@ -1,0 +1,32 @@
+# Runs the deal hunter (deals.py) every morning and stores the finds in
+# Upstash Redis, where the vindje.com homepage picks them up.
+#
+# Needs three repository secrets (Settings → Secrets and variables →
+# Actions): OPENROUTER_API_KEY, UPSTASH_REDIS_REST_URL,
+# UPSTASH_REDIS_REST_TOKEN — the same values the Vercel deployment uses.
+name: Daily deal hunt
+
+on:
+  schedule:
+    # 06:00 UTC = 08:00 Amsterdam in summer (CEST), 07:00 in winter —
+    # GitHub cron has no timezone support, so winter runs are an hour
+    # early rather than an hour late.
+    - cron: "0 6 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  hunt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # deals.py is stdlib-only, nothing to install
+      - name: Hunt for undervalued items
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+        run: python3 deals.py

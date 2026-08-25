@@ -59,6 +59,39 @@ share link" button never appears.
    "REST API") and set them as env vars below. The token is secret — it's
    only ever used server-side, never sent to the browser.
 
+## Today's finds (daily deal hunt)
+
+The homepage isn't empty anymore: every morning at 8:00 Amsterdam time a
+GitHub Actions cron (`.github/workflows/daily-deals.yml`) runs
+`deals.py`, which hunts Marktplaats nationwide for undervalued items —
+asking price under €250 with a conservative, LLM-estimated resale value
+of €500+ — across four curated categories:
+
+- vintage racing bikes (RIH, Peugeot, Gitane, Koga Miyata, Raleigh, Bianchi)
+- designer lamps (Louis Poulsen, Artemide)
+- design chairs (Vitra, Herman Miller)
+- Mac minis (Apple Silicon only — Intel ones aren't worth flipping)
+
+The LLM values each listing skeptically (replicas, "stijl van"
+lookalikes, bare frames, parts and bidding-only listings are rejected),
+and only finds whose low-end estimate clears €500 *and* 2× the asking
+price survive. The result is stored in Upstash Redis (`deals:latest`
+plus a dated `deals:<YYYY-MM-DD>` copy) and rendered on the homepage as
+"Today's finds", hidden as soon as the visitor starts their own search.
+
+Run it by hand to try it (or from the Actions tab via "Run workflow"):
+
+```bash
+OPENROUTER_API_KEY=sk-or-... python3 deals.py --dry-run          # print only
+OPENROUTER_API_KEY=... UPSTASH_REDIS_REST_URL=... \
+  UPSTASH_REDIS_REST_TOKEN=... python3 deals.py                  # save too
+python3 deals.py --dry-run --category bikes                      # one category
+```
+
+The workflow needs `OPENROUTER_API_KEY`, `UPSTASH_REDIS_REST_URL` and
+`UPSTASH_REDIS_REST_TOKEN` as repository secrets (Settings → Secrets and
+variables → Actions) — the same values the Vercel deployment uses.
+
 ## Configuration (all optional, via environment variables)
 
 | Variable | Default | Purpose |

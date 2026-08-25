@@ -494,6 +494,19 @@ def get_search(share_id):
     return json.loads(raw) if raw else None
 
 
+DEALS_KEY = "deals:latest"
+
+
+def get_deals():
+    """The morning deal-hunt's finds (written by deals.py), for the
+    homepage. None if absent or Redis isn't configured."""
+    try:
+        raw = upstash_command("GET", DEALS_KEY)
+        return json.loads(raw) if raw else None
+    except Exception:
+        return None
+
+
 def get_history(limit=HISTORY_MAX):
     """Most recent saved searches, newest first, for the /history page."""
     raw = upstash_command("LRANGE", HISTORY_KEY, "0", str(limit - 1))
@@ -719,6 +732,16 @@ HTML = """<!doctype html>
              border-top-color: var(--ink); border-radius: 50%; width: 26px;
              height: 26px; animation: spin .7s linear infinite; }
 
+  .deals { margin-top: 70px; }
+  .deals-head { text-align: center; font-size: 24px; font-weight: 700;
+                letter-spacing: -.02em; margin: 0 0 8px; }
+  .deals-sub { text-align: center; color: var(--muted); font-size: 13px;
+               line-height: 1.5; margin: 0 auto; max-width: 560px; }
+  .deals .cat { font-size: 15px; font-weight: 700; letter-spacing: -.01em;
+                margin: 30px 2px 12px; }
+  .deals-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  @media (min-width: 860px) { .deals-grid { grid-template-columns: 1fr 1fr; } }
+
   .results-sec { margin-top: 44px; }
   .bar { height: 2px; background: var(--line); border-radius: 2px; overflow: hidden;
          margin: 0 1px 16px; opacity: 0; transition: opacity .4s ease; }
@@ -824,6 +847,9 @@ HTML = """<!doctype html>
     <div class="count" id="status"></div>
     <div class="spinner" id="spin"></div>
   </section>
+  <section class="deals" id="dealsSec" style="display:none">
+    <div id="deals"></div>
+  </section>
   <section class="results-sec">
     <div class="bar" id="bar"><i></i></div>
     <div class="count" id="count"></div>
@@ -853,6 +879,7 @@ HTML = """<!doctype html>
 </div>
 <script>
 const SHARED = __SHARED_DATA__;
+const DEALS = __DEALS_DATA__;
 const f = document.getElementById('f');
 const esc = s => (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function post(body) {
@@ -916,6 +943,7 @@ f.addEventListener('submit', async e => {
   document.getElementById('interp').style.display = 'none';
   document.getElementById('interpNote').style.display = 'none';
   document.getElementById('shareRow').style.display = 'none';
+  document.getElementById('dealsSec').style.display = 'none';
   shareUrl = null;
   hideNoMatchesModal();
   const bar0 = document.getElementById('bar');
@@ -1100,6 +1128,33 @@ function renderSharedResults(rec) {
       (rec.total_on_marktplaats != null ? ' · ' + rec.total_on_marktplaats + ' hits on Marktplaats' : '');
   }
 }
+function renderDeals() {
+  // "Today's finds": the morning deal-hunt, shown on an otherwise empty
+  // homepage and hidden as soon as the visitor starts their own search.
+  if (!DEALS || SHARED) return;
+  const cats = (DEALS.categories || []).filter(c => (c.finds || []).length > 0);
+  if (!cats.length) return;
+  let when = '';
+  try {
+    when = ' &middot; ' + new Date(DEALS.ts * 1000)
+      .toLocaleDateString('en-GB', {day: 'numeric', month: 'short'});
+  } catch (err) {}
+  document.getElementById('deals').innerHTML =
+    '<h2 class="deals-head">Today&rsquo;s finds</h2>' +
+    '<p class="deals-sub">Undervalued items spotted this morning' + when +
+    ' &mdash; asking under &euro;250, estimated to resell for &euro;500+.' +
+    ' Estimates are AI-made; judge for yourself before buying.</p>' +
+    cats.map(c =>
+      '<h3 class="cat">' + esc(c.label) + '</h3><div class="deals-grid">' +
+      c.finds.map(l => cardShell(l, '',
+        '<span class="why"><b>est. resale &euro;' + (+l.resale_low || 0) +
+        '&ndash;' + (+l.resale_high || 0) + '</b> ' + esc(l.why || '') + '</span>'
+      )).join('') + '</div>'
+    ).join('');
+  document.getElementById('dealsSec').style.display = 'block';
+}
+renderDeals();
+
 if (SHARED) {
   if (SHARED.error) {
     document.getElementById('spin').style.display = 'none';
@@ -1592,8 +1647,9 @@ def render_history(entries, origin=""):
     return HISTORY_HTML.replace("__ENTRIES__", inner).replace("__ORIGIN__", origin)
 
 
-def render_page(record, origin="", error=None):
-    """Render the app shell, optionally pre-loaded with a saved (shared) search."""
+def render_page(record, origin="", error=None, deals=None):
+    """Render the app shell, optionally pre-loaded with a saved (shared)
+    search and/or the day's deal-hunt finds."""
     if error:
         shared_json = json.dumps({"error": error})
     elif record:
@@ -1608,7 +1664,9 @@ def render_page(record, origin="", error=None):
         })
     else:
         shared_json = "null"
-    return HTML.replace("__SHARED_DATA__", shared_json).replace("__ORIGIN__", origin)
+    return (HTML.replace("__SHARED_DATA__", shared_json)
+                .replace("__DEALS_DATA__", json.dumps(deals) if deals else "null")
+                .replace("__ORIGIN__", origin))
 
 
 # WSGI application: GET -> the page, POST -> a search. Vercel's Python
@@ -1708,7 +1766,7 @@ def app(environ, start_response):
                 status = "404 Not Found"
             headers = [("Content-Type", "text/html; charset=utf-8")]
         else:
-            body = render_page(None, origin=origin).encode()
+            body = render_page(None, origin=origin, deals=get_deals()).encode()
             headers = [("Content-Type", "text/html; charset=utf-8")]
         log.info("[%s] GET %s -> %s in %.2fs, %d bytes",
                  req_id, path, status, time.time() - t0, len(body))
