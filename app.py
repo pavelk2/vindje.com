@@ -691,7 +691,7 @@ HTML = """<!doctype html>
 
   /* search */
   .search { padding: 40px 0 28px; }
-  body:not(.run) .search { max-width: 948px; padding-top: 34px; }
+  body:not(.run) .search { max-width: 948px; padding-top: 34px; padding-bottom: 56px; }
   body:not(.run) .examples { justify-content: center; }
   .search .slabel { display: none; color: var(--faint); margin-bottom: 12px; }
   body.run .search { padding-top: 44px; }
@@ -791,6 +791,7 @@ HTML = """<!doctype html>
   .deals .cat { display: flex; align-items: baseline; gap: 12px; padding: 22px 0 12px; }
   .deals .cat .label { color: var(--ink); }
   .deals .cat .n { color: var(--faint); font-size: 12.5px; }
+  .deals.show { padding-bottom: 56px; }
   .deals .dgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
                   background: var(--hair); border: 1px solid var(--hair); }
   @media (max-width: 1000px) { .deals .dgrid { grid-template-columns: 1fr 1fr; } }
@@ -839,10 +840,11 @@ HTML = """<!doctype html>
   .card.rejected:hover .priceline, .card.rejected:hover .desc { opacity: .8; }
   .card.rejected .why { display: none; }
 
-  main { flex: 1 0 auto; }
+  main { flex: 1 0 auto; display: flex; flex-direction: column; }
+  main > :first-child { margin-top: 0; }
 
   /* facts row (idle only) */
-  .homefacts { border-top: 1px solid var(--hair); margin-top: 64px; }
+  .homefacts { border-top: 1px solid var(--hair); margin-top: auto; }
   .homefacts .in { display: grid; grid-template-columns: 1fr 1fr 1fr; }
   .fact { padding: 30px 28px; text-align: center; }
   .fact + .fact { border-left: 1px solid var(--hair); }
@@ -856,6 +858,7 @@ HTML = """<!doctype html>
   }
 
   footer { flex-shrink: 0; margin-top: 64px; border-top: 1px solid var(--hair); }
+  body:not(.run) footer { margin-top: 0; }
   .foot-in { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 22px;
              padding: 24px 0 30px; color: var(--faint); font-size: 12.5px; }
   .foot-links { margin-left: auto; display: flex; gap: 22px; }
