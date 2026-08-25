@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vindje — De Stijl Studio</title>
+<link href="assets/fonts/01-de-stijl.css" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f0f10; --grey: #6d6d73; --faint: #a4a4ab;
+    --hair: #e4e4e8; --panel: #f7f7f8;
+    --red: #d6001c; --blue: #1d4e9e; --yellow: #f0c114;
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px; --s8: 64px;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { -webkit-font-smoothing: antialiased; }
+  body { background: #fff; color: var(--ink); font-family: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+         font-size: 15px; line-height: 1.5; }
+  a { color: inherit; text-decoration: none; }
+  .num { font-variant-numeric: tabular-nums; }
+  .label { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+  .wrap { max-width: 1264px; margin: 0 auto; padding: 0 32px; }
+
+  /* ---- header ---- */
+  .top { border-bottom: 1px solid var(--hair); }
+  .top-in { display: flex; align-items: center; gap: 14px; height: 68px; }
+  .mark { flex: none; }
+  .wordmark { font-size: 19px; font-weight: 600; letter-spacing: -.02em; }
+  .nav { margin-left: auto; display: flex; gap: 28px; font-size: 13px; color: var(--grey); }
+  .nav a:hover { color: var(--ink); }
+
+  /* ---- search band ---- */
+  .search { padding: var(--s7) 0 var(--s6); }
+  .search .label { color: var(--faint); margin-bottom: var(--s3); }
+  .bar { display: flex; align-items: stretch; border: 1px solid var(--ink); }
+  .bar:focus-within { box-shadow: 0 0 0 1px var(--ink); }
+  .q { flex: 1; padding: 18px 20px; font-size: 17px; line-height: 1.45; letter-spacing: -.005em; }
+  .pc { display: flex; align-items: center; padding: 0 20px; border-left: 1px solid var(--hair);
+        color: var(--grey); font-size: 14px; }
+  .go { display: flex; align-items: center; padding: 0 34px; background: var(--ink); color: #fff;
+        font-size: 14px; font-weight: 600; letter-spacing: .04em; cursor: pointer; }
+  .go:hover { background: #2a2a2e; }
+  .spec { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+          margin-top: var(--s4); color: var(--grey); font-size: 13px; }
+  .spec .k { color: var(--faint); }
+  .spec .sep { color: var(--hair); }
+  .spec b { color: var(--ink); font-weight: 500; }
+
+  /* ---- section rule with the one Mondrian gesture ---- */
+  .rulewrap { position: relative; height: 3px; background: var(--ink); }
+  .rulewrap i { position: absolute; top: -3px; left: 25%; width: 9px; height: 9px; background: var(--red); }
+
+  /* ---- results head ---- */
+  .rhead { display: flex; align-items: baseline; padding: var(--s5) 0 var(--s5); }
+  .rhead h1 { font-size: 30px; font-weight: 600; letter-spacing: -.02em; }
+  .rhead .sub { margin-left: 14px; color: var(--grey); font-size: 14px; }
+  .rhead .sort { margin-left: auto; font-size: 13px; color: var(--grey); }
+  .rhead .sort b { color: var(--ink); font-weight: 500; border-bottom: 1px solid var(--ink); padding-bottom: 1px; }
+
+  /* ---- match grid ---- */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--hair);
+          border: 1px solid var(--hair); }
+  .card { background: #fff; padding: 0 0 var(--s5); display: flex; flex-direction: column; position: relative; }
+  .card .ph { background: var(--panel); border-bottom: 1px solid var(--hair); }
+  .card .ph img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
+  .card .body { padding: var(--s4) var(--s5) 0; display: flex; flex-direction: column; flex: 1; }
+  .rank { display: flex; align-items: center; gap: 8px; margin-bottom: var(--s2); }
+  .rank .label { color: var(--faint); }
+  .card.first .rank .label { color: var(--red); }
+  .card.first::before { content: ''; position: absolute; top: -1px; left: -1px; right: -1px;
+                        height: 3px; background: var(--red); }
+  .card h3 { font-size: 15.5px; font-weight: 600; letter-spacing: -.01em; line-height: 1.35;
+             min-height: calc(2 * 1.35em); }
+  .priceline { display: flex; align-items: baseline; justify-content: space-between;
+               margin: var(--s3) 0 0; }
+  .price { font-size: 21px; font-weight: 600; letter-spacing: -.01em; }
+  .price .cur { color: var(--faint); font-weight: 500; margin-right: 1px; }
+  .geo { color: var(--grey); font-size: 13px; }
+  .why { margin-top: var(--s4); padding-top: var(--s3); border-top: 1px solid var(--hair);
+         display: flex; gap: 10px; font-size: 13px; line-height: 1.5; color: var(--grey); }
+  .why i { flex: none; width: 8px; height: 8px; margin-top: 5px; background: var(--ink); }
+  .card.first .why i { background: var(--red); }
+  .why b { color: var(--ink); font-weight: 500; }
+  .card:hover { outline: 1px solid var(--ink); outline-offset: -1px; z-index: 1; }
+
+  /* ---- rejected ---- */
+  .rej { margin-top: var(--s8); }
+  .rej .rhrow { display: flex; align-items: baseline; gap: 12px; padding-bottom: var(--s3);
+                border-bottom: 1px solid var(--ink); }
+  .rej .rhrow .label { color: var(--ink); }
+  .rej .rhrow .count { color: var(--grey); font-size: 13px; }
+  .rej .rhrow .hint { margin-left: auto; color: var(--faint); font-size: 12px; }
+  .rrow { display: grid; grid-template-columns: 56px minmax(240px, 1.1fr) 110px 150px 1.6fr;
+          gap: var(--s5); align-items: center; padding: var(--s3) 0;
+          border-bottom: 1px solid var(--hair); color: var(--grey); font-size: 13.5px; }
+  .rrow img { width: 56px; height: 42px; object-fit: cover; filter: grayscale(1);
+              opacity: .55; background: var(--panel); }
+  .rrow .t { color: var(--ink); font-weight: 500; }
+  .rrow .why-r { display: flex; gap: 8px; align-items: baseline; }
+  .rrow .why-r::before { content: ''; flex: none; width: 6px; height: 6px; background: var(--faint);
+                         transform: translateY(-1px); }
+
+  /* ---- footer ---- */
+  footer { margin-top: var(--s8); border-top: 1px solid var(--hair); }
+  .foot-in { display: flex; align-items: center; height: 76px; color: var(--faint); font-size: 12.5px; }
+  .foot-in .right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap top-in">
+    <svg class="mark" width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
+      <rect width="30" height="30" fill="#fff"/>
+      <rect x="0" y="0" width="19" height="19" fill="var(--red)"/>
+      <rect x="21" y="0" width="9" height="9" fill="var(--yellow)"/>
+      <rect x="21" y="21" width="9" height="9" fill="var(--blue)"/>
+      <rect x="19" y="0" width="2" height="30" fill="var(--ink)"/>
+      <rect x="19" y="19" width="11" height="2" fill="var(--ink)"/>
+      <rect x="0" y="19" width="19" height="2" fill="var(--ink)"/>
+    </svg>
+    <span class="wordmark">vindje</span>
+    <nav class="nav"><a href="#">How it works</a><a href="#">History</a><a href="#">Contact</a></nav>
+  </div>
+</header>
+
+<section class="search wrap">
+  <div class="label">Your search</div>
+  <div class="bar">
+    <div class="q" id="wish"></div>
+    <div class="pc num">1012 AB</div>
+    <div class="go">Search</div>
+  </div>
+  <div class="spec num" id="spec"></div>
+</section>
+
+<div class="rulewrap wrap" style="padding:0"><i></i></div>
+
+<main class="wrap">
+  <div class="rhead">
+    <h1>6 matches</h1>
+    <span class="sub num">from 18,239 listings — every one read by AI</span>
+    <span class="sort">Sort by <b>best match</b> · price · distance</span>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <section class="rej">
+    <div class="rhrow">
+      <span class="label">Filtered out</span>
+      <span class="count num">26 listings — 5 shown</span>
+      <span class="hint">Rejections are kept so you can double-check the AI</span>
+    </div>
+    <div id="rejrows"></div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot-in">
+    <span>vindje.com — AI reads every Marktplaats listing, you see only what fits.</span>
+    <span class="right"><span>Amsterdam, 2026</span>
+      <svg width="18" height="18" viewBox="0 0 30 30" aria-hidden="true">
+        <rect width="30" height="30" fill="#fff"/>
+        <rect x="0" y="0" width="19" height="19" fill="var(--red)"/>
+        <rect x="21" y="0" width="9" height="9" fill="var(--yellow)"/>
+        <rect x="21" y="21" width="9" height="9" fill="var(--blue)"/>
+        <rect x="19" y="0" width="2" height="30" fill="var(--ink)"/>
+        <rect x="19" y="19" width="11" height="2" fill="var(--ink)"/>
+        <rect x="0" y="19" width="19" height="2" fill="var(--ink)"/>
+      </svg>
+    </span>
+  </div>
+</footer>
+
+<script src="assets/data.js"></script>
+<script>
+const D = window.VINDJE, esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const clean = p => p;
+document.getElementById('wish').textContent = D.wish;
+document.getElementById('spec').innerHTML = [
+  `<span class="k">Reading it as</span> <b>${esc(D.interpreted.terms)}</b>`,
+  `<b>≤ €400</b>`, `<b>≤ 50 km</b> <span class="k">of 1012 AB</span>`,
+  `<span class="k">must be</span> <b>complete</b>, <b>iconic</b>, <b>near-mint</b>, <b>resale upside</b>`
+].join('<span class="sep">|</span>');
+
+const M = D.listings.filter(l => l.status === 'match');
+document.getElementById('grid').innerHTML = M.map((l, i) => `
+  <a class="card ${i === 0 ? 'first' : ''}" href="#">
+    <div class="ph"><img src="${clean(l.photo)}" alt=""></div>
+    <div class="body">
+      <div class="rank"><span class="label">${i === 0 ? 'Best match' : 'Match ' + String(i + 1).padStart(2, '0')}</span></div>
+      <h3>${esc(l.title)}</h3>
+      <div class="priceline">
+        <span class="price num"><span class="cur">€</span>${l.priceN}</span>
+        <span class="geo num">${esc(l.city)} · ${l.km} km</span>
+      </div>
+      <div class="why"><i></i><span><b>Why it's here.</b> ${esc(l.why)}.</span></div>
+    </div>
+  </a>`).join('');
+
+document.getElementById('rejrows').innerHTML =
+  D.listings.filter(l => l.status !== 'match').slice(0, 5).map(l => `
+  <div class="rrow">
+    <img src="${clean(l.photo)}" alt="">
+    <span class="t">${esc(l.title)}</span>
+    <span class="num">${esc(l.price.replace(' (bid from)', ''))}</span>
+    <span class="num">${esc(l.city)} · ${l.km} km</span>
+    <span class="why-r">${esc(l.whyNot)}</span>
+  </div>`).join('');
+</script>
+</body>
+</html>
