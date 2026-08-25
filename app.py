@@ -494,6 +494,19 @@ def get_search(share_id):
     return json.loads(raw) if raw else None
 
 
+DEALS_KEY = "deals:latest"
+
+
+def get_deals():
+    """The morning deal-hunt's finds (written by deals.py), for the
+    homepage. None if absent or Redis isn't configured."""
+    try:
+        raw = upstash_command("GET", DEALS_KEY)
+        return json.loads(raw) if raw else None
+    except Exception:
+        return None
+
+
 def get_history(limit=HISTORY_MAX):
     """Most recent saved searches, newest first, for the /history page."""
     raw = upstash_command("LRANGE", HISTORY_KEY, "0", str(limit - 1))
@@ -759,6 +772,24 @@ HTML = """<!doctype html>
   .tallycap { font-size: 12.5px; color: var(--grey); }
   .tallycap b.r { color: var(--red); } .tallycap b.k { color: var(--ink); }
 
+  /* today's finds: the morning deal-hunt, homepage only */
+  .deals { display: none; padding-top: 8px; }
+  .deals.show { display: block; }
+  body.run .deals { display: none; }
+  .deals .dhead { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 14px;
+                  padding: 26px 0 6px; }
+  .deals .dhead h2 { font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
+  .deals .dhead h2 .sq { width: 7px; height: 7px; margin-left: 2px; }
+  .deals .dsub { color: var(--grey); font-size: 13.5px; max-width: 720px; line-height: 1.55;
+                 padding-bottom: 20px; }
+  .deals .cat { display: flex; align-items: baseline; gap: 12px; padding: 22px 0 12px; }
+  .deals .cat .label { color: var(--ink); }
+  .deals .cat .n { color: var(--faint); font-size: 12.5px; }
+  .deals .dgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+                  background: var(--hair); border: 1px solid var(--hair); }
+  @media (max-width: 1000px) { .deals .dgrid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 660px) { .deals .dgrid { grid-template-columns: 1fr; } }
+
   /* grid + cards */
   #results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
              background: var(--hair); border: 1px solid var(--hair); }
@@ -791,7 +822,7 @@ HTML = """<!doctype html>
          display: flex; gap: 10px; font-size: 13px; line-height: 1.5; color: var(--grey); }
   .why i { flex: none; width: 8px; height: 8px; margin-top: 5px; background: var(--ink); }
   .why b { color: var(--ink); font-weight: 500; }
-  .card.first .why i { background: var(--red); }
+  .card.first .why i, .card.deal .why i { background: var(--red); }
   .card.pending .why i { background: #fff; box-shadow: inset 0 0 0 1px var(--faint); }
   .card.pending .why { color: var(--faint); }
   .card.un .why i { background: var(--yellow); }
@@ -899,6 +930,8 @@ HTML = """<!doctype html>
   <div id="results"></div>
 </section>
 
+<section class="deals wrap" id="dealsSec"><div id="deals"></div></section>
+
 <div class="homefacts"><div class="wrap in">
   <div class="fact"><b>Every listing, read</b><span>The AI reads descriptions and looks at photos, not just keywords.</span></div>
   <div class="fact"><b>Junk never shows</b><span>Parts, accessories and look-alikes are rejected before you see them.</span></div>
@@ -931,6 +964,7 @@ HTML = """<!doctype html>
 
 <script>
 const SHARED = __SHARED_DATA__;
+const DEALS = __DEALS_DATA__;
 const $ = id => document.getElementById(id);
 const f = $('f');
 const esc = s => (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -1022,6 +1056,9 @@ function finalTallyCap(failed) {
 /* ---------- cards ---------- */
 
 function whyBlock(l) {
+  if (l._deal) return '<div class="why"><i></i><span><b>Est. resale &euro;' +
+    (+l.resale_low || 0) + ' to &euro;' + (+l.resale_high || 0) + '.</b> ' +
+    esc(l.why || '') + '</span></div>';
   if (l._m) return '<div class="why"><i></i><span><b>Why it&#39;s here.</b> ' +
     (l.why ? esc(l.why) : 'Matches everything you asked for') + '.</span></div>';
   if (l._u) return '<div class="why"><i></i><span>The AI check failed for this one. Judge it yourself.</span></div>';
@@ -1030,6 +1067,7 @@ function whyBlock(l) {
 }
 
 function rankText(l) {
+  if (l._deal) return 'Spotted today';
   if (l._pending) return 'Reading…';
   if (l._best) return 'Best match';
   if (l._m) return 'Match ' + String(l._nr || 0).padStart(2, '0');
@@ -1040,6 +1078,7 @@ function rankText(l) {
 
 function cardShell(l) {
   const cls = ['card'];
+  if (l._deal) cls.push('deal');
   if (l._pending) cls.push('pending');
   if (l._best) cls.push('first');
   if (l._u) cls.push('un');
@@ -1309,6 +1348,33 @@ function renderSharedResults(rec) {
   }
   setRule(results.length ? 'done' : '');
 }
+
+function renderDeals() {
+  // "Today's finds": the morning deal-hunt, shown on an otherwise empty
+  // homepage and hidden as soon as the visitor starts their own search.
+  if (!DEALS || SHARED) return;
+  const cats = (DEALS.categories || []).filter(c => (c.finds || []).length > 0);
+  if (!cats.length) return;
+  let when = '';
+  try {
+    when = ' on ' + new Date(DEALS.ts * 1000)
+      .toLocaleDateString('en-GB', {day: 'numeric', month: 'short'});
+  } catch (err) {}
+  $('deals').innerHTML =
+    '<div class="dhead"><h2>Today\u2019s finds<span class="sq"></span></h2></div>' +
+    '<div class="dsub">Undervalued items our AI spotted' + when +
+    ': asking under &euro;250, estimated to resell for &euro;500 or more.' +
+    ' Estimates are AI-made; judge for yourself before buying.</div>' +
+    cats.map(c =>
+      '<div class="cat"><span class="label">' + esc(c.label) + '</span>' +
+      '<span class="n num">' + c.finds.length +
+      (c.finds.length === 1 ? ' find' : ' finds') + '</span></div>' +
+      '<div class="dgrid">' +
+      c.finds.map(l => cardShell({...l, _deal: 1})).join('') + '</div>'
+    ).join('');
+  $('dealsSec').classList.add('show');
+}
+renderDeals();
 
 if (SHARED) {
   if (SHARED.error) {
@@ -1774,8 +1840,9 @@ def render_history(entries, origin=""):
     return HISTORY_HTML.replace("__ENTRIES__", inner).replace("__ORIGIN__", origin)
 
 
-def render_page(record, origin="", error=None):
-    """Render the app shell, optionally pre-loaded with a saved (shared) search."""
+def render_page(record, origin="", error=None, deals=None):
+    """Render the app shell, optionally pre-loaded with a saved (shared)
+    search and/or the day's deal-hunt finds."""
     if error:
         shared_json = json.dumps({"error": error})
     elif record:
@@ -1790,7 +1857,9 @@ def render_page(record, origin="", error=None):
         })
     else:
         shared_json = "null"
-    return HTML.replace("__SHARED_DATA__", shared_json).replace("__ORIGIN__", origin)
+    return (HTML.replace("__SHARED_DATA__", shared_json)
+                .replace("__DEALS_DATA__", json.dumps(deals) if deals else "null")
+                .replace("__ORIGIN__", origin))
 
 
 # WSGI application: GET -> the page, POST -> a search. Vercel's Python
@@ -1890,7 +1959,7 @@ def app(environ, start_response):
                 status = "404 Not Found"
             headers = [("Content-Type", "text/html; charset=utf-8")]
         else:
-            body = render_page(None, origin=origin).encode()
+            body = render_page(None, origin=origin, deals=get_deals()).encode()
             headers = [("Content-Type", "text/html; charset=utf-8")]
         log.info("[%s] GET %s -> %s in %.2fs, %d bytes",
                  req_id, path, status, time.time() - t0, len(body))
