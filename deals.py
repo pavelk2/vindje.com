@@ -26,6 +26,7 @@ Amsterdam time (see .github/workflows/daily-deals.yml).
 """
 
 import argparse
+import difflib
 import json
 import re
 import sys
@@ -158,6 +159,35 @@ def value_listings(target, listings):
     return finds
 
 
+_TITLE_WORD_RE = re.compile(r"[a-z0-9]+")
+
+def _normalized_title(title):
+    return " ".join(sorted(_TITLE_WORD_RE.findall(title.lower())))
+
+
+def dedupe_relistings(listings, threshold=0.6):
+    """Drop near-duplicate listings: same city + same asking price + a
+    similar title almost always means the same seller relisting the same
+    item under a new ad ID, which the exact-id `seen` set can't catch."""
+    kept = []
+    for l in listings:
+        norm = _normalized_title(l["title"])
+        is_dupe = False
+        for k in kept:
+            if k["city"] != l["city"] or k["asking_euro"] != l["asking_euro"]:
+                continue
+            ratio = difflib.SequenceMatcher(None, norm, k["_norm_title"]).ratio()
+            if ratio >= threshold:
+                is_dupe = True
+                break
+        if not is_dupe:
+            l["_norm_title"] = norm
+            kept.append(l)
+    for l in kept:
+        del l["_norm_title"]
+    return kept
+
+
 # ---------------------------------------------------------------- per category
 
 def hunt_category(cat):
@@ -180,6 +210,10 @@ def hunt_category(cat):
             seen.add(l["id"])
             l["asking_euro"] = asking
             listings.append(l)
+    before = len(listings)
+    listings = dedupe_relistings(listings)
+    if len(listings) < before:
+        print(f"  dropped {before - len(listings)} likely relisting(s) of the same item")
     print(f"  {len(listings)} priced candidates from {len(cat['queries'])} queries")
 
     valuations = value_listings(cat["target"], listings)
