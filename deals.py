@@ -33,7 +33,8 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
-from app import OPENROUTER_API_KEY, llm_json, search_marktplaats, upstash_command
+from app import (DEALS_KEY, OPENROUTER_API_KEY, llm_json, search_marktplaats,
+                 upstash_command)
 
 # ---------------------------------------------------------------- what to hunt
 
@@ -195,9 +196,6 @@ def hunt_category(cat):
 
 # ---------------------------------------------------------------- run + store
 
-DEALS_KEY = "deals:latest"
-
-
 def run(categories=None, save=True):
     if not OPENROUTER_API_KEY:
         sys.exit("OPENROUTER_API_KEY is not set — the valuation step needs an LLM.")
@@ -222,15 +220,6 @@ def run(categories=None, save=True):
         upstash_command("SET", f"deals:{record['date']}", payload)
         print(f"Saved to Redis as {DEALS_KEY} and deals:{record['date']}")
     return record
-
-
-def get_deals():
-    """Latest saved finds, for the homepage. None if absent/unconfigured."""
-    try:
-        raw = upstash_command("GET", DEALS_KEY)
-        return json.loads(raw) if raw else None
-    except Exception:
-        return None
 
 
 if __name__ == "__main__":
