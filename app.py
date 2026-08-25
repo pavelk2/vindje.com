@@ -681,7 +681,7 @@ HTML = """<!doctype html>
   .nav a:hover { color: var(--ink); }
 
   /* hero (idle only): a centered, symmetric composition */
-  .hero { padding: 84px 0 0; text-align: center; }
+  .hero { padding-top: 84px; text-align: center; }
   .hero h1 { font-size: clamp(38px, 5.5vw, 62px); font-weight: 700; letter-spacing: -.035em;
              line-height: 1.02; max-width: 900px; margin: 0 auto; text-wrap: balance; }
   .hero h1 .sq { width: .2em; height: .2em; }
@@ -690,7 +690,7 @@ HTML = """<!doctype html>
   body.run .hero { display: none; }
 
   /* search */
-  .search { padding: 40px 0 28px; }
+  .search { padding-top: 40px; padding-bottom: 28px; }
   body:not(.run) .search { max-width: 948px; padding-top: 34px; padding-bottom: 56px; }
   body:not(.run) .examples { justify-content: center; }
   .search .slabel { display: none; color: var(--faint); margin-bottom: 12px; }
@@ -860,7 +860,7 @@ HTML = """<!doctype html>
   footer { flex-shrink: 0; margin-top: 64px; border-top: 1px solid var(--hair); }
   body:not(.run) footer { margin-top: 0; }
   .foot-in { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 22px;
-             padding: 24px 0 30px; color: var(--faint); font-size: 12.5px; }
+             padding-top: 24px; padding-bottom: 30px; color: var(--faint); font-size: 12.5px; }
   .foot-links { margin-left: auto; display: flex; gap: 22px; }
   .foot-links a:hover { color: var(--ink); }
 
@@ -1436,11 +1436,134 @@ document.addEventListener('keydown', e => {
 </html>"""
 
 
-HOW_IT_WORKS_HTML = """<!doctype html>
+# ---------------------------------------------------------------- static pages
+#
+# The secondary pages share one shell (chrome, tokens, typography) so the
+# design system stays in one place; each page supplies its meta tags and body.
+
+PAGE_SHELL = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+__META__
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='18' y='18' width='64' height='64' fill='%23d6001c'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f0f10; --grey: #6d6d73; --faint: #a4a4ab;
+    --hair: #e4e4e8; --panel: #f7f7f8;
+    --red: #d6001c; --blue: #1d4e9e; --yellow: #f0c114;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  ::selection { background: var(--ink); color: #fff; }
+  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  body { background: #fff; color: var(--ink);
+         font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+         font-size: 15px; line-height: 1.5; min-height: 100vh;
+         display: flex; flex-direction: column; }
+  a { color: inherit; text-decoration: none; }
+  .num { font-variant-numeric: tabular-nums; }
+  .label { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+  .wrap { max-width: 1264px; width: 100%; margin: 0 auto; padding: 0 24px; }
+  .sq { display: inline-block; width: .55em; height: .55em; background: var(--red); }
+  :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+  .top { border-bottom: 1px solid var(--hair); }
+  .top-in { display: flex; align-items: center; height: 64px; }
+  .wordmark { font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+  .wordmark .sq { width: 8px; height: 8px; margin-left: 2px; }
+  .nav { margin-left: auto; display: flex; gap: 26px; font-size: 13px; color: var(--grey); }
+  .nav a:hover { color: var(--ink); }
+  main { flex: 1 0 auto; }
+
+  .phead { padding-top: 52px; padding-bottom: 26px; }
+  .phead h1 { font-size: 36px; font-weight: 700; letter-spacing: -.03em; }
+  .phead h1 .sq { width: 8px; height: 8px; margin-left: 3px; }
+  .phead .sub { margin-top: 10px; font-size: 15.5px; color: var(--grey); max-width: 640px;
+                line-height: 1.6; }
+  .rulewrap { position: relative; height: 3px; background: var(--ink); }
+  .rulewrap i { position: absolute; top: -3px; left: 25%; width: 9px; height: 9px;
+                background: var(--red); }
+  .section { padding-top: 30px; }
+  .btn { display: inline-block; border: 1px solid var(--ink); padding: 10px 24px;
+         font-size: 13.5px; font-weight: 500; background: #fff; }
+  .btn.solid { background: var(--ink); color: #fff; }
+  .btn.solid:hover { background: #2a2a2e; }
+  .aside { margin-top: 16px; font-size: 12.5px; color: var(--faint); max-width: 560px;
+           line-height: 1.55; }
+
+  /* how-it-works steps */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+           background: var(--hair); border: 1px solid var(--hair); }
+  .step { background: #fff; padding: 24px 26px 28px; }
+  .step .label { color: var(--red); }
+  .step h3 { margin: 10px 0 8px; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+  .step p { font-size: 14px; color: var(--grey); line-height: 1.6; }
+  @media (max-width: 800px) { .steps { grid-template-columns: 1fr; } }
+
+  /* credits rows */
+  .crows { border-top: 1px solid var(--ink); }
+  .crow { display: grid; grid-template-columns: 200px 1fr; gap: 24px; padding: 18px 0;
+          border-bottom: 1px solid var(--hair); }
+  .crow .label { color: var(--ink); padding-top: 2px; }
+  .crow p { font-size: 14.5px; color: var(--grey); line-height: 1.6; max-width: 720px; }
+  .crow p a { color: var(--ink); border-bottom: 1px solid var(--hair); }
+  .crow p a:hover { border-color: var(--ink); }
+  @media (max-width: 640px) { .crow { grid-template-columns: 1fr; gap: 6px; } }
+
+  /* history rows */
+  .hrows { border-top: 1px solid var(--ink); }
+  .hrow { display: flex; align-items: baseline; gap: 24px; padding: 14px 4px;
+          border-bottom: 1px solid var(--hair); }
+  .hrow:hover { background: var(--panel); }
+  .hrow .hwish { flex: 1; min-width: 0; font-weight: 500; font-size: 14.5px;
+                 line-height: 1.45; overflow-wrap: break-word; }
+  .hrow .hmeta { flex: none; color: var(--grey); font-size: 13px; white-space: nowrap; }
+  .empty { padding: 48px 0; color: var(--grey); font-size: 14.5px; }
+
+  footer { flex-shrink: 0; margin-top: 64px; border-top: 1px solid var(--hair); }
+  .foot-in { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 22px;
+             padding-top: 24px; padding-bottom: 30px; color: var(--faint); font-size: 12.5px; }
+  .foot-links { margin-left: auto; display: flex; gap: 22px; }
+  .foot-links a:hover { color: var(--ink); }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap top-in">
+  <a class="wordmark" href="/">vindje<span class="sq"></span></a>
+  <nav class="nav">
+    <a href="/how-it-works">How it works</a>
+    <a href="/history">History</a>
+    <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
+  </nav>
+</div></header>
+<main>
+__BODY__
+</main>
+<footer><div class="wrap foot-in">
+  <span>We'd rather show you nothing than junk.</span>
+  <nav class="foot-links">
+    <a href="/how-it-works">How it works</a>
+    <a href="/history">History</a>
+    <a href="/credits">Credits</a>
+    <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
+  </nav>
+</div></footer>
+</body>
+</html>"""
+
+
+def _page(meta, body):
+    return PAGE_SHELL.replace("__META__", meta.strip()).replace("__BODY__", body.strip())
+
+
+HOW_IT_WORKS_HTML = _page("""
 <title>How vindje.com's AI Search Works &middot; Marktplaats</title>
 <meta name="description" content="See how vindje.com turns a plain-language wish into a Marktplaats search, then uses AI to read every listing and keep only the ones that really match.">
 <link rel="canonical" href="__ORIGIN__/how-it-works">
@@ -1456,359 +1579,113 @@ HOW_IT_WORKS_HTML = """<!doctype html>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"vindje.com","item":"__ORIGIN__/"},{"@type":"ListItem","position":2,"name":"How it works","item":"__ORIGIN__/how-it-works"}]}
 </script>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='18' y='18' width='64' height='64' fill='%23d6001c'/></svg>">
-<style>
-  :root {
-    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
-    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
-  }
-  * { box-sizing: border-box; }
-  ::selection { background: var(--ink); color: #fff; }
-  html, body { height: 100%; }
-  body {
-    margin: 0; background: #fff; color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
-                 system-ui, Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
-    display: flex; flex-direction: column; min-height: 100vh;
-  }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
-          flex: 1 0 auto; }
-  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
-  .top a { color: inherit; text-decoration: none; }
-
-  .hero { max-width: 620px; margin: 0 auto; text-align: center; }
-  h1 {
-    font-size: clamp(34px, 6.5vw, 52px); font-weight: 700; letter-spacing: -.035em;
-    line-height: 1.06; margin: clamp(40px, 8vh, 64px) 0 14px;
-  }
-  .sub { font-size: 18px; color: var(--body); line-height: 1.5; margin: 0 auto 8px; }
-
-  .steps { list-style: none; margin: 56px 0 0; padding: 0; display: grid; gap: 16px; }
-  .step {
-    display: flex; gap: 18px; align-items: flex-start; background: var(--field);
-    border-radius: 20px; padding: 22px 22px; text-align: left;
-    animation: rise .35s ease backwards;
-  }
-  .step .n {
-    flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--ink);
-    color: #fff; font-weight: 700; font-size: 15px; display: flex; align-items: center;
-    justify-content: center;
-  }
-  .step h3 { margin: 3px 0 4px; font-size: 17px; font-weight: 700; letter-spacing: -.015em; }
-  .step p { margin: 0; font-size: 14.5px; color: var(--body); line-height: 1.55; }
-
-  .cta { text-align: center; margin: 56px 0 0; }
-  .cta a {
-    display: inline-block; padding: 13px 30px; font-size: 15px; font-weight: 600;
-    color: #fff; background: var(--ink); border-radius: 980px; text-decoration: none;
-    transition: opacity .15s ease;
-  }
-  .cta a:hover { opacity: .85; }
-
-  .aside { margin: 20px auto 0; font-size: 13px; color: var(--muted); max-width: 480px; }
-  .aside a { color: inherit; }
-
-  .footer { flex-shrink: 0; margin-top: 70px; border-top: 1px solid var(--line); }
-  .footer-inner { max-width: 1040px; margin: 0 auto; padding: 22px 20px 30px;
-                  display: flex; align-items: center; justify-content: space-between;
-                  flex-wrap: wrap; gap: 12px; }
-  .footer-brand { font-size: 13px; color: var(--muted); }
-  .footer-links { display: flex; gap: 22px; }
-  .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; }
-  .footer-links a:hover { color: var(--ink); }
-
-  @keyframes rise { from { opacity: 0; transform: translateY(7px); }
-                    to { opacity: 1; transform: none; } }
-  .step:nth-child(1) { animation-delay: .02s; }
-  .step:nth-child(2) { animation-delay: .08s; }
-  .step:nth-child(3) { animation-delay: .14s; }
-  @media (prefers-reduced-motion: reduce) {
-    * { animation-duration: .01s !important; transition-duration: .01s !important; }
-  }
-</style>
-</head>
-<body>
-<div class="wrap">
-  <div class="top"><a href="/">vindje.com</a></div>
-  <section class="hero">
-    <h1>How vindje.com works</h1>
-    <p class="sub">Marktplaats is full of listings that almost fit. vindje.com reads
-       every one of them for you, like a friend who actually knows what you're
-       looking for, and only shows you the ones that do.</p>
-  </section>
-
-  <ol class="steps">
-    <li class="step">
-      <span class="n">1</span>
-      <div>
-        <h3>Tell it what you want, in plain words</h3>
-        <p>Describe your wish however it comes to mind, in any language:
-           "a wooden closet with drawers and hangers, about 1.5&ndash;2 m tall,
-           within 15 minutes driving, max &euro;150." An AI reads that and turns
-           it into a real Marktplaats search: Dutch keywords, a price range, and
-           a search radius.</p>
-      </div>
-    </li>
-    <li class="step">
-      <span class="n">2</span>
-      <div>
-        <h3>It searches Marktplaats for you</h3>
-        <p>vindje.com queries Marktplaats' own search directly and pulls in
-           every listing that could plausibly match: titles, descriptions,
-           photos, prices, and distance, all at once.</p>
-      </div>
-    </li>
-    <li class="step">
-      <span class="n">3</span>
-      <div>
-        <h3>It reads each listing and keeps only the real matches</h3>
-        <p>Instead of you scrolling through dozens of near-misses, the AI checks
-           every result against what you actually asked for: size, condition,
-           features, whatever you mentioned. It shows only the listings
-           that hold up, each with a one-line reason why.</p>
-      </div>
-    </li>
-  </ol>
-
-  <div class="cta">
-    <a href="/">Try a search</a>
+""", """
+<section class="phead wrap">
+  <h1>How vindje works<span class="sq"></span></h1>
+  <p class="sub">Marktplaats is full of listings that almost fit. vindje reads every one
+     of them for you, like a friend who knows exactly what you're looking for, and
+     shows you only the ones that do.</p>
+</section>
+<div class="wrap"><div class="rulewrap"><i></i></div></div>
+<section class="section wrap">
+  <div class="steps">
+    <div class="step">
+      <span class="label num">Step 01</span>
+      <h3>Say it in plain words</h3>
+      <p>Describe your wish however it comes to mind, in any language: "a wooden
+         closet with drawers, about 2 m tall, within 15 minutes driving, max
+         &euro;150." An AI turns that into a real Marktplaats search: Dutch
+         keywords, a price range, and a search radius.</p>
+    </div>
+    <div class="step">
+      <span class="label num">Step 02</span>
+      <h3>It searches Marktplaats</h3>
+      <p>vindje queries Marktplaats' own search directly and pulls in every
+         listing that could plausibly match: titles, descriptions, photos,
+         prices, and distance, all at once.</p>
+    </div>
+    <div class="step">
+      <span class="label num">Step 03</span>
+      <h3>It keeps only real matches</h3>
+      <p>The AI checks every result against what you actually asked for: size,
+         condition, features, whatever you mentioned. Only listings that hold up
+         are shown, each with a one-line reason why. Rejections stay visible, so
+         you can double-check.</p>
+    </div>
   </div>
-  <p class="aside">No account needed. Every search talks to Marktplaats
-     live; a completed search's results are saved so you can share a link
-     to them, showing anyone who opens it exactly what you saw.</p>
-</div>
-<footer class="footer">
-  <div class="footer-inner">
-    <span class="footer-brand">vindje.com</span>
-    <nav class="footer-links">
-      <a href="/how-it-works">How it works</a>
-      <a href="/history">History</a>
-      <a href="/credits">Credits</a>
-      <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
-    </nav>
+  <div class="section">
+    <a class="btn solid" href="/">Try a search</a>
+    <p class="aside">No account needed. Every search talks to Marktplaats live;
+       a completed search is saved so you can share a link showing anyone
+       exactly what you saw.</p>
   </div>
-</footer>
-</body>
-</html>"""
+</section>
+""")
 
 
-CREDITS_HTML = """<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+CREDITS_HTML = _page("""
 <title>Credits &middot; vindje.com</title>
-<meta name="description" content="Who and what made vindje.com happen, the idea, the model choices, and the name.">
+<meta name="description" content="Who and what made vindje.com happen: the idea, the model choices, and the name.">
 <link rel="canonical" href="__ORIGIN__/credits">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="vindje.com">
 <meta property="og:title" content="Credits &middot; vindje.com">
-<meta property="og:description" content="Who and what made vindje.com happen, the idea, the model choices, and the name.">
+<meta property="og:description" content="Who and what made vindje.com happen: the idea, the model choices, and the name.">
 <meta property="og:url" content="__ORIGIN__/credits">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Credits &middot; vindje.com">
-<meta name="twitter:description" content="Who and what made vindje.com happen, the idea, the model choices, and the name.">
+<meta name="twitter:description" content="Who and what made vindje.com happen: the idea, the model choices, and the name.">
 <meta name="theme-color" content="#ffffff">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"vindje.com","item":"__ORIGIN__/"},{"@type":"ListItem","position":2,"name":"Credits","item":"__ORIGIN__/credits"}]}
 </script>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='18' y='18' width='64' height='64' fill='%23d6001c'/></svg>">
-<style>
-  :root {
-    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
-    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
-  }
-  * { box-sizing: border-box; }
-  ::selection { background: var(--ink); color: #fff; }
-  html, body { height: 100%; }
-  body {
-    margin: 0; background: #fff; color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
-                 system-ui, Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
-    display: flex; flex-direction: column; min-height: 100vh;
-  }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
-          flex: 1 0 auto; }
-  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
-  .top a { color: inherit; text-decoration: none; }
-
-  .hero { max-width: 620px; margin: 0 auto; text-align: center; }
-  h1 {
-    font-size: clamp(34px, 6.5vw, 52px); font-weight: 700; letter-spacing: -.035em;
-    line-height: 1.06; margin: clamp(40px, 8vh, 64px) 0 14px;
-  }
-  .sub { font-size: 18px; color: var(--body); line-height: 1.5; margin: 0 auto 8px; }
-
-  .list { list-style: none; margin: 56px 0 0; padding: 0; display: grid; gap: 16px; }
-  .item {
-    background: var(--field);
-    border-radius: 20px; padding: 22px 22px; text-align: left;
-    animation: rise .35s ease backwards;
-  }
-  .item h3 { margin: 0 0 6px; font-size: 17px; font-weight: 700; letter-spacing: -.015em; }
-  .item p { margin: 0; font-size: 14.5px; color: var(--body); line-height: 1.55; }
-  .item p a { color: inherit; }
-
-  .aside { margin: 36px auto 0; font-size: 13px; color: var(--muted); max-width: 480px; text-align: center; }
-  .aside a { color: inherit; }
-
-  .footer { flex-shrink: 0; margin-top: 70px; border-top: 1px solid var(--line); }
-  .footer-inner { max-width: 1040px; margin: 0 auto; padding: 22px 20px 30px;
-                  display: flex; align-items: center; justify-content: space-between;
-                  flex-wrap: wrap; gap: 12px; }
-  .footer-brand { font-size: 13px; color: var(--muted); }
-  .footer-links { display: flex; gap: 22px; }
-  .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; }
-  .footer-links a:hover { color: var(--ink); }
-
-  @keyframes rise { from { opacity: 0; transform: translateY(7px); }
-                    to { opacity: 1; transform: none; } }
-  .item:nth-child(1) { animation-delay: .02s; }
-  .item:nth-child(2) { animation-delay: .08s; }
-  .item:nth-child(3) { animation-delay: .14s; }
-  @media (prefers-reduced-motion: reduce) {
-    * { animation-duration: .01s !important; transition-duration: .01s !important; }
-  }
-</style>
-</head>
-<body>
-<div class="wrap">
-  <div class="top"><a href="/">vindje.com</a></div>
-  <section class="hero">
-    <h1>Credits</h1>
-    <p class="sub">vindje.com came together as a mix of ideas, tinkering, and a
-       little AI help along the way. Here's who and what gets the credit.</p>
-  </section>
-
-  <ul class="list">
-    <li class="item">
-      <h3>The idea</h3>
+""", """
+<section class="phead wrap">
+  <h1>Credits<span class="sq"></span></h1>
+  <p class="sub">vindje came together as a mix of ideas, tinkering, and a little AI
+     help along the way. Who and what gets the credit:</p>
+</section>
+<div class="wrap"><div class="rulewrap"><i></i></div></div>
+<section class="section wrap">
+  <div class="crows">
+    <div class="crow">
+      <span class="label">The idea</span>
       <p>The idea belongs to Robin, from
          <a href="https://www.linkedin.com/feed/update/urn:li:activity:7495530682232954880/?dashCommentUrn=urn%3Ali%3Afsd_comment%3A%287495539903926292481%2Curn%3Ali%3Aactivity%3A7495530682232954880%29" target="_blank" rel="noopener">his reply in this LinkedIn thread</a>.</p>
-    </li>
-    <li class="item">
-      <h3>The model</h3>
+    </div>
+    <div class="crow">
+      <span class="label">The model</span>
       <p>Phanos suggested moving from free OpenRouter models to Claude Haiku,
          and later to GPT 5.6 Luna.</p>
-    </li>
-    <li class="item">
-      <h3>The name</h3>
+    </div>
+    <div class="crow">
+      <span class="label">The name</span>
       <p>Claude suggested the name vindje.com.</p>
-    </li>
-  </ul>
-
-  <p class="aside">Know something that belongs here? <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Let us know</a>.</p>
-</div>
-<footer class="footer">
-  <div class="footer-inner">
-    <span class="footer-brand">vindje.com</span>
-    <nav class="footer-links">
-      <a href="/how-it-works">How it works</a>
-      <a href="/history">History</a>
-      <a href="/credits">Credits</a>
-      <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
-    </nav>
+    </div>
   </div>
-</footer>
-</body>
-</html>"""
+  <p class="aside">Know something that belongs here?
+     <a href="https://timetuna.com/pavel" target="_blank" rel="noopener" style="color:var(--ink);border-bottom:1px solid var(--hair)">Let us know</a>.</p>
+</section>
+""")
 
 
-HISTORY_HTML = """<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+HISTORY_HTML = _page("""
 <title>Search History &middot; vindje.com</title>
 <meta name="description" content="Every search run on vindje.com, newest first. Open any one of them to see the exact results it found.">
 <link rel="canonical" href="__ORIGIN__/history">
 <meta name="robots" content="noindex, follow">
 <meta name="theme-color" content="#ffffff">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='18' y='18' width='64' height='64' fill='%23d6001c'/></svg>">
-<style>
-  :root {
-    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
-    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
-  }
-  * { box-sizing: border-box; }
-  ::selection { background: var(--ink); color: #fff; }
-  html, body { height: 100%; }
-  body {
-    margin: 0; background: #fff; color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
-                 system-ui, Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
-    display: flex; flex-direction: column; min-height: 100vh;
-  }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
-          flex: 1 0 auto; }
-  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
-  .top a { color: inherit; text-decoration: none; }
-
-  h1 {
-    font-size: clamp(30px, 5.5vw, 42px); font-weight: 700; letter-spacing: -.03em;
-    line-height: 1.08; margin: clamp(32px, 6vh, 52px) 0 8px;
-  }
-  .sub { font-size: 15.5px; color: var(--muted); line-height: 1.5; margin: 0 0 36px; }
-
-  .history-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-  .entry {
-    display: flex; gap: 14px; align-items: baseline; justify-content: space-between;
-    background: var(--field); border-radius: 16px; padding: 16px 18px;
-    text-decoration: none; color: inherit; animation: rise .3s ease backwards;
-    transition: box-shadow .18s ease, background .18s ease;
-  }
-  .entry:hover { background: #eeeef1; box-shadow: 0 8px 26px rgba(0,0,0,.06); }
-  .entry-main { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-  .entry .wish { font-size: 15px; font-weight: 600; letter-spacing: -.01em;
-                 line-height: 1.4; overflow-wrap: break-word; }
-  .entry .url { font-size: 12px; color: var(--muted); overflow-wrap: anywhere;
-                font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-  .entry .meta { flex: none; font-size: 12.5px; color: var(--muted); text-align: right;
-                 white-space: nowrap; }
-
-  .empty { text-align: center; color: var(--muted); font-size: 14.5px;
-           padding: 60px 0; }
-
-  @keyframes rise { from { opacity: 0; transform: translateY(6px); }
-                    to { opacity: 1; transform: none; } }
-  @media (prefers-reduced-motion: reduce) {
-    * { animation-duration: .01s !important; transition-duration: .01s !important; }
-  }
-
-  .footer { flex-shrink: 0; margin-top: 70px; border-top: 1px solid var(--line); }
-  .footer-inner { max-width: 1040px; margin: 0 auto; padding: 22px 20px 30px;
-                  display: flex; align-items: center; justify-content: space-between;
-                  flex-wrap: wrap; gap: 12px; }
-  .footer-brand { font-size: 13px; color: var(--muted); }
-  .footer-links { display: flex; gap: 22px; }
-  .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; }
-  .footer-links a:hover { color: var(--ink); }
-</style>
-</head>
-<body>
-<div class="wrap">
-  <div class="top"><a href="/">vindje.com</a></div>
-  <h1>Search history</h1>
+""", """
+<section class="phead wrap">
+  <h1>Search history<span class="sq"></span></h1>
   <p class="sub">Every search anyone has run, newest first. Open one to see the exact
      results it found. Searches aren't tied to any account, so this is everyone's.</p>
-  __ENTRIES__
-</div>
-<footer class="footer">
-  <div class="footer-inner">
-    <span class="footer-brand">vindje.com</span>
-    <nav class="footer-links">
-      <a href="/how-it-works">How it works</a>
-      <a href="/history">History</a>
-      <a href="/credits">Credits</a>
-      <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
-    </nav>
-  </div>
-</footer>
-</body>
-</html>"""
+</section>
+<div class="wrap"><div class="rulewrap"><i></i></div></div>
+<section class="section wrap">
+__ENTRIES__
+</section>
+""")
 
 
 ROBOTS_TXT = """User-agent: *
@@ -1829,7 +1706,7 @@ SITEMAP_XML = """<?xml version="1.0" encoding="UTF-8"?>
 def render_history(entries, origin=""):
     """Render the /history page listing every saved search, newest first."""
     if not entries:
-        inner = '<p class="empty">No searches yet, run one to see it here.</p>'
+        inner = '<p class="empty">No searches yet. Run one to see it here.</p>'
     else:
         items = []
         for e in entries:
@@ -1838,7 +1715,6 @@ def render_history(entries, origin=""):
                 continue
             wish = html.escape(str(e.get("wish") or "")[:500])
             path = "/s/" + share_id
-            url = html.escape((origin + path) if origin else path)
             count = e.get("count")
             ts = e.get("ts")
             when = ""
@@ -1848,14 +1724,11 @@ def render_history(entries, origin=""):
                          (when, f"{count} results" if count is not None else "") if b]
             meta = " &middot; ".join(meta_bits)
             items.append(
-                f'<a class="entry" href="{html.escape(path)}">'
-                f'<span class="entry-main"><span class="wish">{wish}</span>'
-                f'<span class="url">{url}</span></span>'
-                f'<span class="meta">{meta}</span></a>'
+                f'<a class="hrow" href="{html.escape(path)}">'
+                f'<span class="hwish">{wish}</span>'
+                f'<span class="hmeta num">{meta}</span></a>'
             )
-        inner = '<ul class="history-list">' + "".join(
-            f"<li>{item}</li>" for item in items
-        ) + "</ul>"
+        inner = '<div class="hrows">' + "".join(items) + "</div>"
     return HISTORY_HTML.replace("__ENTRIES__", inner).replace("__ORIGIN__", origin)
 
 
