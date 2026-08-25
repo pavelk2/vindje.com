@@ -680,24 +680,27 @@ HTML = """<!doctype html>
   .nav { margin-left: auto; display: flex; gap: 26px; font-size: 13px; color: var(--grey); }
   .nav a:hover { color: var(--ink); }
 
-  /* hero (idle only) */
-  .hero { padding: 96px 0 0; }
+  /* hero (idle only): a centered, symmetric composition */
+  .hero { padding: 84px 0 0; text-align: center; }
   .hero h1 { font-size: clamp(38px, 5.5vw, 62px); font-weight: 700; letter-spacing: -.035em;
-             line-height: 1.02; max-width: 900px; text-wrap: balance; }
+             line-height: 1.02; max-width: 900px; margin: 0 auto; text-wrap: balance; }
   .hero h1 .sq { width: .2em; height: .2em; }
-  .hero .sub { margin: 22px 0 0; font-size: 18px; color: var(--grey); max-width: 560px; line-height: 1.55; }
+  .hero .sub { margin: 20px auto 0; font-size: 18px; color: var(--grey); max-width: 540px;
+               line-height: 1.55; text-wrap: balance; }
   body.run .hero { display: none; }
 
   /* search */
   .search { padding: 40px 0 28px; }
+  body:not(.run) .search { max-width: 948px; padding-top: 34px; }
+  body:not(.run) .examples { justify-content: center; }
   .search .slabel { display: none; color: var(--faint); margin-bottom: 12px; }
   body.run .search { padding-top: 44px; }
   body.run .search .slabel { display: block; }
   .bar { display: flex; align-items: stretch; border: 1px solid var(--ink); background: #fff; }
   .bar:focus-within { box-shadow: 0 0 0 1px var(--ink); }
-  #q { flex: 1; min-height: 60px; padding: 17px 20px; font: inherit; font-size: 17px;
+  #q { flex: 1; min-height: 64px; padding: 19px 20px; font: inherit; font-size: 17px;
        line-height: 1.45; letter-spacing: -.005em; border: 0; resize: none;
-       background: transparent; color: var(--ink); outline: none; }
+       background: transparent; color: var(--ink); outline: none; overflow: hidden; }
   #q::placeholder { color: var(--faint); }
   #pc { width: 128px; padding: 0 18px; font: inherit; font-size: 14px; border: 0;
         border-left: 1px solid var(--hair); background: transparent; color: var(--ink);
@@ -779,12 +782,12 @@ HTML = """<!doctype html>
   .deals { display: none; padding-top: 8px; }
   .deals.show { display: block; }
   body.run .deals { display: none; }
-  .deals .dhead { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 14px;
-                  padding: 26px 0 6px; }
+  .deals .dhead { display: flex; justify-content: center; align-items: baseline;
+                  flex-wrap: wrap; gap: 8px 14px; padding: 34px 0 6px; }
   .deals .dhead h2 { font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
   .deals .dhead h2 .sq { width: 7px; height: 7px; margin-left: 2px; }
-  .deals .dsub { color: var(--grey); font-size: 13.5px; max-width: 720px; line-height: 1.55;
-                 padding-bottom: 20px; }
+  .deals .dsub { color: var(--grey); font-size: 13.5px; max-width: 620px; line-height: 1.55;
+                 margin: 0 auto; text-align: center; text-wrap: balance; padding-bottom: 26px; }
   .deals .cat { display: flex; align-items: baseline; gap: 12px; padding: 22px 0 12px; }
   .deals .cat .label { color: var(--ink); }
   .deals .cat .n { color: var(--faint); font-size: 12.5px; }
@@ -839,12 +842,13 @@ HTML = """<!doctype html>
   main { flex: 1 0 auto; }
 
   /* facts row (idle only) */
-  .homefacts { border-top: 1px solid var(--hair); margin-top: 56px; }
+  .homefacts { border-top: 1px solid var(--hair); margin-top: 64px; }
   .homefacts .in { display: grid; grid-template-columns: 1fr 1fr 1fr; }
-  .fact { padding: 26px 0; }
-  .fact + .fact { padding-left: 32px; border-left: 1px solid var(--hair); }
-  .fact b { display: block; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
-  .fact span { font-size: 13px; color: var(--grey); }
+  .fact { padding: 30px 28px; text-align: center; }
+  .fact + .fact { border-left: 1px solid var(--hair); }
+  .fact b { display: block; font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
+  .fact span { display: block; font-size: 13px; color: var(--grey); margin-top: 4px;
+               text-wrap: balance; }
   body.run .homefacts { display: none; }
   @media (max-width: 800px) {
     .homefacts .in { grid-template-columns: 1fr; }
@@ -900,7 +904,7 @@ HTML = """<!doctype html>
   <div class="slabel label">Your search</div>
   <form id="f">
     <div class="bar">
-      <textarea id="q" rows="2" placeholder="A wooden closet with drawers and hangers, about 1.5 to 2 m tall, within 15 minutes driving, max &euro;150"></textarea>
+      <textarea id="q" rows="1" placeholder="A wooden wardrobe with drawers, 2 m tall, within 15 min driving, max &euro;150"></textarea>
       <input type="text" id="pc" placeholder="Postcode" autocomplete="postal-code">
       <button id="go" type="submit">Search</button>
     </div>
@@ -936,9 +940,9 @@ HTML = """<!doctype html>
 <section class="deals wrap" id="dealsSec"><div id="deals"></div></section>
 
 <div class="homefacts"><div class="wrap in">
-  <div class="fact"><b>Every listing, read</b><span>The AI reads descriptions and looks at photos, not just keywords.</span></div>
-  <div class="fact"><b>Junk never shows</b><span>Parts, accessories and look-alikes are rejected before you see them.</span></div>
-  <div class="fact"><b>Every verdict shown</b><span>Rejections stay visible, so you can double-check us.</span></div>
+  <div class="fact"><b>Every listing, read</b><span>Descriptions and photos, not just keywords.</span></div>
+  <div class="fact"><b>Junk never shows</b><span>Parts and look-alikes are rejected for you.</span></div>
+  <div class="fact"><b>Every verdict shown</b><span>Rejections stay visible, with reasons.</span></div>
 </div></div>
 </main>
 
@@ -1323,6 +1327,7 @@ f.addEventListener('submit', async e => {
 function renderSharedResults(rec) {
   document.body.classList.add('run');
   $('q').value = rec.wish || '';
+  fitQ();
   $('pc').value = rec.postcode || '';
   showSpec(rec.interpreted, rec.ai);
   baseNotes = (rec.notes || []).concat(['Shared search results. Click the vindje logo to start your own.']);
@@ -1392,9 +1397,17 @@ if (SHARED) {
 
 /* ---------- misc wiring ---------- */
 
+function fitQ() {
+  const q = $('q');
+  q.style.height = 'auto';
+  q.style.height = q.scrollHeight + 'px';
+}
+$('q').addEventListener('input', fitQ);
+
 document.querySelectorAll('.ex').forEach(b => b.addEventListener('click', () => {
   const q = $('q');
   q.value = b.dataset.q || b.textContent.trim();
+  fitQ();
   q.focus();
 }));
 
