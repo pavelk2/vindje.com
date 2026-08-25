@@ -616,244 +616,323 @@ HTML = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>vindje.com &mdash; Smart AI Search for Marktplaats</title>
+<title>vindje.com &middot; Smart AI Search for Marktplaats</title>
 <meta name="description" content="Describe what you want to buy in plain language. vindje.com turns it into a real Marktplaats search and uses AI to read every listing, keeping only the ones that actually match.">
 <link rel="canonical" href="__ORIGIN__/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="vindje.com">
-<meta property="og:title" content="vindje.com &mdash; Smart AI Search for Marktplaats">
-<meta property="og:description" content="Describe what you want to buy in plain language and get only the Marktplaats listings that actually match &mdash; no more scrolling through junk.">
+<meta property="og:title" content="vindje.com &middot; Smart AI Search for Marktplaats">
+<meta property="og:description" content="Describe what you want to buy in plain language and get only the Marktplaats listings that actually match. No more scrolling through junk.">
 <meta property="og:url" content="__ORIGIN__/">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="vindje.com &mdash; Smart AI Search for Marktplaats">
+<meta name="twitter:title" content="vindje.com &middot; Smart AI Search for Marktplaats">
 <meta name="twitter:description" content="Describe what you want to buy in plain language and get only the Marktplaats listings that actually match.">
 <meta name="theme-color" content="#ffffff">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"vindje.com","url":"__ORIGIN__/","description":"Describe what you want to buy in plain language and get only the Marktplaats listings that actually match, filtered by AI.","applicationCategory":"ShoppingApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}
 </script>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='18' y='18' width='64' height='64' fill='%23d6001c'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
-    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
+    --ink: #0f0f10; --grey: #6d6d73; --faint: #a4a4ab;
+    --hair: #e4e4e8; --panel: #f7f7f8;
+    --red: #d6001c; --blue: #1d4e9e; --yellow: #f0c114;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; margin: 0; }
   ::selection { background: var(--ink); color: #fff; }
-  html, body { height: 100%; }
-  body {
-    margin: 0; background: #fff; color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
-                 system-ui, Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
-    display: flex; flex-direction: column; min-height: 100vh;
+  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  body { background: #fff; color: var(--ink);
+         font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+         font-size: 15px; line-height: 1.5; min-height: 100vh;
+         display: flex; flex-direction: column; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  .num { font-variant-numeric: tabular-nums; }
+  .label { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+  .wrap { max-width: 1264px; width: 100%; margin: 0 auto; padding: 0 24px; }
+  .sq { display: inline-block; width: .55em; height: .55em; background: var(--red); }
+  :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+  /* header */
+  .top { border-bottom: 1px solid var(--hair); }
+  .top-in { display: flex; align-items: center; height: 64px; }
+  .wordmark { font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+  .wordmark .sq { width: 8px; height: 8px; margin-left: 2px; }
+  .nav { margin-left: auto; display: flex; gap: 26px; font-size: 13px; color: var(--grey); }
+  .nav a:hover { color: var(--ink); }
+
+  /* hero (idle only) */
+  .hero { padding: 96px 0 0; }
+  .hero h1 { font-size: clamp(38px, 5.5vw, 62px); font-weight: 700; letter-spacing: -.035em;
+             line-height: 1.02; max-width: 900px; text-wrap: balance; }
+  .hero h1 .sq { width: .2em; height: .2em; }
+  .hero .sub { margin: 22px 0 0; font-size: 18px; color: var(--grey); max-width: 560px; line-height: 1.55; }
+  body.run .hero { display: none; }
+
+  /* search */
+  .search { padding: 40px 0 28px; }
+  .search .slabel { display: none; color: var(--faint); margin-bottom: 12px; }
+  body.run .search { padding-top: 44px; }
+  body.run .search .slabel { display: block; }
+  .bar { display: flex; align-items: stretch; border: 1px solid var(--ink); background: #fff; }
+  .bar:focus-within { box-shadow: 0 0 0 1px var(--ink); }
+  #q { flex: 1; min-height: 60px; padding: 17px 20px; font: inherit; font-size: 17px;
+       line-height: 1.45; letter-spacing: -.005em; border: 0; resize: none;
+       background: transparent; color: var(--ink); outline: none; }
+  #q::placeholder { color: var(--faint); }
+  #pc { width: 128px; padding: 0 18px; font: inherit; font-size: 14px; border: 0;
+        border-left: 1px solid var(--hair); background: transparent; color: var(--ink);
+        outline: none; }
+  #pc::placeholder { color: var(--faint); }
+  #go { padding: 0 34px; background: var(--ink); color: #fff; font-size: 14px;
+        font-weight: 600; letter-spacing: .04em; }
+  #go:hover { background: #2a2a2e; }
+  #go:disabled { opacity: .45; cursor: wait; }
+  @media (max-width: 640px) {
+    .bar { flex-wrap: wrap; }
+    #q { flex: 1 1 100%; border-bottom: 1px solid var(--hair); }
+    #pc { flex: 1; border-left: 0; padding: 12px 18px; }
+    #go { padding: 12px 26px; }
   }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
-          flex: 1 0 auto; }
 
-  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  .examples { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  .ex { border: 1px solid var(--hair); padding: 9px 16px; font-size: 13px; color: var(--grey); }
+  .ex:hover { border-color: var(--ink); color: var(--ink); }
+  body.run .examples { display: none; }
 
-  .hero { max-width: 660px; margin: 0 auto; }
-  h1 {
-    font-size: clamp(38px, 7.5vw, 62px); font-weight: 700; letter-spacing: -.035em;
-    line-height: 1.04; text-align: center; margin: clamp(48px, 9vh, 88px) 0 30px;
-  }
+  /* interpreted spec line */
+  .spec { display: none; align-items: baseline; gap: 10px; flex-wrap: wrap;
+          margin-top: 14px; color: var(--grey); font-size: 13px; }
+  .spec.show { display: flex; }
+  .spec .k { color: var(--faint); }
+  .spec .sep { color: var(--hair); }
+  .spec b { color: var(--ink); font-weight: 500; }
+  .specnote { display: none; margin-top: 8px; font-size: 12.5px; color: var(--faint);
+              line-height: 1.5; max-width: 900px; }
+  .statusline { display: none; align-items: baseline; gap: 10px; margin-top: 14px;
+                font-size: 13.5px; color: var(--grey); }
+  .statusline b { color: var(--ink); font-weight: 600; }
 
-  .box {
-    background: var(--field); border-radius: 26px; padding: 6px;
-    transition: box-shadow .18s ease;
-  }
-  .box:focus-within { box-shadow: 0 0 0 1.5px var(--ink); }
-  textarea {
-    width: 100%; min-height: 86px; padding: 16px 16px 4px; font: inherit;
-    font-size: 17px; letter-spacing: -.01em; line-height: 1.45; border: 0;
-    resize: none; background: transparent; color: var(--ink); outline: none;
-  }
-  textarea::placeholder, input::placeholder { color: var(--muted); }
-  .boxrow { display: flex; align-items: center; gap: 8px; padding: 6px; }
-  input[type=text] {
-    padding: 10px 16px; font: inherit; font-size: 15px; border: 0;
-    border-radius: 980px; width: 132px; background: #fff; color: var(--ink);
-    outline: none; transition: box-shadow .15s ease;
-  }
-  input[type=text]:focus { box-shadow: 0 0 0 1.5px var(--ink); }
-  #go {
-    margin-left: auto; padding: 11px 26px; font: inherit; font-size: 15px;
-    font-weight: 600; color: #fff; background: var(--ink); border: 0;
-    border-radius: 980px; cursor: pointer;
-    transition: opacity .15s ease, transform .1s ease;
-  }
-  #go:hover { opacity: .85; }
-  #go:active { transform: scale(.97); }
-  #go:disabled { opacity: .35; cursor: wait; transform: none; }
+  /* the rule: black line + travelling red square */
+  .rulewrap { position: relative; height: 3px; background: var(--hair); display: none; }
+  .rulewrap .fill { position: absolute; left: 0; top: 0; height: 3px; width: 0;
+                    background: var(--ink); transition: width .4s ease; }
+  .rulewrap .dot { position: absolute; top: -3px; left: 0; width: 9px; height: 9px;
+                   background: var(--red); transition: left .4s ease; }
+  .rulewrap.on { display: block; }
+  .rulewrap.scan .dot { animation: scan 1.8s ease-in-out infinite alternate; }
+  @keyframes scan { from { left: 0; } to { left: calc(100% - 9px); } }
+  .rulewrap.done { background: var(--ink); }
+  .rulewrap.done .fill { width: 100%; }
+  .rulewrap.done .dot { left: 25%; animation: none; }
 
-  .examples { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
-              margin-top: 16px; }
-  .ex {
-    background: transparent; border: 1px solid var(--line); border-radius: 980px;
-    padding: 7px 15px; font: inherit; font-size: 13px; color: var(--muted);
-    cursor: pointer; transition: color .15s ease, border-color .15s ease;
-  }
-  .ex:hover { color: var(--ink); border-color: var(--ink); }
+  /* notes */
+  #notes { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .note { border: 1px solid var(--hair); border-left: 3px solid var(--yellow);
+          padding: 10px 14px; font-size: 13px; color: var(--grey); }
 
-  .interp { display: none; flex-wrap: wrap; gap: 7px; justify-content: center;
-            margin: 26px 0 0; animation: rise .35s ease both; }
-  .tok {
-    font-size: 13px; padding: 6px 13px; border-radius: 980px;
-    border: 1px solid var(--line2); color: var(--body); background: #fff;
-  }
-  .tok.dark { background: var(--ink); border-color: var(--ink); color: #fff;
-              font-weight: 500; }
-  .interp-note { display: none; max-width: 560px; margin: 10px auto 0;
-                 font-size: 13px; color: var(--muted); text-align: center;
-                 line-height: 1.5; animation: rise .35s ease both; }
+  /* results head */
+  .rhead { display: none; align-items: baseline; flex-wrap: wrap; gap: 8px 14px;
+           padding: 26px 0 22px; }
+  .rhead.show { display: flex; }
+  .rhead h1 { font-size: 30px; font-weight: 600; letter-spacing: -.02em; }
+  .rhead h1 .of { color: var(--faint); font-weight: 500; }
+  .rhead .sub { color: var(--grey); font-size: 14px; }
+  .rhead .actions { margin-left: auto; display: flex; gap: 10px; }
+  .btn { border: 1px solid var(--ink); padding: 8px 18px; font-size: 13px; font-weight: 500;
+         background: #fff; }
+  .btn:hover { background: var(--panel); }
 
-  .note { background: var(--field); color: var(--body); border-radius: 12px;
-          padding: 11px 16px; font-size: 13px; margin: 14px auto 0;
-          max-width: 560px; text-align: center; animation: rise .3s ease both; }
-  #status { text-align: center; margin-top: 22px; }
-  .count { color: var(--muted); font-size: 14px; letter-spacing: -.01em;
-           min-height: 1em; }
-  .count:empty { min-height: 0; margin: 0; }
+  /* tally strip */
+  .tallyrow { display: none; align-items: center; gap: 14px; flex-wrap: wrap;
+              padding: 0 0 22px; }
+  .tallyrow.show { display: flex; }
+  .tally { display: flex; gap: 4px; flex-wrap: wrap; max-width: 700px; }
+  .tally i { width: 13px; height: 13px; background: var(--hair); }
+  .tally i.pend { background: #fff; box-shadow: inset 0 0 0 1px var(--hair); }
+  .tally i.m { background: var(--ink); }
+  .tally i.best { background: var(--red); }
+  .tally i.un { background: var(--yellow); }
+  .tallycap { font-size: 12.5px; color: var(--grey); }
+  .tallycap b.r { color: var(--red); } .tallycap b.k { color: var(--ink); }
 
-  .spinner { display: none; margin: 36px auto 0; border: 2px solid var(--line);
-             border-top-color: var(--ink); border-radius: 50%; width: 26px;
-             height: 26px; animation: spin .7s linear infinite; }
-
-  .results-sec { margin-top: 44px; }
-  .bar { height: 2px; background: var(--line); border-radius: 2px; overflow: hidden;
-         margin: 0 1px 16px; opacity: 0; transition: opacity .4s ease; }
-  .bar i { display: block; height: 100%; width: 0; background: var(--ink);
-           transition: width .45s ease; }
-  #count { margin: 0 2px 16px; }
-
-  #results { display: grid; grid-template-columns: 1fr; gap: 12px; }
-  @media (min-width: 860px) { #results { grid-template-columns: 1fr 1fr; } }
-
-  .card {
-    display: flex; gap: 15px; background: #fff; border-radius: 20px; padding: 13px;
-    text-decoration: none; color: inherit; border: 1px solid var(--line);
-    animation: rise .3s ease backwards;
-    transition: box-shadow .18s ease, border-color .18s ease, opacity .3s ease;
-  }
-  .card:hover { border-color: var(--line2); box-shadow: 0 10px 34px rgba(0,0,0,.08); }
-  .card img, .noimg { width: 104px; height: 104px; object-fit: cover;
-                      border-radius: 13px; background: var(--field); flex: none; }
-  @media (min-width: 640px) { .card img, .noimg { width: 122px; height: 122px; } }
-  .noimg { display: flex; align-items: center; justify-content: center;
-           color: var(--line2); font-size: 11px; }
-  .card > div:last-child { min-width: 0; align-self: center; }
-  .card h3 { margin: 0 0 3px; font-size: 15.5px; font-weight: 600;
-             letter-spacing: -.015em; line-height: 1.32;
-             display: -webkit-box; -webkit-line-clamp: 2;
-             -webkit-box-orient: vertical; overflow: hidden; }
-  .meta { color: var(--muted); font-size: 13px; margin-bottom: 3px; }
-  .price { font-weight: 600; color: var(--ink); }
-  .desc { font-size: 13px; color: var(--muted); margin: 2px 0 0; line-height: 1.5;
+  /* grid + cards */
+  #results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+             background: var(--hair); border: 1px solid var(--hair); }
+  #results:empty { display: none; }
+  @media (max-width: 1000px) { #results { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 660px) { #results { grid-template-columns: 1fr; } }
+  .card { background: #fff; padding: 0 0 22px; display: flex; flex-direction: column;
+          position: relative; }
+  .card:hover { outline: 1px solid var(--ink); outline-offset: -1px; z-index: 1; }
+  .card .ph { background: var(--panel); border-bottom: 1px solid var(--hair); }
+  .card .ph img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
+  .card .ph .noimg { display: flex; align-items: center; justify-content: center;
+                     aspect-ratio: 4/3; color: var(--faint); font-size: 12px; }
+  .card .body { padding: 15px 20px 0; display: flex; flex-direction: column; flex: 1; }
+  .rank { margin-bottom: 7px; }
+  .rank .label { color: var(--faint); }
+  .card.first .rank .label { color: var(--red); }
+  .card.first::before { content: ''; position: absolute; top: -1px; left: -1px; right: -1px;
+                        height: 3px; background: var(--red); z-index: 1; }
+  .card h3 { font-size: 15.5px; font-weight: 600; letter-spacing: -.01em; line-height: 1.35; }
+  .priceline { display: flex; align-items: baseline; justify-content: space-between;
+               gap: 10px; margin-top: 10px; }
+  .price { font-size: 20px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
+  .price .cur { color: var(--faint); font-weight: 500; }
+  .geo { color: var(--grey); font-size: 13px; text-align: right; }
+  .desc { margin-top: 8px; font-size: 13px; color: var(--grey); line-height: 1.5;
           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
           overflow: hidden; }
+  .why { margin-top: 13px; padding-top: 11px; border-top: 1px solid var(--hair);
+         display: flex; gap: 10px; font-size: 13px; line-height: 1.5; color: var(--grey); }
+  .why i { flex: none; width: 8px; height: 8px; margin-top: 5px; background: var(--ink); }
+  .why b { color: var(--ink); font-weight: 500; }
+  .card.first .why i { background: var(--red); }
+  .card.pending .why i { background: #fff; box-shadow: inset 0 0 0 1px var(--faint); }
+  .card.pending .why { color: var(--faint); }
+  .card.un .why i { background: var(--yellow); }
+  .card.rejected .ph img, .card.rejected h3, .card.rejected .priceline,
+  .card.rejected .desc { opacity: .32; }
+  .card.rejected .ph img { filter: grayscale(1); }
+  .card.rejected:hover .ph img, .card.rejected:hover h3,
+  .card.rejected:hover .priceline, .card.rejected:hover .desc { opacity: .8; }
+  .card.rejected .why { display: none; }
 
-  .why { font-size: 12.5px; margin-top: 8px; display: inline-flex; gap: 6px;
-         align-items: baseline; color: var(--muted); line-height: 1.4; }
-  .why b { color: var(--ink); font-weight: 700; }
-  .why.pending { align-items: center; }
-  .why.pending::before {
-    content: ''; width: 11px; height: 11px; border-radius: 50%; flex: none;
-    border: 2px solid var(--line2); border-top-color: var(--ink);
-    animation: spin .7s linear infinite;
+  main { flex: 1 0 auto; }
+
+  /* facts row (idle only) */
+  .homefacts { border-top: 1px solid var(--hair); margin-top: 56px; }
+  .homefacts .in { display: grid; grid-template-columns: 1fr 1fr 1fr; }
+  .fact { padding: 26px 0; }
+  .fact + .fact { padding-left: 32px; border-left: 1px solid var(--hair); }
+  .fact b { display: block; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+  .fact span { font-size: 13px; color: var(--grey); }
+  body.run .homefacts { display: none; }
+  @media (max-width: 800px) {
+    .homefacts .in { grid-template-columns: 1fr; }
+    .fact + .fact { padding-left: 0; border-left: 0; border-top: 1px solid var(--hair); }
   }
-  .why.warn { border: 1px dashed var(--line2); border-radius: 980px;
-              padding: 3px 11px; }
-  .card.pending { opacity: .5; }
-  .card.matched { border-color: var(--ink); box-shadow: 0 0 0 1.5px var(--ink); }
-  .card.matched:hover { box-shadow: 0 0 0 1.5px var(--ink), 0 10px 34px rgba(0,0,0,.08); }
-  .card.rejected { opacity: .08; filter: grayscale(60%); }
-  .card.rejected:hover { opacity: .55; filter: none; }
 
-  @keyframes spin { to { transform: rotate(360deg); } }
-  @keyframes rise { from { opacity: 0; transform: translateY(7px); }
-                    to { opacity: 1; transform: none; } }
+  footer { flex-shrink: 0; margin-top: 64px; border-top: 1px solid var(--hair); }
+  .foot-in { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 22px;
+             padding: 24px 0 30px; color: var(--faint); font-size: 12.5px; }
+  .foot-links { margin-left: auto; display: flex; gap: 22px; }
+  .foot-links a:hover { color: var(--ink); }
+
+  /* modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,15,16,.42);
+                   align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+  .modal-overlay.show { display: flex; }
+  .modal { width: 520px; max-width: 100%; background: #fff; border: 1px solid var(--ink);
+           position: relative; padding: 38px 38px 32px; }
+  .modal::before { content: ''; position: absolute; top: -1px; left: -1px; right: -1px;
+                   height: 3px; background: var(--red); }
+  .modal h2 { font-size: 28px; font-weight: 700; letter-spacing: -.025em; line-height: 1.1; }
+  .modal h2 .sq { width: 9px; height: 9px; }
+  .modal p { margin: 14px 0 22px; color: var(--grey); line-height: 1.6; font-size: 14.5px; }
+  .modal .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn.solid { background: var(--ink); color: #fff; }
+  .btn.solid:hover { background: #2a2a2e; }
+  .modal .tag { margin-top: 24px; padding-top: 15px; border-top: 1px solid var(--hair);
+                font-size: 12.5px; color: var(--faint); }
+
   @media (prefers-reduced-motion: reduce) {
     * { animation-duration: .01s !important; transition-duration: .01s !important; }
   }
-
-  .footer { flex-shrink: 0; margin-top: 70px; border-top: 1px solid var(--line); }
-  .footer-inner { max-width: 1040px; margin: 0 auto; padding: 22px 20px 30px;
-                  display: flex; align-items: center; justify-content: space-between;
-                  flex-wrap: wrap; gap: 12px; }
-  .footer-brand { font-size: 13px; color: var(--muted); }
-  .footer-links { display: flex; gap: 22px; }
-  .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; }
-  .footer-links a:hover { color: var(--ink); }
-
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4);
-                   align-items: center; justify-content: center; z-index: 100; padding: 20px; }
-  .modal-overlay.show { display: flex; }
-  .modal { background: #fff; border-radius: 20px; padding: 30px 26px 26px; max-width: 360px;
-           width: 100%; text-align: center; animation: rise .25s ease both;
-           box-shadow: 0 20px 60px rgba(0,0,0,.22); }
-  .modal h2 { margin: 0 0 10px; font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
-  .modal p { margin: 0 0 22px; font-size: 14px; color: var(--body); line-height: 1.5; }
-  .modal button { padding: 10px 26px; font: inherit; font-size: 14px; font-weight: 600;
-                   color: #fff; background: var(--ink); border: 0; border-radius: 980px;
-                   cursor: pointer; transition: opacity .15s ease; }
-  .modal button:hover { opacity: .85; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="top"><a href="/" style="color:inherit;text-decoration:none">vindje.com</a></div>
-  <section class="hero">
-    <h1>Advanced search for Marktplaats</h1>
-    <form id="f">
-      <div class="box">
-        <textarea id="q" rows="3" placeholder="Wooden closet with drawers and hangers, about 1.5&ndash;2 m tall, within 15 minutes driving, max &euro;150"></textarea>
-        <div class="boxrow">
-          <input type="text" id="pc" placeholder="Postcode" autocomplete="postal-code">
-          <button id="go" type="submit">Search</button>
-        </div>
-      </div>
-      <div class="examples">
-        <button type="button" class="ex" data-q="vintage bikes that are in a perfect condition under 30 minutes driving distance">Vintage bike, perfect condition</button>
-        <button type="button" class="ex" data-q="Louis Poulsen lamps in perfect condition between 1950 and 2005 under 30 minutes driving">Louis Poulsen lamp, 1950&ndash;2005</button>
-        <button type="button" class="ex" data-q="very cheap art (under 50 EUR), that could be worth 500 EUR at resale">Cheap art worth 10&times; at resale</button>
-      </div>
-    </form>
-    <div class="interp" id="interp"></div>
-    <div class="interp-note" id="interpNote"></div>
-    <div id="notes"></div>
-    <div class="count" id="status"></div>
-    <div class="spinner" id="spin"></div>
-  </section>
-  <section class="results-sec">
-    <div class="bar" id="bar"><i></i></div>
-    <div class="count" id="count"></div>
-    <div id="shareRow" style="display:none;margin:0 2px 16px">
-      <button type="button" id="shareBtn" class="ex">Copy share link</button>
+<header class="top"><div class="wrap top-in">
+  <a class="wordmark" href="/">vindje<span class="sq"></span></a>
+  <nav class="nav">
+    <a href="/how-it-works">How it works</a>
+    <a href="/history">History</a>
+    <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
+  </nav>
+</div></header>
+
+<main>
+<section class="hero wrap">
+  <h1>Say what you're looking&nbsp;for<span class="sq"></span></h1>
+  <p class="sub">vindje reads every Marktplaats listing, text and photos, and shows you
+     only what actually fits. In plain language, any language.</p>
+</section>
+
+<section class="search wrap">
+  <div class="slabel label">Your search</div>
+  <form id="f">
+    <div class="bar">
+      <textarea id="q" rows="2" placeholder="A wooden closet with drawers and hangers, about 1.5 to 2 m tall, within 15 minutes driving, max &euro;150"></textarea>
+      <input type="text" id="pc" placeholder="Postcode" autocomplete="postal-code">
+      <button id="go" type="submit">Search</button>
     </div>
-    <div id="results"></div>
-  </section>
-</div>
-<footer class="footer">
-  <div class="footer-inner">
-    <span class="footer-brand">vindje.com</span>
-    <nav class="footer-links">
-      <a href="/how-it-works">How it works</a>
-      <a href="/history">History</a>
-      <a href="/credits">Credits</a>
-      <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
-    </nav>
+  </form>
+  <div class="examples">
+    <button type="button" class="ex" data-q="vintage bikes that are in a perfect condition under 30 minutes driving distance">Vintage bike, perfect condition</button>
+    <button type="button" class="ex" data-q="Louis Poulsen lamps in perfect condition between 1950 and 2005 under 30 minutes driving">Louis Poulsen lamp, 1950&ndash;2005</button>
+    <button type="button" class="ex" data-q="very cheap art (under 50 EUR), that could be worth 500 EUR at resale">Cheap art worth 10&times; at resale</button>
   </div>
-</footer>
+  <div class="spec num" id="spec"></div>
+  <div class="specnote" id="specNote"></div>
+  <div class="statusline" id="status"></div>
+  <div id="notes"></div>
+</section>
+
+<div class="wrap"><div class="rulewrap" id="rule"><span class="fill"></span><i class="dot"></i></div></div>
+
+<section class="wrap">
+  <div class="rhead" id="rhead">
+    <h1 class="num" id="rh1"></h1>
+    <span class="sub num" id="rsub"></span>
+    <span class="actions" id="shareRow" style="display:none">
+      <button type="button" class="btn" id="shareBtn">Copy share link</button>
+    </span>
+  </div>
+  <div class="tallyrow" id="tallyRow">
+    <div class="tally" id="tally"></div>
+    <span class="tallycap num" id="tallyCap"></span>
+  </div>
+  <div id="results"></div>
+</section>
+
+<div class="homefacts"><div class="wrap in">
+  <div class="fact"><b>Every listing, read</b><span>The AI reads descriptions and looks at photos, not just keywords.</span></div>
+  <div class="fact"><b>Junk never shows</b><span>Parts, accessories and look-alikes are rejected before you see them.</span></div>
+  <div class="fact"><b>Every verdict shown</b><span>Rejections stay visible, so you can double-check us.</span></div>
+</div></div>
+</main>
+
+<footer><div class="wrap foot-in">
+  <span>We'd rather show you nothing than junk.</span>
+  <nav class="foot-links">
+    <a href="/how-it-works">How it works</a>
+    <a href="/history">History</a>
+    <a href="/credits">Credits</a>
+    <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
+  </nav>
+</div></footer>
+
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
-    <h2>No good matches found</h2>
-    <p>Try to make the range of the search wider: a bigger distance, a wider price range, or looser requirements.</p>
-    <button id="modalClose" type="button">Got it</button>
+    <h2>Nothing fits yet<span class="sq" style="margin-left:4px"></span></h2>
+    <p>We read every candidate closely and none met your bar, so we're showing you
+       none of them. Try a bigger radius, a wider price range, or looser requirements.</p>
+    <div class="btns">
+      <button type="button" class="btn solid" id="modalEdit">Edit my wish</button>
+      <button type="button" class="btn" id="modalClose">Got it</button>
+    </div>
+    <div class="tag">We'd rather show you nothing than junk.</div>
   </div>
 </div>
+
 <script>
 const SHARED = __SHARED_DATA__;
-const f = document.getElementById('f');
+const $ = id => document.getElementById(id);
+const f = $('f');
 const esc = s => (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function post(body) {
   return fetch('/api/search', {
@@ -867,112 +946,197 @@ let baseNotes = [];
 let shareUrl = null;
 let state = {listings: [], total: 0, matched: 0, rejected: 0, failed: 0, checked: 0};
 
-function orderResults(listings, checking) {
-  if (!checking) return listings.map(l => ({...l, matched: false, rejected: false, unchecked: false}));
-  return listings.filter(l => l._m).concat(listings.filter(l => l._u), listings.filter(l => l._r))
-    .map(l => ({...l, matched: !!l._m, rejected: !!l._r, unchecked: !!l._u}));
+/* ---------- small UI helpers ---------- */
+
+function setRule(mode, pct) {
+  // mode: '' hidden | 'scan' indeterminate | 'progress' | 'done'
+  const r = $('rule');
+  r.className = 'rulewrap' + (mode ? ' on ' + mode : '');
+  if (mode === 'progress') {
+    const w = Math.max(0, Math.min(100, pct || 0));
+    r.querySelector('.fill').style.width = w + '%';
+    r.querySelector('.dot').style.left = 'calc(' + w + '% - ' + Math.round(9 * w / 100) + 'px)';
+  } else {
+    r.querySelector('.fill').style.width = '';
+    r.querySelector('.dot').style.left = '';
+  }
 }
 
-async function saveSearch(payload) {
-  try {
-    const r = await post(payload);
-    if (r && r.id) {
-      shareUrl = location.origin + r.url;
-      // Every search is saved automatically, so the address bar itself
-      // becomes the shareable link — not just the copy button below.
-      history.pushState({shareId: r.id}, '', r.url);
-      document.getElementById('shareRow').style.display = 'block';
-    }
-  } catch (err) { /* sharing is best-effort, never blocks a search */ }
+function setStatus(html) {
+  const el = $('status');
+  el.innerHTML = html || '';
+  el.style.display = html ? 'flex' : 'none';
 }
 
-document.getElementById('shareBtn').addEventListener('click', async () => {
-  if (!shareUrl) return;
-  const btn = document.getElementById('shareBtn');
-  try {
-    await navigator.clipboard.writeText(shareUrl);
-    const orig = btn.textContent;
-    btn.textContent = 'Copied!';
-    setTimeout(() => { btn.textContent = orig; }, 1500);
-  } catch (err) {
-    prompt('Copy this link:', shareUrl);
-  }
-});
+function setHead(h1, sub) {
+  $('rhead').classList.add('show');
+  $('rh1').innerHTML = h1;
+  $('rsub').innerHTML = sub || '';
+}
 
-f.addEventListener('submit', async e => {
-  e.preventDefault();
-  const q = document.getElementById('q').value.trim();
-  if (!q) return;
-  const pc = document.getElementById('pc').value.trim();
-  localStorage.setItem('pc', pc);
-  // Starting a fresh search leaves any previously-shared URL behind;
-  // the address bar gets the new search's own link once it's saved.
-  if (location.pathname !== '/') history.pushState({}, '', '/');
-  document.getElementById('go').disabled = true;
-  document.getElementById('spin').style.display = 'block';
-  document.getElementById('results').innerHTML = '';
-  document.getElementById('count').textContent = '';
-  document.getElementById('notes').innerHTML = '';
-  document.getElementById('interp').style.display = 'none';
-  document.getElementById('interpNote').style.display = 'none';
-  document.getElementById('shareRow').style.display = 'none';
-  shareUrl = null;
-  hideNoMatchesModal();
-  const bar0 = document.getElementById('bar');
-  bar0.style.opacity = 0;
-  bar0.firstElementChild.style.width = '0';
-  baseNotes = [];
-  const statusEl = document.getElementById('status');
-  const t0 = Date.now();
-  let stage = 'Understanding your wish&hellip;';
-  const tick = setInterval(() => {
-    const s = Math.round((Date.now() - t0) / 1000);
-    statusEl.innerHTML = stage + ' ' + s + 's' +
-      (s > 30 ? ' &mdash; free AI can take a minute' : '');
-  }, 1000);
-  try {
-    const p = await post({action: 'parse', wish: q});
-    if (p.error) throw new Error(p.error);
-    baseNotes = p.notes || [];
-    showInterp(p.parsed, p.ai);
-    showNotes([]);
-    stage = 'Searching Marktplaats&hellip;';
-    const d = await post({action: 'find', wish: q, postcode: pc, parsed: p.parsed});
-    if (d.error) throw new Error(d.error);
-    baseNotes = baseNotes.concat(d.notes || []);
-    showNotes([]);
-    const listings = d.listings || [];
-    const reqs = d.requirements || [];
-    state = {listings: listings, total: d.total_on_marktplaats,
-             matched: 0, rejected: 0, failed: 0, checked: 0};
-    const checking = p.ai && reqs.length > 0 && listings.length > 0;
-    renderCards(listings, checking);
-    document.getElementById('spin').style.display = 'none';
-    updateCount(checking);
-    if (checking) {
-      stage = 'Checking ' + listings.length + ' listings&hellip;';
-      await checkAll(listings, reqs);
-      finishOrder(listings);
-      updateCount(true);
-    }
-    if ((checking && state.matched === 0) || (!checking && listings.length === 0)) {
-      showNoMatchesModal();
-    }
-    await saveSearch({
-      action: 'save', wish: q, postcode: pc,
-      interpreted: p.parsed || null, ai: !!p.ai, notes: baseNotes,
-      scanned: state.listings.length, total_on_marktplaats: state.total,
-      results: orderResults(state.listings, checking),
-    });
-  } catch (err) {
-    document.getElementById('notes').innerHTML += '<div class="note">Error: ' + esc(err.message) + '</div>';
-  } finally {
-    clearInterval(tick);
-    statusEl.textContent = '';
-    document.getElementById('go').disabled = false;
-    document.getElementById('spin').style.display = 'none';
+function showNotes(notes) {
+  $('notes').innerHTML = baseNotes.concat(notes || [])
+    .map(n => '<div class="note">' + esc(n) + '</div>').join('');
+}
+
+function showSpec(i, ai) {
+  const el = $('spec'), noteEl = $('specNote');
+  if (!ai || !i) { el.classList.remove('show'); noteEl.style.display = 'none'; return; }
+  const t = ['<span class="k">Reading it as</span> <b>' + esc(i.search_terms) + '</b>'];
+  const lo = i.price_min_euro, hi = i.price_max_euro;
+  if (lo != null && hi != null) t.push('<b>&euro;' + lo + ' to &euro;' + hi + '</b>');
+  else if (hi != null) t.push('<b>under &euro;' + hi + '</b>');
+  else if (lo != null) t.push('<b>from &euro;' + lo + '</b>');
+  if (i.distance_meters) t.push('<b>within ' + (i.distance_meters / 1000) + ' km</b>');
+  const shortReqs = [], longReqs = [];
+  (i.requirements || []).forEach(r => (r.length > 45 ? longReqs : shortReqs).push(r));
+  if (shortReqs.length) {
+    t.push('<span class="k">must be</span> ' + shortReqs.map(r => '<b>' + esc(r) + '</b>').join(', '));
   }
-});
+  el.innerHTML = t.join('<span class="sep">|</span>');
+  el.classList.add('show');
+  noteEl.innerHTML = longReqs.map(esc).join(' &middot; ');
+  noteEl.style.display = longReqs.length ? 'block' : 'none';
+}
+
+/* ---------- tally strip ---------- */
+
+function buildTally(listings) {
+  $('tally').innerHTML = listings.map(l =>
+    '<i class="pend" id="t-' + esc(l.id) + '"></i>').join('');
+  $('tallyCap').innerHTML = '1 square = 1 listing read &middot; <b class="k">black</b> match &middot; grey rejected';
+  $('tallyRow').classList.add('show');
+}
+
+function setTally(id, cls) {
+  const sq = $('t-' + id);
+  if (sq) sq.className = cls;
+}
+
+function finalTallyCap(failed) {
+  $('tallyCap').innerHTML =
+    '<b class="r">red</b> best find &middot; <b class="k">black</b> match &middot; grey rejected' +
+    (failed ? ' &middot; yellow unverified' : '');
+}
+
+/* ---------- cards ---------- */
+
+function whyBlock(l) {
+  if (l._m) return '<div class="why"><i></i><span><b>Why it&#39;s here.</b> ' +
+    (l.why ? esc(l.why) : 'Matches everything you asked for') + '.</span></div>';
+  if (l._u) return '<div class="why"><i></i><span>The AI check failed for this one. Judge it yourself.</span></div>';
+  if (l._pending) return '<div class="why"><i></i><span>Reading title, photos and description against your requirements&hellip;</span></div>';
+  return '';
+}
+
+function rankText(l) {
+  if (l._pending) return 'Reading…';
+  if (l._best) return 'Best match';
+  if (l._m) return 'Match ' + String(l._nr || 0).padStart(2, '0');
+  if (l._u) return 'Not checked';
+  if (l._r) return 'Rejected';
+  return 'Listing';
+}
+
+function cardShell(l) {
+  const cls = ['card'];
+  if (l._pending) cls.push('pending');
+  if (l._best) cls.push('first');
+  if (l._u) cls.push('un');
+  if (l._r) cls.push('rejected');
+  const priceNum = (l.price || '').replace(' (bid from)', '');
+  const bid = /\(bid from\)/.test(l.price || '');
+  return `
+    <a class="${cls.join(' ')}" id="c-${esc(l.id)}" href="${esc(l.url)}" target="_blank" rel="noopener">
+      <div class="ph">${l.image
+        ? `<img src="${esc(l.image)}" alt="${esc(l.title)}" loading="lazy">`
+        : '<div class="noimg">No photo</div>'}</div>
+      <div class="body">
+        <div class="rank"><span class="label" id="r-${esc(l.id)}">${rankText(l)}</span></div>
+        <h3>${esc(l.title)}</h3>
+        <div class="priceline">
+          <span class="price num">${esc(priceNum)}${bid ? ' <span class="cur">bid</span>' : ''}</span>
+          <span class="geo num">${esc(l.city)}${l.distance_km != null ? ' &middot; ' + l.distance_km + ' km' : ''}</span>
+        </div>
+        <div class="desc">${esc(l.description)}</div>
+        <span id="w-${esc(l.id)}">${whyBlock(l)}</span>
+      </div>
+    </a>`;
+}
+
+function renderCards(listings, checking) {
+  listings.forEach(l => { l._pending = checking; });
+  $('results').innerHTML = listings.map(cardShell).join('');
+}
+
+function repaintCard(l) {
+  const card = $('c-' + l.id);
+  if (!card) return;
+  card.className = 'card' + (l._pending ? ' pending' : '') + (l._best ? ' first' : '')
+    + (l._u ? ' un' : '') + (l._r ? ' rejected' : '');
+  $('r-' + l.id).textContent = rankText(l);
+  $('w-' + l.id).innerHTML = whyBlock(l);
+}
+
+/* ---------- live counts ---------- */
+
+function updateCount(checking) {
+  const s = state;
+  if (!checking) {
+    setHead(s.listings.length + ' listings <span class="of">/ ' + s.total.toLocaleString('en') + '</span>',
+            'keyword search &middot; AI filtering is off');
+    return;
+  }
+  const left = s.listings.length - s.checked;
+  if (left > 0) {
+    setHead(s.matched + (s.matched === 1 ? ' match' : ' matches') + ' <span class="of">so far</span>',
+            'reading ' + s.listings.length + ' of ' + s.total.toLocaleString('en') +
+            ' listings &middot; ' + s.checked + ' done, ' + left + ' to go');
+    setRule('progress', s.checked / s.listings.length * 100);
+  } else {
+    setHead(s.matched + (s.matched === 1 ? ' match' : ' matches') +
+            ' <span class="of">/ ' + s.total.toLocaleString('en') + '</span>',
+            s.listings.length + ' read closely by AI');
+    setRule('done');
+  }
+}
+
+/* ---------- verdicts ---------- */
+
+function applyVerdict(l, why, failed) {
+  state.checked++;
+  l._pending = false;
+  if (failed) {
+    state.failed++; l._u = 1;
+    setTally(l.id, 'un');
+  } else if (why !== undefined) {
+    state.matched++; l._m = 1; l._nr = state.matched;
+    if (why) l.why = why;
+    setTally(l.id, 'm');
+  } else {
+    state.rejected++; l._r = 1;
+    setTally(l.id, '');
+  }
+  repaintCard(l);
+}
+
+function finishOrder(listings) {
+  // matched first, then unchecked, rejected last; first match becomes the best find
+  const res = $('results');
+  const matched = listings.filter(l => l._m);
+  const order = matched.concat(listings.filter(l => l._u), listings.filter(l => l._r));
+  for (const l of order) {
+    const c = $('c-' + l.id);
+    if (c) res.appendChild(c);
+  }
+  matched.forEach((l, i) => { l._nr = i + 1; });
+  if (matched.length) {
+    matched[0]._best = 1;
+    setTally(matched[0].id, 'best');
+  }
+  matched.forEach(repaintCard);
+  finalTallyCap(state.failed);
+}
 
 async function checkAll(listings, reqs) {
   const B = 15, batches = [];
@@ -996,174 +1160,192 @@ async function checkAll(listings, reqs) {
   await Promise.all([worker(), worker()]);  // 2 at a time: free tiers rate-limit
 }
 
-function applyVerdict(l, why, failed) {
-  const badge = document.getElementById('b-' + l.id);
-  const card = document.getElementById('c-' + l.id);
-  state.checked++;
-  if (!badge || !card) return;
-  card.classList.remove('pending');
-  if (failed) {
-    state.failed++; l._u = 1;
-    badge.className = 'why warn';
-    badge.innerHTML = 'Not checked';
-  } else if (why !== undefined) {
-    state.matched++; l._m = 1;
-    card.classList.add('matched');
-    badge.className = 'why';
-    badge.innerHTML = '<b>&#10003;</b> ' + (why ? esc(why) : 'Matches');
-  } else {
-    state.rejected++; l._r = 1;
-    card.classList.add('rejected');
-    badge.remove();
-  }
+/* ---------- sharing ---------- */
+
+function orderResults(listings, checking) {
+  if (!checking) return listings.map(l => ({...l, matched: false, rejected: false, unchecked: false}));
+  return listings.filter(l => l._m).concat(listings.filter(l => l._u), listings.filter(l => l._r))
+    .map(l => ({...l, matched: !!l._m, rejected: !!l._r, unchecked: !!l._u}));
 }
 
-function finishOrder(listings) {
-  // matched first, then unchecked, rejected last
-  const res = document.getElementById('results');
-  const order = listings.filter(l => l._m)
-    .concat(listings.filter(l => l._u), listings.filter(l => l._r));
-  for (const l of order) {
-    const c = document.getElementById('c-' + l.id);
-    if (c) res.appendChild(c);
-  }
+async function saveSearch(payload) {
+  try {
+    const r = await post(payload);
+    if (r && r.id) {
+      shareUrl = location.origin + r.url;
+      // Every search is saved automatically, so the address bar itself
+      // becomes the shareable link, not just the copy button.
+      history.pushState({shareId: r.id}, '', r.url);
+      $('shareRow').style.display = 'flex';
+    }
+  } catch (err) { /* sharing is best-effort, never blocks a search */ }
 }
 
-function updateCount(checking) {
-  const s = state, el = document.getElementById('count');
-  const bar = document.getElementById('bar');
-  if (!checking) {
-    el.textContent = s.listings.length + ' listings &middot; ' + s.total + ' hits on Marktplaats';
-    el.innerHTML = el.textContent;
-    return;
+$('shareBtn').addEventListener('click', async () => {
+  if (!shareUrl) return;
+  const btn = $('shareBtn');
+  try {
+    await navigator.clipboard.writeText(shareUrl);
+    const orig = btn.textContent;
+    btn.textContent = 'Copied';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  } catch (err) {
+    prompt('Copy this link:', shareUrl);
   }
-  bar.style.opacity = 1;
-  bar.firstElementChild.style.width =
-    Math.round(s.checked / s.listings.length * 100) + '%';
-  let parts = [s.matched + (s.matched === 1 ? ' match' : ' matches'),
-               s.rejected + ' filtered out'];
-  if (s.failed) parts.push(s.failed + ' unchecked');
-  let txt = parts.join(' &middot; ');
-  if (s.checked < s.listings.length) {
-    txt += ' &middot; checking ' + (s.listings.length - s.checked) + ' more&hellip;';
-  } else {
-    setTimeout(() => { bar.style.opacity = 0; }, 700);
+});
+
+/* ---------- main flow ---------- */
+
+f.addEventListener('submit', async e => {
+  e.preventDefault();
+  const q = $('q').value.trim();
+  if (!q) return;
+  const pc = $('pc').value.trim();
+  localStorage.setItem('pc', pc);
+  // Starting a fresh search leaves any previously shared URL behind;
+  // the address bar gets the new search's own link once it's saved.
+  if (location.pathname !== '/') history.pushState({}, '', '/');
+  document.body.classList.add('run');
+  $('go').disabled = true;
+  $('results').innerHTML = '';
+  $('notes').innerHTML = '';
+  $('rhead').classList.remove('show');
+  $('tallyRow').classList.remove('show');
+  $('shareRow').style.display = 'none';
+  $('spec').classList.remove('show');
+  $('specNote').style.display = 'none';
+  shareUrl = null;
+  hideNoMatchesModal();
+  setRule('scan');
+  baseNotes = [];
+  const t0 = Date.now();
+  let stage = 'Reading your wish';
+  let stageNote = 'turning it into a Marktplaats search';
+  const tick = setInterval(() => {
+    const s = Math.round((Date.now() - t0) / 1000);
+    setStatus('<b>' + stage + '</b><span>' + stageNote + ' &middot; ' + s + ' s' +
+      (s > 30 ? ' &middot; free AI can take a minute' : '') + '</span>');
+  }, 1000);
+  setStatus('<b>' + stage + '</b><span>' + stageNote + '</span>');
+  try {
+    const p = await post({action: 'parse', wish: q});
+    if (p.error) throw new Error(p.error);
+    baseNotes = p.notes || [];
+    showSpec(p.parsed, p.ai);
+    showNotes([]);
+    stage = 'Searching Marktplaats'; stageNote = 'pulling in every candidate';
+    const d = await post({action: 'find', wish: q, postcode: pc, parsed: p.parsed});
+    if (d.error) throw new Error(d.error);
+    baseNotes = baseNotes.concat(d.notes || []);
+    showNotes([]);
+    const listings = d.listings || [];
+    const reqs = d.requirements || [];
+    state = {listings: listings, total: d.total_on_marktplaats || listings.length,
+             matched: 0, rejected: 0, failed: 0, checked: 0};
+    const checking = p.ai && reqs.length > 0 && listings.length > 0;
+    renderCards(listings, checking);
+    if (checking) {
+      buildTally(listings);
+      setRule('progress', 0);
+      stage = 'Reading listings'; stageNote = 'every one, against your requirements';
+      updateCount(true);
+      await checkAll(listings, reqs);
+      finishOrder(listings);
+      updateCount(true);
+    } else {
+      setRule(listings.length ? 'done' : '');
+      updateCount(false);
+    }
+    setStatus('');
+    if ((checking && state.matched === 0) || (!checking && listings.length === 0)) {
+      showNoMatchesModal();
+    }
+    await saveSearch({
+      action: 'save', wish: q, postcode: pc,
+      interpreted: p.parsed || null, ai: !!p.ai, notes: baseNotes,
+      scanned: state.listings.length, total_on_marktplaats: state.total,
+      results: orderResults(state.listings, checking),
+    });
+  } catch (err) {
+    setRule('');
+    showNotes(['Error: ' + err.message]);
+  } finally {
+    clearInterval(tick);
+    setStatus('');
+    $('go').disabled = false;
   }
-  el.innerHTML = txt;
-}
+});
 
-function cardShell(l, extraClass, badgeHtml) {
-  return `
-    <a class="card${extraClass ? ' ' + extraClass : ''}" id="c-${esc(l.id)}" href="${esc(l.url)}" target="_blank" rel="noopener">
-      ${l.image ? `<img src="${esc(l.image)}" alt="${esc(l.title)}" loading="lazy">` : '<div class="noimg">no photo</div>'}
-      <div>
-        <h3>${esc(l.title)}</h3>
-        <div class="meta"><span class="price">${esc(l.price)}</span>
-          &middot; ${esc(l.city)}${l.distance_km != null ? ' &middot; ' + l.distance_km + ' km' : ''}</div>
-        <div class="desc">${esc(l.description)}</div>
-        ${badgeHtml || ''}
-      </div>
-    </a>`;
-}
-
-function renderCards(listings, checking) {
-  document.getElementById('results').innerHTML = listings.map(l => cardShell(
-    l, checking ? 'pending' : '',
-    checking ? `<span class="why pending" id="b-${esc(l.id)}">Checking&hellip;</span>` : ''
-  )).join('');
-}
+/* ---------- shared view ---------- */
 
 function renderSharedResults(rec) {
-  document.getElementById('spin').style.display = 'none';
-  document.getElementById('q').value = rec.wish || '';
-  document.getElementById('pc').value = rec.postcode || '';
-  showInterp(rec.interpreted, rec.ai);
-  baseNotes = (rec.notes || []).concat(['Shared search results — click the logo above to start a new search.']);
+  document.body.classList.add('run');
+  $('q').value = rec.wish || '';
+  $('pc').value = rec.postcode || '';
+  showSpec(rec.interpreted, rec.ai);
+  baseNotes = (rec.notes || []).concat(['Shared search results. Click the vindje logo to start your own.']);
   showNotes([]);
-  const results = rec.results || [];
-  document.getElementById('results').innerHTML = results.map(l => {
-    if (l.matched) return cardShell(l, 'matched', '<span class="why"><b>&#10003;</b> ' + (l.why ? esc(l.why) : 'Matches') + '</span>');
-    if (l.rejected) return cardShell(l, 'rejected', '');
-    if (l.unchecked) return cardShell(l, '', '<span class="why warn">Not checked</span>');
-    return cardShell(l, '', '');
-  }).join('');
-  const matched = results.filter(l => l.matched).length;
-  const rejected = results.filter(l => l.rejected).length;
-  const unchecked = results.filter(l => l.unchecked).length;
-  const countEl = document.getElementById('count');
-  if (matched + rejected + unchecked > 0) {
-    let parts = [matched + (matched === 1 ? ' match' : ' matches'), rejected + ' filtered out'];
-    if (unchecked) parts.push(unchecked + ' unchecked');
-    countEl.innerHTML = parts.join(' &middot; ');
+  const results = (rec.results || []).map(l => ({...l,
+    _m: l.matched ? 1 : 0, _r: l.rejected ? 1 : 0, _u: l.unchecked ? 1 : 0}));
+  const matched = results.filter(l => l._m);
+  matched.forEach((l, i) => { l._nr = i + 1; });
+  if (matched.length) matched[0]._best = 1;
+  $('results').innerHTML = results.map(cardShell).join('');
+  const rejected = results.filter(l => l._r).length;
+  const unchecked = results.filter(l => l._u).length;
+  const total = rec.total_on_marktplaats;
+  if (matched.length + rejected + unchecked > 0) {
+    setHead(matched.length + (matched.length === 1 ? ' match' : ' matches') +
+            (total != null ? ' <span class="of">/ ' + total.toLocaleString('en') + '</span>' : ''),
+            results.length + ' read closely by AI');
+    $('tally').innerHTML = results.map(l => '<i class="' +
+      (l._best ? 'best' : l._m ? 'm' : l._u ? 'un' : '') + '" id="t-' + esc(l.id) + '"></i>').join('');
+    finalTallyCap(unchecked);
+    $('tallyRow').classList.add('show');
   } else {
-    countEl.textContent = results.length + ' listings' +
-      (rec.total_on_marktplaats != null ? ' · ' + rec.total_on_marktplaats + ' hits on Marktplaats' : '');
+    setHead(results.length + ' listings' +
+            (total != null ? ' <span class="of">/ ' + total.toLocaleString('en') + '</span>' : ''),
+            'keyword search &middot; AI filtering was off');
   }
+  setRule(results.length ? 'done' : '');
 }
+
 if (SHARED) {
   if (SHARED.error) {
-    document.getElementById('spin').style.display = 'none';
-    document.getElementById('notes').innerHTML = '<div class="note">' + esc(SHARED.error) + '</div>';
+    document.body.classList.add('run');
+    showNotes([SHARED.error]);
   } else {
     renderSharedResults(SHARED);
   }
 } else {
-  document.getElementById('pc').value = localStorage.getItem('pc') || '';
+  $('pc').value = localStorage.getItem('pc') || '';
 }
 
+/* ---------- misc wiring ---------- */
+
 document.querySelectorAll('.ex').forEach(b => b.addEventListener('click', () => {
-  const q = document.getElementById('q');
+  const q = $('q');
   q.value = b.dataset.q || b.textContent.trim();
   q.focus();
 }));
 
-document.getElementById('q').addEventListener('keydown', e => {
+$('q').addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     f.requestSubmit();
   }
 });
 
-function showInterp(i, ai) {
-  if (!ai || !i) return;
-  const t = ['<span class="tok dark">' + esc(i.search_terms) + '</span>'];
-  const lo = i.price_min_euro, hi = i.price_max_euro;
-  if (lo != null && hi != null) t.push('<span class="tok">&euro;' + lo + '&ndash;' + hi + '</span>');
-  else if (hi != null) t.push('<span class="tok">under &euro;' + hi + '</span>');
-  else if (lo != null) t.push('<span class="tok">from &euro;' + lo + '</span>');
-  if (i.distance_meters) t.push('<span class="tok">within ' + (i.distance_meters / 1000) + ' km</span>');
-  const longReqs = [];
-  (i.requirements || []).forEach(r => {
-    if (r.length > 45) longReqs.push(r);
-    else t.push('<span class="tok">' + esc(r) + '</span>');
-  });
-  const el = document.getElementById('interp');
-  el.innerHTML = t.join('');
-  el.style.display = 'flex';
-  const noteEl = document.getElementById('interpNote');
-  noteEl.innerHTML = longReqs.map(esc).join(' &middot; ');
-  noteEl.style.display = longReqs.length ? 'block' : 'none';
-}
-
-function showNotes(notes) {
-  document.getElementById('notes').innerHTML =
-    baseNotes.concat(notes || []).map(n => '<div class="note">' + esc(n) + '</div>').join('');
-}
-
-function showNoMatchesModal() {
-  document.getElementById('modalOverlay').classList.add('show');
-}
-function hideNoMatchesModal() {
-  document.getElementById('modalOverlay').classList.remove('show');
-}
-document.getElementById('modalClose').addEventListener('click', hideNoMatchesModal);
-document.getElementById('modalOverlay').addEventListener('click', e => {
+function showNoMatchesModal() { $('modalOverlay').classList.add('show'); }
+function hideNoMatchesModal() { $('modalOverlay').classList.remove('show'); }
+$('modalClose').addEventListener('click', hideNoMatchesModal);
+$('modalEdit').addEventListener('click', () => { hideNoMatchesModal(); $('q').focus(); });
+$('modalOverlay').addEventListener('click', e => {
   if (e.target.id === 'modalOverlay') hideNoMatchesModal();
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') hideNoMatchesModal();
 });
-
 </script>
 </body>
 </html>"""
@@ -1189,7 +1371,7 @@ HOW_IT_WORKS_HTML = """<!doctype html>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"vindje.com","item":"__ORIGIN__/"},{"@type":"ListItem","position":2,"name":"How it works","item":"__ORIGIN__/how-it-works"}]}
 </script>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='18' y='18' width='64' height='64' fill='%23d6001c'/></svg>">
 <style>
   :root {
     --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
@@ -1268,7 +1450,7 @@ HOW_IT_WORKS_HTML = """<!doctype html>
     <h1>How vindje.com works</h1>
     <p class="sub">Marktplaats is full of listings that almost fit. vindje.com reads
        every one of them for you, like a friend who actually knows what you're
-       looking for &mdash; and only shows you the ones that do.</p>
+       looking for, and only shows you the ones that do.</p>
   </section>
 
   <ol class="steps">
@@ -1276,7 +1458,7 @@ HOW_IT_WORKS_HTML = """<!doctype html>
       <span class="n">1</span>
       <div>
         <h3>Tell it what you want, in plain words</h3>
-        <p>Describe your wish however it comes to mind, in any language &mdash;
+        <p>Describe your wish however it comes to mind, in any language:
            "a wooden closet with drawers and hangers, about 1.5&ndash;2 m tall,
            within 15 minutes driving, max &euro;150." An AI reads that and turns
            it into a real Marktplaats search: Dutch keywords, a price range, and
@@ -1288,7 +1470,7 @@ HOW_IT_WORKS_HTML = """<!doctype html>
       <div>
         <h3>It searches Marktplaats for you</h3>
         <p>vindje.com queries Marktplaats' own search directly and pulls in
-           every listing that could plausibly match &mdash; titles, descriptions,
+           every listing that could plausibly match: titles, descriptions,
            photos, prices, and distance, all at once.</p>
       </div>
     </li>
@@ -1297,8 +1479,8 @@ HOW_IT_WORKS_HTML = """<!doctype html>
       <div>
         <h3>It reads each listing and keeps only the real matches</h3>
         <p>Instead of you scrolling through dozens of near-misses, the AI checks
-           every result against what you actually asked for &mdash; size, condition,
-           features, whatever you mentioned &mdash; and shows only the listings
+           every result against what you actually asked for: size, condition,
+           features, whatever you mentioned. It shows only the listings
            that hold up, each with a one-line reason why.</p>
       </div>
     </li>
@@ -1332,21 +1514,21 @@ CREDITS_HTML = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Credits &middot; vindje.com</title>
-<meta name="description" content="Who and what made vindje.com happen &mdash; the idea, the model choices, and the name.">
+<meta name="description" content="Who and what made vindje.com happen, the idea, the model choices, and the name.">
 <link rel="canonical" href="__ORIGIN__/credits">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="vindje.com">
 <meta property="og:title" content="Credits &middot; vindje.com">
-<meta property="og:description" content="Who and what made vindje.com happen &mdash; the idea, the model choices, and the name.">
+<meta property="og:description" content="Who and what made vindje.com happen, the idea, the model choices, and the name.">
 <meta property="og:url" content="__ORIGIN__/credits">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Credits &middot; vindje.com">
-<meta name="twitter:description" content="Who and what made vindje.com happen &mdash; the idea, the model choices, and the name.">
+<meta name="twitter:description" content="Who and what made vindje.com happen, the idea, the model choices, and the name.">
 <meta name="theme-color" content="#ffffff">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"vindje.com","item":"__ORIGIN__/"},{"@type":"ListItem","position":2,"name":"Credits","item":"__ORIGIN__/credits"}]}
 </script>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='18' y='18' width='64' height='64' fill='%23d6001c'/></svg>">
 <style>
   :root {
     --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
@@ -1455,11 +1637,11 @@ HISTORY_HTML = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Search History &middot; vindje.com</title>
-<meta name="description" content="Every search run on vindje.com, newest first &mdash; open any one of them to see the exact results it found.">
+<meta name="description" content="Every search run on vindje.com, newest first. Open any one of them to see the exact results it found.">
 <link rel="canonical" href="__ORIGIN__/history">
 <meta name="robots" content="noindex, follow">
 <meta name="theme-color" content="#ffffff">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='18' y='18' width='64' height='64' fill='%23d6001c'/></svg>">
 <style>
   :root {
     --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
@@ -1526,7 +1708,7 @@ HISTORY_HTML = """<!doctype html>
   <div class="top"><a href="/">vindje.com</a></div>
   <h1>Search history</h1>
   <p class="sub">Every search anyone has run, newest first. Open one to see the exact
-     results it found &mdash; searches aren't tied to any account, so this is everyone's.</p>
+     results it found. Searches aren't tied to any account, so this is everyone's.</p>
   __ENTRIES__
 </div>
 <footer class="footer">
@@ -1562,7 +1744,7 @@ SITEMAP_XML = """<?xml version="1.0" encoding="UTF-8"?>
 def render_history(entries, origin=""):
     """Render the /history page listing every saved search, newest first."""
     if not entries:
-        inner = '<p class="empty">No searches yet &mdash; run one to see it here.</p>'
+        inner = '<p class="empty">No searches yet, run one to see it here.</p>'
     else:
         items = []
         for e in entries:
