@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vindje — VNDJE Terminal</title>
+<link href="assets/fonts/02-terminal.css" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #050807; color: #9fe8b2; font-family: 'IBM Plex Mono', monospace;
+         font-size: 13px; line-height: 1.45; padding: 0 0 40px; }
+  body::after { content: ''; position: fixed; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px);
+    mix-blend-mode: multiply; }
+  .amber { color: #ffb454; } .dim { color: #3f7a4e; } .white { color: #e8fff0; }
+  .red { color: #ff5c57; } .green { color: #54ff9f; }
+
+  .topbar { background: #0d1a12; border-bottom: 1px solid #1d3a28; padding: 8px 18px;
+            display: flex; justify-content: space-between; font-weight: 600; }
+  .topbar b { color: #54ff9f; letter-spacing: .08em; }
+  .ticker { background: #081009; border-bottom: 1px solid #1d3a28; padding: 6px 18px;
+            white-space: nowrap; overflow: hidden; color: #ffb454; }
+  .ticker span { margin-right: 42px; }
+
+  .panel { margin: 18px; border: 1px solid #1d3a28; }
+  .phead { background: #0d1a12; padding: 7px 14px; display: flex; justify-content: space-between;
+           border-bottom: 1px solid #1d3a28; color: #54ff9f; font-weight: 700; letter-spacing: .06em; }
+  .pbody { padding: 12px 14px; }
+  .kv { display: inline-block; margin-right: 34px; }
+  .kv b { color: #ffb454; font-weight: 600; }
+  .bar { display: inline-block; width: 180px; height: 10px; border: 1px solid #1d3a28;
+         vertical-align: -1px; position: relative; margin: 0 8px; }
+  .bar i { position: absolute; inset: 1px auto 1px 1px; width: 100%; background: #2e5c3c; }
+
+  table { width: calc(100% - 36px); margin: 0 18px; border-collapse: collapse; }
+  th { text-align: left; color: #ffb454; border-bottom: 1px solid #1d3a28; padding: 8px 10px;
+       font-weight: 700; letter-spacing: .08em; font-size: 12px; }
+  td { padding: 9px 10px; border-bottom: 1px solid #10241a; vertical-align: middle; }
+  tr.match td { background: rgba(84,255,159,.05); }
+  tr.match td:first-child { border-left: 3px solid #54ff9f; }
+  tr.reject { opacity: .48; }
+  tr.reject td:first-child { border-left: 3px solid #ff5c57; }
+  tr.pend td:first-child { border-left: 3px solid #ffb454; }
+  td img { width: 52px; height: 39px; object-fit: cover; display: block;
+           filter: sepia(1) hue-rotate(60deg) saturate(2.2) brightness(.85) contrast(1.1); }
+  .t { color: #e8fff0; font-weight: 600; }
+  .d { color: #3f7a4e; font-size: 12px; }
+  .price { color: #ffb454; font-weight: 700; font-size: 14px; }
+  .v-match { color: #54ff9f; font-weight: 700; }
+  .v-reject { color: #ff5c57; }
+  .v-pend { color: #ffb454; }
+  .spark { color: #2e5c3c; letter-spacing: -1px; }
+
+  .fkeys { position: sticky; bottom: 0; margin-top: 18px; background: #0d1a12;
+           border-top: 1px solid #1d3a28; display: flex; z-index: 2; }
+  .fkeys div { padding: 7px 16px; border-right: 1px solid #1d3a28; font-size: 12px; }
+  .fkeys b { color: #050807; background: #9fe8b2; padding: 1px 6px; margin-right: 8px; font-weight: 700; }
+  .cursor { display: inline-block; width: 8px; height: 14px; background: #54ff9f;
+            vertical-align: -2px; animation: bl 1s steps(1) infinite; }
+  @keyframes bl { 50% { opacity: 0; } }
+</style>
+</head>
+<body>
+<div class="topbar"><span><b>VNDJE</b> TERMINAL <span class="dim">v5.1.0</span> — MARKTPLAATS LIVE FEED</span>
+  <span class="dim">SESSION 8F2A · 25-AUG-2026 14:31:07 CET · <span class="green">●</span> CONNECTED</span></div>
+<div class="ticker" id="tick"></div>
+
+<div class="panel">
+  <div class="phead"><span>QUERY // NATURAL LANGUAGE</span><span class="dim">GPT-5.6-LUNA · REASONING:LOW</span></div>
+  <div class="pbody">
+    <span class="white">&gt; </span><span id="wish"></span><span class="cursor"></span><br><br>
+    <span class="kv"><b>PARSE:</b> "vintage design lamp"</span>
+    <span class="kv"><b>PX:</b> &lt;= 400 EUR</span>
+    <span class="kv"><b>RAD:</b> 50 KM / 1012AB</span>
+    <span class="kv"><b>SCAN:</b> 32 / 18,239</span>
+    <span class="kv"><b>AI FILTER:</b> <span class="bar"><i style="width:100%"></i></span> <span class="green">COMPLETE</span></span>
+  </div>
+</div>
+
+<table id="tbl">
+  <tr><th>#</th><th>IMG</th><th>LISTING</th><th>PX</th><th>LOC</th><th>DIST</th><th>SIG</th><th>AI VERDICT</th></tr>
+</table>
+
+<div class="fkeys">
+  <div><b>F1</b>HELP</div><div><b>F2</b>NEW QUERY</div><div><b>F3</b>SORT PX</div>
+  <div><b>F4</b>SORT DIST</div><div><b>F5</b>RESCAN</div><div><b>F8</b>SHOW REJECTED</div>
+  <div><b>F9</b>OPEN LISTING</div><div style="margin-left:auto;border-left:1px solid #1d3a28" class="dim">6 MATCH · 5 REJECT · 1 UNCHKD</div>
+</div>
+
+<script src="assets/data.js"></script>
+<script>
+const D = window.VINDJE, esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+document.getElementById('wish').textContent = D.wish;
+document.getElementById('tick').innerHTML =
+  D.listings.map(l => `<span>${esc(l.id.toUpperCase())} <b class="${l.status==='match'?'green':'red'}">${esc(l.price)}</b> ${esc(l.city.toUpperCase())}</span>`).join('');
+const order = [...D.listings].sort((a,b) => (a.status==='match'?0:a.status==='unchecked'?1:2) - (b.status==='match'?0:b.status==='unchecked'?1:2));
+const spark = () => Array.from({length:8}, () => '▁▂▃▄▅▆▇'[Math.floor(Math.random()*7)]).join('');
+document.getElementById('tbl').innerHTML += order.map((l, i) => `
+  <tr class="${l.status === 'unchecked' ? 'pend' : l.status}">
+    <td class="dim">${String(i+1).padStart(2,'0')}</td>
+    <td><img src="${l.photo}"></td>
+    <td><div class="t">${esc(l.title.toUpperCase())}</div><div class="d">${esc(l.desc.slice(0,90))}…</div></td>
+    <td class="price">${esc(l.price.replace(' (bid from)',''))}</td>
+    <td>${esc(l.city.toUpperCase())}</td>
+    <td>${l.km} KM</td>
+    <td class="spark">${spark()}</td>
+    <td class="${l.status==='match'?'v-match':l.status==='reject'?'v-reject':'v-pend'}">
+      ${l.status==='match' ? '▲ MATCH — ' + esc(l.why) : l.status==='reject' ? '▼ REJ — ' + esc(l.whyNot) : '◌ UNCHKD — ' + esc(l.whyNot)}</td>
+  </tr>`).join('');
+</script>
+</body>
+</html>

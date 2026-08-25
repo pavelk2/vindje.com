@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vindje — Swipe</title>
+<link href="assets/fonts/08-swipe.css" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { min-height: 100vh; font-family: 'Outfit', sans-serif; color: #1c1030;
+    background: linear-gradient(140deg, #ff9d76 0%, #ff5f8f 34%, #a44bf3 72%, #5b2bd6 100%); }
+  .top { display: flex; justify-content: space-between; align-items: center; padding: 26px 44px;
+         color: #fff; }
+  .top .logo { font-weight: 900; font-size: 26px; letter-spacing: -.02em; }
+  .top .logo span { opacity: .75; font-weight: 500; }
+  .prog { text-align: center; }
+  .prog b { font-size: 15px; letter-spacing: .04em; }
+  .dots { margin-top: 6px; display: flex; gap: 5px; justify-content: center; }
+  .dots i { width: 22px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.35); }
+  .dots i.on { background: #fff; } .dots i.heart { background: #3ef58e; }
+  .wishpill { background: rgba(255,255,255,.16); backdrop-filter: blur(6px); padding: 10px 18px;
+              border-radius: 999px; font-size: 13.5px; max-width: 480px; white-space: nowrap;
+              overflow: hidden; text-overflow: ellipsis; border: 1px solid rgba(255,255,255,.3); }
+
+  .stage { position: relative; height: 780px; display: flex; align-items: center; justify-content: center; }
+  .cardw { position: absolute; width: 470px; }
+  .ghost1 { transform: rotate(-7deg) translateX(-96px) scale(.94); filter: brightness(.92); z-index: 1; }
+  .ghost2 { transform: rotate(6deg) translateX(96px) scale(.94); filter: brightness(.92); z-index: 1; }
+  .hero { z-index: 3; transform: rotate(-1.2deg); }
+  .card { background: #fff; border-radius: 28px; overflow: hidden;
+          box-shadow: 0 34px 80px rgba(40,10,80,.45); position: relative; }
+  .card .ph { position: relative; }
+  .card img { width: 100%; aspect-ratio: 4/3.6; object-fit: cover; display: block; }
+  .grad { position: absolute; inset: 55% 0 0 0; background: linear-gradient(transparent, rgba(0,0,0,.62)); }
+  .onph { position: absolute; left: 22px; right: 22px; bottom: 16px; color: #fff; }
+  .onph h2 { font-size: 27px; font-weight: 800; line-height: 1.05; letter-spacing: -.01em;
+             text-shadow: 0 2px 10px rgba(0,0,0,.4); }
+  .onph .sub { font-size: 15px; font-weight: 500; opacity: .92; margin-top: 4px; }
+  .pricebadge { position: absolute; top: 18px; right: 18px; background: #fff; color: #1c1030;
+                font-weight: 900; font-size: 22px; padding: 8px 16px; border-radius: 16px;
+                box-shadow: 0 8px 20px rgba(0,0,0,.3); }
+  .aibar { display: flex; gap: 12px; align-items: flex-start; padding: 18px 22px 20px; }
+  .aibar .dotai { flex: none; width: 40px; height: 40px; border-radius: 14px; display: flex;
+    align-items: center; justify-content: center; font-size: 19px; color: #fff;
+    background: linear-gradient(135deg, #3ef58e, #12b96b); box-shadow: 0 6px 14px rgba(18,185,107,.45); }
+  .aibar h4 { font-size: 12px; font-weight: 800; letter-spacing: .14em; color: #12b96b; }
+  .aibar p { font-size: 15.5px; font-weight: 600; line-height: 1.3; margin-top: 2px; }
+  .stampL, .stampR { position: absolute; top: 42px; font-weight: 900; font-size: 34px;
+    letter-spacing: .06em; padding: 6px 18px; border: 5px solid; border-radius: 12px; z-index: 4; }
+  .stampL { left: 30px; transform: rotate(-16deg); color: #3ef58e; border-color: #3ef58e;
+            text-shadow: 0 0 24px rgba(62,245,142,.6); }
+
+  .btns { position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); display: flex;
+          gap: 22px; z-index: 5; align-items: center; }
+  .btn { width: 74px; height: 74px; border-radius: 50%; background: #fff; display: flex;
+         align-items: center; justify-content: center; font-size: 30px;
+         box-shadow: 0 14px 30px rgba(40,10,80,.4); }
+  .btn.small { width: 58px; height: 58px; font-size: 22px; }
+  .no { color: #ff4d6d; } .yes { color: #12b96b; } .star { color: #a44bf3; }
+
+  .tray { background: rgba(20,8,40,.5); backdrop-filter: blur(10px); padding: 22px 44px 30px; color: #fff; }
+  .tray h3 { font-size: 14px; font-weight: 700; letter-spacing: .18em; opacity: .85; }
+  .traycards { display: flex; gap: 16px; margin-top: 14px; }
+  .mini { width: 150px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.22);
+          border-radius: 16px; overflow: hidden; flex: none; }
+  .mini img { width: 100%; aspect-ratio: 4/3; object-fit: cover; }
+  .mini div { padding: 8px 10px 10px; font-size: 12px; font-weight: 600; line-height: 1.2; }
+  .mini b { display: block; font-size: 14px; font-weight: 800; }
+  .mini.rejected { opacity: .4; } .mini.rejected img { filter: grayscale(1); }
+  .mini .x { color: #ff8fa5; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">vindje<span>.swipe</span></div>
+  <div class="prog"><b>Card 7 of 32 — 4 liked</b><div class="dots" id="dots"></div></div>
+  <div class="wishpill" id="wish"></div>
+</div>
+<div class="stage" id="stage"></div>
+<div class="tray">
+  <h3>YOUR LIKES ♥ — AI PRE-SCREENED, JUNK NEVER REACHES THE DECK</h3>
+  <div class="traycards" id="tray"></div>
+</div>
+<script src="assets/data.js"></script>
+<script>
+const D = window.VINDJE, esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+document.getElementById('wish').textContent = '“' + D.wish + '”';
+document.getElementById('dots').innerHTML = Array.from({length: 16}, (_, i) =>
+  `<i class="${i < 7 ? (i % 3 === 0 ? 'heart' : 'on') : ''}"></i>`).join('');
+const M = D.listings.filter(l => l.status === 'match');
+const hero = M[4], g1 = M[1], g2 = M[2];
+const cardHTML = (l, cls, stamp) => `
+  <div class="cardw ${cls}"><div class="card">
+    ${stamp ? '<div class="stampL">MATCH</div>' : ''}
+    <div class="ph"><img src="${l.photo}"><div class="grad"></div>
+      <div class="pricebadge">${esc(l.price)}</div>
+      <div class="onph"><h2>${esc(l.title)}</h2><div class="sub">${esc(l.city)} · ${l.km} km away</div></div>
+    </div>
+    <div class="aibar"><div class="dotai">✓</div>
+      <div><h4>WHY THE AI DEALT YOU THIS CARD</h4><p>${esc(l.why)}</p></div></div>
+  </div></div>`;
+document.getElementById('stage').innerHTML =
+  cardHTML(g1, 'ghost1') + cardHTML(g2, 'ghost2') + cardHTML(hero, 'hero', true) +
+  `<div class="btns">
+     <div class="btn small no">✕</div><div class="btn yes">♥</div><div class="btn small star">★</div>
+   </div>`;
+document.getElementById('tray').innerHTML =
+  M.slice(0, 4).map(l => `<div class="mini"><img src="${l.photo}"><div><b>${esc(l.price)}</b>${esc(l.title.slice(0, 34))}…</div></div>`).join('')
+  + D.listings.filter(l => l.status === 'reject').slice(0, 3).map(l =>
+    `<div class="mini rejected"><img src="${l.photo}"><div><b class="x">✕ skipped</b>${esc(l.whyNot.slice(0, 40))}</div></div>`).join('');
+</script>
+</body>
+</html>

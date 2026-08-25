@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vindje — The Concierge</title>
+<link href="assets/fonts/09-concierge.css" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  :root { --gold: #c9a35c; --gold2: #e8cf9a; --ink: #efe9dc; --mut: #9a917e; }
+  body { background: #0d0c0a; color: var(--ink); font-family: 'Jost', sans-serif; font-weight: 300;
+    background-image: radial-gradient(ellipse 900px 500px at 50% -100px, rgba(201,163,92,.13), transparent);
+  }
+  .frame { max-width: 1150px; margin: 0 auto; padding: 54px 40px 70px; }
+  .crest { text-align: center; }
+  .crest .mono { width: 74px; height: 74px; margin: 0 auto; border: 1px solid var(--gold);
+    transform: rotate(45deg); display: flex; align-items: center; justify-content: center; }
+  .crest .mono span { transform: rotate(-45deg); font-family: 'Marcellus'; font-size: 30px; color: var(--gold2); }
+  .crest h1 { font-family: 'Marcellus'; font-size: 40px; letter-spacing: .34em; margin-top: 26px;
+              text-transform: uppercase; }
+  .crest .tag { font-size: 13px; letter-spacing: .42em; text-transform: uppercase; color: var(--mut);
+                margin-top: 10px; }
+  .hr { display: flex; align-items: center; gap: 18px; margin: 36px 0; color: var(--gold); }
+  .hr::before, .hr::after { content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold)); }
+  .hr::after { background: linear-gradient(90deg, var(--gold), transparent); }
+
+  .letter { max-width: 760px; margin: 0 auto; text-align: center;
+            font-family: 'Cormorant Garamond', serif; font-size: 23px; line-height: 1.55; }
+  .letter i { color: var(--gold2); }
+  .letter .sig { margin-top: 14px; font-size: 15px; font-family: 'Jost'; letter-spacing: .28em;
+                 text-transform: uppercase; color: var(--mut); }
+
+  .picks { margin-top: 46px; display: flex; flex-direction: column; gap: 30px; }
+  .pick { display: grid; grid-template-columns: 330px 1fr; background: rgba(255,255,255,.025);
+          border: 1px solid rgba(201,163,92,.28); position: relative; }
+  .pick::before { content: ''; position: absolute; inset: 7px; border: 1px solid rgba(201,163,92,.14);
+                  pointer-events: none; }
+  .pick .ph { position: relative; }
+  .pick img { width: 100%; height: 100%; object-fit: cover; display: block; min-height: 236px;
+              filter: saturate(.9) contrast(1.02); }
+  .num { position: absolute; top: -14px; left: -14px; width: 48px; height: 48px; background: #0d0c0a;
+         border: 1px solid var(--gold); display: flex; align-items: center; justify-content: center;
+         font-family: 'Marcellus'; font-size: 19px; color: var(--gold2); z-index: 2; }
+  .pt { padding: 26px 34px 24px; display: flex; flex-direction: column; }
+  .pt .cat { font-size: 11px; letter-spacing: .34em; text-transform: uppercase; color: var(--gold); }
+  .pt h2 { font-family: 'Marcellus'; font-size: 27px; margin-top: 8px; font-weight: 400; }
+  .pt .facts { display: flex; gap: 26px; margin-top: 12px; font-size: 13.5px; color: var(--mut);
+               letter-spacing: .08em; }
+  .pt .facts b { color: var(--ink); font-weight: 400; font-size: 17px; }
+  .remark { margin-top: auto; padding-top: 18px; font-family: 'Cormorant Garamond', serif;
+            font-style: italic; font-size: 19px; line-height: 1.45; color: #d8cfba; }
+  .remark::before { content: '— '; color: var(--gold); }
+  .act { margin-top: 14px; }
+  .act span { display: inline-block; border: 1px solid var(--gold); padding: 9px 26px; font-size: 12px;
+              letter-spacing: .3em; text-transform: uppercase; color: var(--gold2); }
+
+  .declined { margin-top: 54px; text-align: center; }
+  .declined h3 { font-family: 'Marcellus'; font-size: 17px; letter-spacing: .3em; text-transform: uppercase;
+                 color: var(--mut); }
+  .declined ul { list-style: none; margin-top: 18px; display: flex; flex-direction: column; gap: 9px; }
+  .declined li { font-family: 'Cormorant Garamond', serif; font-size: 17.5px; color: #7d7462; }
+  .declined li b { font-weight: 500; color: #a89d86; }
+  .declined li i { color: #8d6a4f; }
+  footer { margin-top: 60px; text-align: center; font-size: 11px; letter-spacing: .4em;
+           text-transform: uppercase; color: #6b6350; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="crest">
+    <div class="mono"><span>V</span></div>
+    <h1>Vindje</h1>
+    <div class="tag">Private Search Atelier — Est. 2026</div>
+  </div>
+  <div class="hr">✦</div>
+  <div class="letter" id="letter"></div>
+  <div class="picks" id="picks"></div>
+  <div class="declined">
+    <h3>Respectfully declined</h3>
+    <ul id="declined"></ul>
+  </div>
+  <footer>vindje.com · every listing personally read by your A.I. concierge</footer>
+</div>
+<script src="assets/data.js"></script>
+<script>
+const D = window.VINDJE, esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+document.getElementById('letter').innerHTML =
+  `You asked for <i>“${esc(D.wish)}”</i>.<br>
+   I have examined all ${D.stats.scanned} candidates among ${D.stats.total.toLocaleString('en')} listings,
+   studied each photograph, and shortlisted <i>six pieces</i> I would not hesitate to acquire myself.
+   <div class="sig">— Your Concierge, Monday 25 August</div>`;
+const cats = ['The Investment', 'The Parisian', 'The Dane', 'The Swede', 'The Amsterdammer', 'The Bargain'];
+document.getElementById('picks').innerHTML =
+  D.listings.filter(l => l.status === 'match').map((l, i) => `
+  <div class="pick">
+    <div class="ph"><div class="num">${['I','II','III','IV','V','VI'][i]}</div><img src="${l.photo}"></div>
+    <div class="pt">
+      <div class="cat">${cats[i]} · ${esc(l.city)} · ${l.km} km</div>
+      <h2>${esc(l.title)}</h2>
+      <div class="facts"><span><b>${esc(l.price)}</b>&nbsp; asking</span><span><b>${l.km} km</b>&nbsp; from you</span></div>
+      <div class="remark">${esc(l.why)}.</div>
+      <div class="act"><span>View at Marktplaats</span></div>
+    </div>
+  </div>`).join('');
+document.getElementById('declined').innerHTML =
+  D.listings.filter(l => l.status !== 'match').map(l =>
+  `<li><b>${esc(l.title)}</b> (${esc(l.price)}, ${esc(l.city)}) — <i>${esc(l.whyNot.toLowerCase())}</i></li>`).join('');
+</script>
+</body>
+</html>

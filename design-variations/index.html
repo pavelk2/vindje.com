@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vindje.com — search results design variations</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: -apple-system, 'Segoe UI', system-ui, sans-serif; background: #f5f5f7;
+         color: #1d1d1f; padding: 48px 24px; }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 32px; letter-spacing: -.02em; }
+  p.sub { color: #6e6e73; margin: 10px 0 30px; max-width: 640px; line-height: 1.5; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  a.card { display: block; background: #fff; border-radius: 16px; padding: 20px;
+           text-decoration: none; color: inherit; border: 1px solid #e8e8ed;
+           transition: box-shadow .15s ease; }
+  a.card:hover { box-shadow: 0 10px 30px rgba(0,0,0,.1); }
+  a.card b { font-size: 17px; }
+  a.card span { display: block; color: #6e6e73; font-size: 13px; margin-top: 6px; line-height: 1.45; }
+  .n { color: #86868b; font-size: 12px; font-weight: 700; letter-spacing: .1em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Search results — 9 design directions</h1>
+  <p class="sub">Static mockups of the vindje.com results page, each fully styled with real
+  listing data from a live "vintage design lamp" search. Photos are illustrated stand-ins
+  (the mockup sandbox can't reach the Marktplaats CDN). Screenshots in <code>screenshots/</code>.</p>
+  <div class="grid">
+    <a class="card" href="01-de-stijl.html"><div class="n">01</div><b>De Stijl</b><span>Mondrian grid, primary colours, thick black lines — the Dutchest possible answer.</span></a>
+    <a class="card" href="02-terminal.html"><div class="n">02</div><b>VNDJE Terminal</b><span>Bloomberg terminal for second-hand goods: ticker, dense rows, verdict column.</span></a>
+    <a class="card" href="03-museum.html"><div class="n">03</div><b>The Museum</b><span>Matches hung as framed works with brass plaques; rejects go to the depot.</span></a>
+    <a class="card" href="04-newspaper.html"><div class="n">04</div><b>De Vondstkrant</b><span>Your search as a vintage newspaper front page; rejects become classifieds.</span></a>
+    <a class="card" href="05-brutalist.html"><div class="n">05</div><b>Brutalist</b><span>Huge type, hard shadows, acid stickers. "6 REAL MATCHES. ZERO JUNK."</span></a>
+    <a class="card" href="06-evidence.html"><div class="n">06</div><b>Evidence Board</b><span>Detective corkboard: polaroids, pins and red string from the AI's case file.</span></a>
+    <a class="card" href="07-radar.html"><div class="n">07</div><b>Radar</b><span>Results as blips at their real distance; matched targets lock on the scope.</span></a>
+    <a class="card" href="08-swipe.html"><div class="n">08</div><b>Swipe Deck</b><span>One AI-vetted card at a time, dating-app style, with a likes tray.</span></a>
+    <a class="card" href="09-concierge.html"><div class="n">09</div><b>The Concierge</b><span>Dark, gold, serif: your AI as a private buyer presenting six acquisitions.</span></a>
+  </div>
+</div>
+</body>
+</html>

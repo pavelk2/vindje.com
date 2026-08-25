@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vindje — De Vondstkrant</title>
+<link href="assets/fonts/04-newspaper.css" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #d9d2c2; font-family: 'PT Serif', serif; color: #1e1a14; padding: 34px 0 60px; }
+  .paper { max-width: 1240px; margin: 0 auto; background: #f3edda;
+           box-shadow: 0 18px 50px rgba(0,0,0,.35); padding: 38px 46px 46px;
+           background-image: radial-gradient(rgba(120,100,60,.06) 1px, transparent 1px);
+           background-size: 5px 5px; }
+  .topline { display: flex; justify-content: space-between; font-size: 12px; font-style: italic;
+             border-bottom: 1.5px solid #1e1a14; padding-bottom: 6px; }
+  .mast { text-align: center; padding: 18px 0 10px; }
+  .mast h1 { font-family: 'UnifrakturMaguntia'; font-size: 92px; font-weight: 400; line-height: .95; }
+  .mast .sub { font-size: 13px; font-style: italic; margin-top: 6px; }
+  .dateline { display: flex; justify-content: space-between; border-top: 3.5px double #1e1a14;
+              border-bottom: 1.5px solid #1e1a14; padding: 6px 2px; font-size: 12.5px;
+              font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 24px; }
+
+  .lead { display: grid; grid-template-columns: 1.25fr 1fr; gap: 30px; border-bottom: 1.5px solid #1e1a14;
+          padding-bottom: 24px; margin-bottom: 24px; position: relative; }
+  .lead h2 { font-family: 'Playfair Display'; font-weight: 900; font-size: 46px; line-height: 1.02;
+             letter-spacing: -.01em; }
+  .lead .deck { font-size: 17px; font-style: italic; margin: 12px 0 14px; line-height: 1.4; }
+  .lead .body { column-count: 2; column-gap: 22px; font-size: 14px; line-height: 1.55; text-align: justify; }
+  .lead .body p:first-child::first-letter { font-family: 'Playfair Display'; font-size: 52px; float: left;
+             line-height: .85; padding: 4px 8px 0 0; font-weight: 900; }
+  .lead figure img, .item img { width: 100%; filter: grayscale(1) contrast(1.15) brightness(1.02); }
+  figcaption { font-size: 11.5px; font-style: italic; border-top: 1px solid #1e1a14; padding-top: 4px; margin-top: 6px; }
+  .stamp { position: absolute; top: -8px; right: -12px; z-index: 2; background: rgba(243,237,218,.75); transform: rotate(9deg);
+           border: 4px solid #a3271e; color: #a3271e; font-weight: 900; font-size: 22px;
+           padding: 6px 16px; letter-spacing: .12em; font-family: 'Playfair Display';
+           opacity: .85; border-radius: 4px; }
+  .price-tag { display: inline-block; background: #1e1a14; color: #f3edda; font-weight: 700;
+               padding: 2px 10px; font-size: 15px; margin-right: 8px; }
+
+  .cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
+  .item { padding: 0 18px; border-right: 1px solid #9b937d; }
+  .item:first-child { padding-left: 0; } .item:last-child { border-right: 0; padding-right: 0; }
+  .item h3 { font-family: 'Playfair Display'; font-weight: 700; font-size: 21px; line-height: 1.1;
+             margin: 10px 0 6px; }
+  .item .meta { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+  .item p { font-size: 13px; line-height: 1.5; text-align: justify; }
+  .item .why { font-style: italic; font-size: 12.5px; margin-top: 8px; padding-top: 6px;
+               border-top: 1px dotted #1e1a14; }
+  .why b { font-style: normal; font-variant: small-caps; letter-spacing: .05em; }
+
+  .classifieds { margin-top: 26px; border-top: 3.5px double #1e1a14; padding-top: 14px; }
+  .classifieds h3 { font-family: 'Playfair Display'; font-weight: 900; font-size: 17px;
+                    text-transform: uppercase; letter-spacing: .18em; text-align: center; margin-bottom: 12px; }
+  .smalls { column-count: 4; column-gap: 24px; font-size: 12px; line-height: 1.45; }
+  .smalls div { break-inside: avoid; margin-bottom: 10px; }
+  .smalls b { font-variant: small-caps; }
+  .smalls i { color: #7a2a22; }
+  .footline { margin-top: 26px; border-top: 1.5px solid #1e1a14; padding-top: 8px;
+              display: flex; justify-content: space-between; font-size: 11.5px; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="paper">
+  <div class="topline"><span>Sinds 2026 — het enige eerlijke zoekresultaat</span><span>Prijs: gratis</span><span>Editie: Amsterdam</span></div>
+  <div class="mast"><h1>De Vondstkrant</h1>
+    <div class="sub">Dagelĳks verslag van hetgeen de kunstmatige intelligentie op Marktplaats aantrof</div></div>
+  <div class="dateline"><span>Maandag 25 augustus 2026</span><span>Doorzocht: 18.239 advertenties — gelezen: 32 — waardig bevonden: 6</span><span>№ 1.847</span></div>
+
+  <div class="lead" id="lead"></div>
+  <div class="cols" id="cols"></div>
+
+  <div class="classifieds">
+    <h3>Afgewezen — de rubriek der teleurstellingen</h3>
+    <div class="smalls" id="smalls"></div>
+  </div>
+  <div class="footline"><span>De Vondstkrant is een uitgave van vindje.com</span><span>„Wĳ lezen alles, opdat u niets hoeft te lezen”</span></div>
+</div>
+<script src="assets/data.js"></script>
+<script>
+const D = window.VINDJE, esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const M = D.listings.filter(l => l.status === 'match');
+const first = M[0], rest = M.slice(1, 5);
+document.getElementById('lead').innerHTML = `
+  <div class="stamp">GEVONDEN!</div>
+  <div>
+    <h2>${esc(first.title)}</h2>
+    <div class="deck">Onze verslaggever (een taalmodel) bestudeerde foto én tekst en oordeelt: „${esc(first.why)}.”</div>
+    <div class="body">
+      <p>${esc(first.desc)} De vraagprĳs bedraagt <span class="price-tag">${esc(first.price)}</span> en het stuk
+      bevindt zich te ${esc(first.city)}, op ${first.km} kilometer van uw postcode ${esc(D.postcode)}.</p>
+      <p>De lezer zĳ eraan herinnerd dat uw zoekwens luidde: „${esc(D.wish)}”. Van de
+      ${D.stats.scanned} onderzochte advertenties doorstonden slechts ${D.stats.matched} de toets der kritiek;
+      ${D.stats.rejected} werden ter redactie afgewezen wegens overprĳzing, anonieme makelĳ of erger.</p>
+    </div>
+  </div>
+  <figure><img src="${first.photo}"><figcaption>Het gevonden stuk, gefotografeerd door de verkoper. „${esc(first.why)}”</figcaption></figure>`;
+document.getElementById('cols').innerHTML = rest.map(l => `
+  <div class="item">
+    <img src="${l.photo}">
+    <h3>${esc(l.title)}</h3>
+    <div class="meta"><span class="price-tag" style="font-size:12px">${esc(l.price)}</span> ${esc(l.city)} · ${l.km} km</div>
+    <p>${esc(l.desc)}</p>
+    <div class="why"><b>Oordeel der redactie:</b> ${esc(l.why)}</div>
+  </div>`).join('');
+document.getElementById('smalls').innerHTML =
+  D.listings.filter(l => l.status !== 'match').map(l => `
+  <div><b>${esc(l.title)}</b>, ${esc(l.price)}, te ${esc(l.city)}. — <i>Afgewezen: ${esc(l.whyNot)}.</i></div>`).join('')
+  + `<div><b>Advertentie.</b> Zoekt gĳ óók iets? Beschrĳf uw wens in gewone taal op <b>vindje.com</b> — de krant doet de rest.</div>`;
+</script>
+</body>
+</html>
