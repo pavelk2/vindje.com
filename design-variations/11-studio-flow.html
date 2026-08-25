@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vindje — Studio flow</title>
+<link href="assets/fonts/01-de-stijl.css" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f0f10; --grey: #6d6d73; --faint: #a4a4ab;
+    --hair: #e4e4e8; --panel: #f7f7f8;
+    --red: #d6001c; --blue: #1d4e9e; --yellow: #f0c114;
+    --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px; --s8: 64px;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { -webkit-font-smoothing: antialiased; }
+  body { background: #fff; color: var(--ink); font-family: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+         font-size: 15px; line-height: 1.5; }
+  a { color: inherit; text-decoration: none; }
+  .num { font-variant-numeric: tabular-nums; }
+  .label { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+  .wrap { max-width: 1264px; margin: 0 auto; padding: 0 32px; }
+  .sq { display: inline-block; width: .55em; height: .55em; background: var(--red); }
+
+  /* header */
+  .top { border-bottom: 1px solid var(--hair); }
+  .top-in { display: flex; align-items: baseline; gap: 6px; height: 68px; align-items: center; }
+  .wordmark { font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+  .wordmark .sq { width: 8px; height: 8px; margin-left: 2px; }
+  .nav { margin-left: auto; display: flex; gap: 28px; font-size: 13px; color: var(--grey); }
+
+  /* search bar (shared) */
+  .bar { display: flex; align-items: stretch; border: 1px solid var(--ink); background: #fff; }
+  .q { flex: 1; padding: 18px 20px; font-size: 17px; line-height: 1.45; color: var(--ink); }
+  .q .ph-txt { color: var(--faint); }
+  .pc { display: flex; align-items: center; padding: 0 20px; border-left: 1px solid var(--hair);
+        color: var(--grey); font-size: 14px; }
+  .go { display: flex; align-items: center; padding: 0 34px; background: var(--ink); color: #fff;
+        font-size: 14px; font-weight: 600; letter-spacing: .04em; }
+
+  /* progress rule: the red square travels the black rule */
+  .rulewrap { position: relative; height: 3px; background: var(--ink); }
+  .rulewrap.track { background: var(--hair); }
+  .rulewrap .fill { position: absolute; left: 0; top: 0; height: 3px; background: var(--ink); }
+  .rulewrap i { position: absolute; top: -3px; width: 9px; height: 9px; background: var(--red); }
+
+  /* tally strip */
+  .tally { display: flex; gap: 4px; flex-wrap: wrap; }
+  .tally i { width: 13px; height: 13px; background: var(--hair); }
+  .tally i.m { background: var(--ink); }
+  .tally i.best { background: var(--red); }
+  .tally i.un { background: var(--yellow); }
+  .tally i.pend { background: #fff; box-shadow: inset 0 0 0 1px var(--hair); }
+  .tallyrow { display: flex; align-items: center; gap: 14px; }
+  .tallycap { font-size: 12.5px; color: var(--grey); }
+
+  /* ============ HOME ============ */
+  .hero { padding: 110px 0 90px; }
+  .hero h1 { font-size: 64px; font-weight: 700; letter-spacing: -.035em; line-height: 1.02;
+             max-width: 900px; }
+  .hero h1 .sq { width: 12px; height: 12px; }
+  .hero .sub { margin: 22px 0 40px; font-size: 18px; color: var(--grey); max-width: 560px; line-height: 1.55; }
+  .examples { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+  .ex { border: 1px solid var(--hair); padding: 9px 16px; font-size: 13px; color: var(--grey); }
+  .ex:hover { border-color: var(--ink); color: var(--ink); }
+  .homefacts { border-top: 1px solid var(--hair); }
+  .homefacts .wrap { display: grid; grid-template-columns: 1fr 1fr 1fr; }
+  .fact { padding: 26px 0; }
+  .fact + .fact { padding-left: 32px; border-left: 1px solid var(--hair); }
+  .fact b { display: block; font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
+  .fact span { font-size: 13px; color: var(--grey); }
+
+  /* ============ status / checking ============ */
+  .statusline { display: flex; align-items: baseline; gap: 12px; margin-top: var(--s4);
+                font-size: 13.5px; color: var(--grey); }
+  .statusline b { color: var(--ink); font-weight: 600; }
+  .search { padding: var(--s7) 0 var(--s6); }
+  .search .label { color: var(--faint); margin-bottom: var(--s3); }
+  .spec { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+          margin-top: var(--s4); color: var(--grey); font-size: 13px; }
+  .spec .k { color: var(--faint); } .spec .sep { color: var(--hair); } .spec b { color: var(--ink); font-weight: 500; }
+
+  .rhead { display: flex; align-items: baseline; padding: var(--s5) 0; }
+  .rhead h1 { font-size: 30px; font-weight: 600; letter-spacing: -.02em; }
+  .rhead h1 .of { color: var(--faint); font-weight: 500; }
+  .rhead .sub { margin-left: 14px; color: var(--grey); font-size: 14px; }
+  .rhead .actions { margin-left: auto; display: flex; gap: 10px; }
+  .btn { border: 1px solid var(--ink); padding: 8px 18px; font-size: 13px; font-weight: 500; }
+  .btn.solid { background: var(--ink); color: #fff; }
+  .tallyblock { padding: 0 0 var(--s5); }
+
+  /* grid + cards */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--hair);
+          border: 1px solid var(--hair); }
+  .card { background: #fff; padding: 0 0 var(--s5); display: flex; flex-direction: column; position: relative; }
+  .card .ph { background: var(--panel); border-bottom: 1px solid var(--hair); }
+  .card .ph img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
+  .card .body { padding: var(--s4) var(--s5) 0; display: flex; flex-direction: column; flex: 1; }
+  .rank { margin-bottom: var(--s2); } .rank .label { color: var(--faint); }
+  .card.first .rank .label { color: var(--red); }
+  .card.first::before { content: ''; position: absolute; top: -1px; left: -1px; right: -1px;
+                        height: 3px; background: var(--red); z-index: 1; }
+  .card h3 { font-size: 15.5px; font-weight: 600; letter-spacing: -.01em; line-height: 1.35;
+             min-height: calc(2 * 1.35em); }
+  .priceline { display: flex; align-items: baseline; justify-content: space-between; margin-top: var(--s3); }
+  .price { font-size: 21px; font-weight: 600; } .price .cur { color: var(--faint); font-weight: 500; }
+  .geo { color: var(--grey); font-size: 13px; }
+  .why { margin-top: var(--s4); padding-top: var(--s3); border-top: 1px solid var(--hair);
+         display: flex; gap: 10px; font-size: 13px; line-height: 1.5; color: var(--grey); }
+  .why i { flex: none; width: 8px; height: 8px; margin-top: 5px; background: var(--ink); }
+  .card.first .why i { background: var(--red); }
+  .why b { color: var(--ink); font-weight: 500; }
+  /* pending + rejected card states */
+  .card.pending .why i { background: #fff; box-shadow: inset 0 0 0 1px var(--faint); }
+  .card.pending .why span { color: var(--faint); }
+  .card.pending .ph img { opacity: .8; }
+  .card.rejected .ph img, .card.rejected h3, .card.rejected .priceline { opacity: .32; }
+  .card.rejected .ph img { filter: grayscale(1); }
+  .card.rejected .why i { background: var(--faint); }
+  .card.rejected .why span { color: var(--faint); }
+
+  /* ============ modal ============ */
+  .dim { position: fixed; inset: 0; background: rgba(15,15,16,.42); display: flex;
+         align-items: center; justify-content: center; z-index: 10; }
+  .modal { width: 520px; background: #fff; border: 1px solid var(--ink); position: relative; padding: 40px 40px 36px; }
+  .modal::before { content: ''; position: absolute; top: -1px; left: -1px; right: -1px; height: 3px; background: var(--red); }
+  .modal h2 { font-size: 30px; font-weight: 700; letter-spacing: -.025em; line-height: 1.1; }
+  .modal h2 .sq { width: 9px; height: 9px; }
+  .modal p { margin: 16px 0 8px; color: var(--grey); line-height: 1.6; font-size: 14.5px; }
+  .modal .suggest { margin: 14px 0 26px; }
+  .modal .suggest div { display: flex; gap: 10px; align-items: baseline; padding: 7px 0;
+                        border-bottom: 1px solid var(--hair); font-size: 14px; }
+  .modal .suggest div::before { content: ''; width: 6px; height: 6px; background: var(--ink); flex: none;
+                                transform: translateY(-1px); }
+  .modal .btns { display: flex; gap: 10px; }
+  .modal .tag { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--hair);
+                font-size: 12.5px; color: var(--faint); }
+
+  /* ============ share card 1200x630 ============ */
+  .sharecard { width: 1200px; height: 630px; background: #fff; position: relative;
+               display: flex; flex-direction: column; overflow: hidden; }
+  .sharecard .rule { position: relative; height: 6px; background: var(--ink); }
+  .sharecard .rule i { position: absolute; top: -6px; left: 25%; width: 18px; height: 18px; background: var(--red); }
+  .sc-body { flex: 1; display: grid; grid-template-columns: 1.25fr 1fr; }
+  .sc-left { padding: 56px 64px 48px; display: flex; flex-direction: column; }
+  .sc-left .label { color: var(--faint); }
+  .sc-wish { margin-top: 18px; font-size: 34px; font-weight: 600; letter-spacing: -.02em; line-height: 1.22; }
+  .sc-tally { margin-top: auto; }
+  .sc-tally .tally { max-width: 332px; }
+  .sc-tally .tally i { width: 17px; height: 17px; }
+  .sc-tally .cap { margin-top: 14px; font-size: 16px; color: var(--grey); }
+  .sc-tally .cap b { color: var(--ink); }
+  .sc-brand { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--hair);
+              display: flex; align-items: center; justify-content: space-between; }
+  .sc-brand .wordmark { font-size: 24px; }
+  .sc-brand .cap2 { color: var(--faint); font-size: 14px; }
+  .sc-right { border-left: 1px solid var(--hair); display: flex; flex-direction: column; }
+  .sc-right .ph { flex: 1; background: var(--panel); border-bottom: 1px solid var(--hair); position: relative; }
+  .sc-right .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .sc-right .find { padding: 22px 32px 26px; }
+  .sc-right .find .label { color: var(--red); }
+  .sc-right .find h3 { font-size: 19px; font-weight: 600; margin-top: 6px; line-height: 1.3; }
+  .sc-right .find .pl { display: flex; justify-content: space-between; align-items: baseline; margin-top: 8px; }
+  .sc-right .find .price { font-size: 26px; }
+
+  footer { margin-top: var(--s8); border-top: 1px solid var(--hair); }
+  .foot-in { display: flex; align-items: center; height: 72px; color: var(--faint); font-size: 12.5px; }
+  .foot-in .right { margin-left: auto; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="assets/data.js"></script>
+<script>
+const D = window.VINDJE, esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const state = new URLSearchParams(location.search).get('s') || 'results';
+const M = D.listings.filter(l => l.status === 'match');
+
+const header = `
+<header class="top"><div class="wrap top-in">
+  <span class="wordmark">vindje<span class="sq"></span></span>
+  <nav class="nav"><a href="#">How it works</a><a href="#">History</a><a href="#">Contact</a></nav>
+</div></header>`;
+
+const bar = (text, ghost) => `
+<div class="bar">
+  <div class="q">${ghost ? `<span class="ph-txt">${esc(text)}</span>` : esc(text)}</div>
+  <div class="pc num">1012 AB</div><div class="go">Search</div>
+</div>`;
+
+const spec = `
+<div class="spec num">
+  <span class="k">Reading it as</span> <b>vintage design lamp</b><span class="sep">|</span>
+  <b>≤ €400</b><span class="sep">|</span><b>≤ 50 km</b> <span class="k">of 1012 AB</span><span class="sep">|</span>
+  <span class="k">must be</span> <b>complete</b>, <b>iconic</b>, <b>near-mint</b>, <b>resale upside</b>
+</div>`;
+
+// tally: 32 squares. done = how many resolved; full = final state
+function tally(done) {
+  const seq = [];
+  // fixed, honest sequence: matches at the positions the real scan found them
+  const matchAt = { 2: 'best', 7: 'm', 11: 'm', 15: 'm', 21: 'm', 27: 'm' };
+  const unAt = { 18: 'un' };
+  for (let i = 0; i < 32; i++) {
+    if (i >= done) { seq.push('pend'); continue; }
+    seq.push(matchAt[i] || unAt[i] || '');
+  }
+  return `<div class="tally">${seq.map(c => `<i class="${c}"></i>`).join('')}</div>`;
+}
+
+const cardHTML = (l, i, mode, rank) => `
+  <a class="card ${mode === 'plain' ? '' : mode || (i === 0 ? 'first' : '')}" href="#">
+    <div class="ph"><img src="${l.photo}" alt=""></div>
+    <div class="body">
+      <div class="rank"><span class="label">${rank ||
+        (mode === 'pending' ? 'Reading…' : mode === 'rejected' ? 'Rejected' :
+        i === 0 ? 'Best match' : 'Match ' + String(i + 1).padStart(2, '0'))}</span></div>
+      <h3>${esc(l.title)}</h3>
+      <div class="priceline"><span class="price num"><span class="cur">€</span>${l.priceN}</span>
+        <span class="geo num">${esc(l.city)} · ${l.km} km</span></div>
+      <div class="why"><i></i><span>${
+        mode === 'pending' ? 'Reading title, photos and description against your four requirements…' :
+        mode === 'rejected' ? esc(l.whyNot) + '.' :
+        `<b>Why it's here.</b> ` + esc(l.why) + '.'}</span></div>
+    </div>
+  </a>`;
+
+const SCREENS = {
+
+home: () => header + `
+<section class="hero wrap">
+  <h1>Say what you're looking&nbsp;for<span class="sq"></span></h1>
+  <p class="sub">vindje reads every Marktplaats listing — text and photos — and shows you only what actually fits. In plain language, any language.</p>
+  ${bar('A wooden wardrobe with drawers, about 2 m tall, within 15 minutes cycling, under €150', true)}
+  <div class="examples">
+    <span class="ex">Vintage bike in perfect condition, 30 min drive</span>
+    <span class="ex">Louis Poulsen lamp, 1950–2005</span>
+    <span class="ex">Cheap art that could be worth 10× at resale</span>
+  </div>
+</section>
+<div class="homefacts"><div class="wrap" style="display:grid;grid-template-columns:1fr 1fr 1fr">
+  <div class="fact"><b>Every listing, read</b><span>The AI reads descriptions and looks at photos — not just keywords.</span></div>
+  <div class="fact"><b>Junk never shows</b><span>Parts, accessories and look-alikes are rejected before you see them.</span></div>
+  <div class="fact"><b>Every verdict shown</b><span>Rejections stay visible, with reasons — so you can double-check us.</span></div>
+</div></div>
+<footer style="margin-top:0;border-top:0"><div class="wrap foot-in"><span>We'd rather show you nothing than junk.</span><span class="right">vindje.com · Amsterdam</span></div></footer>`,
+
+parse: () => header + `
+<section class="search wrap">
+  <div class="label">Your search</div>
+  ${bar(D.wish)}
+  <div class="statusline"><b>Reading your wish</b><span>— turning it into a Marktplaats search · 2 s</span></div>
+</section>
+<div class="rulewrap track wrap" style="padding:0"><span class="fill" style="width:14%"></span><i style="left:14%"></i></div>
+<div class="wrap" style="padding-top:120px;padding-bottom:200px"></div>`,
+
+checking: () => header + `
+<section class="search wrap">
+  <div class="label">Your search</div>
+  ${bar(D.wish)}
+  ${spec}
+</section>
+<div class="rulewrap track wrap" style="padding:0"><span class="fill" style="width:56%"></span><i style="left:56%"></i></div>
+<main class="wrap">
+  <div class="rhead">
+    <h1 class="num">3 matches <span class="of">so far</span></h1>
+    <span class="sub num">reading 32 of 18,239 listings — 18 done, 14 to go</span>
+  </div>
+  <div class="tallyblock tallyrow">${tally(18)}
+    <span class="tallycap num">1 square = 1 listing read · <b style="color:var(--ink)">black</b> match · grey rejected</span></div>
+  <div class="grid">
+    ${cardHTML(M[1], 1, 'plain', 'Match 01')}${cardHTML(M[3], 3, 'plain', 'Match 02')}${cardHTML(D.listings[7], 0, 'pending')}
+    ${cardHTML(D.listings[10], 0, 'rejected')}${cardHTML(M[5], 5, 'plain', 'Match 03')}${cardHTML(D.listings[11], 0, 'pending')}
+  </div>
+</main>`,
+
+results: () => header + `
+<section class="search wrap">
+  <div class="label">Your search</div>
+  ${bar(D.wish)}
+  ${spec}
+</section>
+<div class="rulewrap wrap" style="padding:0"><i style="left:25%"></i></div>
+<main class="wrap">
+  <div class="rhead">
+    <h1 class="num">6 matches <span class="of">/ 18,239</span></h1>
+    <span class="sub num">32 read closely by AI — 90 seconds</span>
+    <span class="actions"><span class="btn">Copy share link</span><span class="btn solid">Share the find</span></span>
+  </div>
+  <div class="tallyblock tallyrow">${tally(32)}
+    <span class="tallycap num"><b style="color:var(--red)">red</b> best find · <b style="color:var(--ink)">black</b> match · grey rejected · yellow unverified</span></div>
+  <div class="grid">${M.map((l, i) => cardHTML(l, i)).join('')}</div>
+</main>
+<footer><div class="wrap foot-in"><span>We'd rather show you nothing than junk.</span><span class="right">vindje.com · Amsterdam</span></div></footer>`,
+
+nomatch: () => header + `
+<section class="search wrap">
+  <div class="label">Your search</div>
+  ${bar('A mint Eames lounge chair with ottoman, original Herman Miller, under €900, within 10 km')}
+  <div class="spec num">
+    <span class="k">Reading it as</span> <b>eames lounge chair ottoman</b><span class="sep">|</span>
+    <b>≤ €900</b><span class="sep">|</span><b>≤ 10 km</b> <span class="k">of 1012 AB</span><span class="sep">|</span>
+    <span class="k">must be</span> <b>original Herman Miller</b>, <b>with ottoman</b>, <b>mint</b>
+  </div>
+</section>
+<div class="rulewrap wrap" style="padding:0"><i style="left:25%"></i></div>
+<main class="wrap"><div class="rhead"><h1 class="num">0 matches <span class="of">/ 2,318</span></h1>
+  <span class="sub num">41 read closely by AI</span></div>
+  <div class="tallyblock tallyrow"><div class="tally">${'<i></i>'.repeat(41)}</div></div>
+</main>
+<div class="dim"><div class="modal">
+  <h2>Nothing fits — yet<span class="sq"></span></h2>
+  <p>We read 41 listings closely. None met your bar, so we're showing you none of them. To widen the net:</p>
+  <div class="suggest">
+    <div>Raise the budget — the two real ones we saw asked €1,150+</div>
+    <div>Widen the radius — a genuine set sits 34 km away</div>
+    <div>Or drop "with ottoman" — chairs alone come up weekly</div>
+  </div>
+  <div class="btns"><span class="btn solid">Widen and re-run</span><span class="btn">Edit my wish</span></div>
+  <div class="tag">We'd rather show you nothing than junk.</div>
+</div></div>`,
+
+share: () => `
+<div class="sharecard">
+  <div class="rule"><i></i></div>
+  <div class="sc-body">
+    <div class="sc-left">
+      <div class="label">One wish, ${'18,239'} listings, 90 seconds</div>
+      <div class="sc-wish num">“${esc(D.wish)}”</div>
+      <div class="sc-tally">${tally(32)}
+        <div class="cap num">AI read <b>32 listings</b> closely — rejected <b>26</b>, found <b>6</b> that truly fit.</div>
+      </div>
+      <div class="sc-brand">
+        <span class="wordmark">vindje<span class="sq" style="width:9px;height:9px"></span></span>
+        <span class="cap2">Only what fits. — vindje.com</span>
+      </div>
+    </div>
+    <div class="sc-right">
+      <div class="ph"><img src="${M[0].photo}" alt=""></div>
+      <div class="find">
+        <span class="label">Best find</span>
+        <h3>${esc(M[0].title)}</h3>
+        <div class="pl"><span class="price num"><span class="cur">€</span>${M[0].priceN}</span>
+          <span class="geo num">${esc(M[0].city)} · ${M[0].km} km</span></div>
+      </div>
+    </div>
+  </div>
+</div>`,
+};
+document.getElementById('app').innerHTML = SCREENS[state]();
+</script>
+</body>
+</html>
