@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Affiliate link helpers for eBay Partner Network and Awin.
+"""Affiliate link helpers for eBay Partner Network, Awin and Partnerize.
 
 Stdlib-only, same style as app.py. Every function degrades gracefully to
 "not configured" (returns None / the plain input URL) when its env vars
@@ -11,6 +11,9 @@ Env vars (all optional; see README for where to get each one):
                                          keys (production keyset)
   EBAY_EPN_CAMPAIGN_ID                — eBay Partner Network Campaign ID
   AWIN_PUBLISHER_ID                   — Awin publisher (affiliate) ID
+  PARTNERIZE_CATAWIKI_CAMREF          — Catawiki's Partnerize camref (their
+                                         affiliate program runs on Partnerize,
+                                         not Awin — see README)
 """
 
 import base64
@@ -115,3 +118,27 @@ def awin_link(destination_url, advertiser_id, clickref=None):
     if clickref:
         params["clickref"] = str(clickref)[:100]
     return "https://www.awin1.com/cread.php?" + urllib.parse.urlencode(params)
+
+
+# ---------------------------------------------------------------- Partnerize
+
+PARTNERIZE_CATAWIKI_CAMREF = os.environ.get("PARTNERIZE_CATAWIKI_CAMREF", "")
+
+
+def partnerize_configured():
+    return bool(PARTNERIZE_CATAWIKI_CAMREF)
+
+
+def partnerize_link(destination_url, camref=None):
+    """Wrap destination_url as a Partnerize tracking (deep) link —
+    https://prf.hn/click/camref:<camref>/destination:<url>
+
+    camref defaults to PARTNERIZE_CATAWIKI_CAMREF (Catawiki's program is on
+    Partnerize, not Awin). Returns destination_url unchanged if no camref
+    is available, so callers degrade to a plain link rather than failing.
+    """
+    camref = camref or PARTNERIZE_CATAWIKI_CAMREF
+    if not camref or not destination_url:
+        return destination_url
+    return (f"https://prf.hn/click/camref:{urllib.parse.quote(str(camref), safe='')}"
+            f"/destination:{urllib.parse.quote(destination_url, safe='')}")

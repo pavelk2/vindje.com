@@ -127,23 +127,29 @@ relevant env vars below.
 3. Optionally set `EBAY_MARKETPLACE_ID` (default `EBAY_NL`) to search a
    different eBay marketplace, e.g. `EBAY_GB` or `EBAY_US`.
 
-**Catawiki (via Awin):**
-1. Apply to Catawiki's affiliate program (contact `affiliates@catawiki.nl`
-   or check [Catawiki's partner page](https://www.catawiki.com/en/pages/p/partners-creators))
-   and confirm which affiliate network they currently run on for your
-   account — this has moved between networks over time, so verify before
-   assuming Awin.
-2. If (once accepted) it's on Awin: create an
-   [Awin publisher account](https://www.awin.com) to get `AWIN_PUBLISHER_ID`,
-   then from Awin's "Advertisers" / product feed area grab Catawiki's
-   `AWIN_CATAWIKI_ADVERTISER_ID` and the direct CSV/TXT download URL for
-   their product feed as `AWIN_CATAWIKI_FEED_URL` (an uncompressed feed is
-   simplest; the app also handles gzip). The deal hunter re-downloads and
-   caches this feed (up to every 6h) rather than hitting it per request.
-3. `sources.search_catawiki()` isn't actually Catawiki-specific — it reads
-   whatever Awin product feed you point it at, so the same env vars work
-   for any other Awin advertiser's feed if you'd rather monetize with
-   something else.
+**Catawiki (via Partnerize — not Awin):**
+As of writing, Catawiki's affiliate program runs on
+[Partnerize](https://join.partnerize.com/catawiki/en) (formerly Performance
+Horizon), *not* Awin — confirmed by it not showing up in Awin's advertiser
+directory. This has moved before, so double check when you sign up.
+1. Apply at [join.partnerize.com/catawiki/en](https://join.partnerize.com/catawiki/en).
+   Once approved, you get a **camref** (Partnerize's per-program tracking
+   ID) — set it as `PARTNERIZE_CATAWIKI_CAMREF`. `affiliate.partnerize_link()`
+   wraps any Catawiki URL into a tracked `prf.hn/click/camref:.../destination:...`
+   link with this.
+2. Catawiki has no public live-search API, so the deal hunter still needs
+   *some* way to enumerate current lots. Whether Partnerize exposes a
+   downloadable product feed for Catawiki (their publisher tools usually
+   have a "Creative"/"Data Feed" section) isn't confirmed yet — check once
+   you're in, and the feed-fetching side of `sources.search_catawiki()`
+   (currently written for Awin's feed format) will get adapted to match
+   once that's known.
+3. Your Awin account is still a real asset even though Catawiki isn't on
+   it — `sources.search_catawiki()`'s feed parser works with any Awin
+   advertiser's product feed, so it's ready to point at a different Awin
+   merchant if you want another affiliate source later (`AWIN_PUBLISHER_ID`,
+   `AWIN_CATAWIKI_FEED_URL`, `AWIN_CATAWIKI_ADVERTISER_ID` — names kept as
+   the generic "extra Awin source" slot for now).
 
 **Disclosure**: whenever a search or "Today's finds" includes an eBay or
 Catawiki result, a note is shown ("vindje.com may earn a commission…") and
@@ -172,6 +178,7 @@ future improvement, not implemented yet.
 | `AWIN_PUBLISHER_ID` | — | Your Awin publisher (affiliate) ID |
 | `AWIN_CATAWIKI_FEED_URL` | — | Direct URL to an Awin product feed (Catawiki or otherwise) to search for deals |
 | `AWIN_CATAWIKI_ADVERTISER_ID` | — | The Awin advertiser ID that feed belongs to, for link wrapping |
+| `PARTNERIZE_CATAWIKI_CAMREF` | — | Catawiki's actual affiliate program is on Partnerize — your camref from [join.partnerize.com/catawiki](https://join.partnerize.com/catawiki/en) |
 | `PORT` | `8000` | HTTP port |
 
 If the primary model errors or rate-limits, the app automatically falls
