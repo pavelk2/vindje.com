@@ -22,6 +22,7 @@ Without a key the app still works as a plain Marktplaats search,
 just without the smart parsing/filtering.
 """
 
+import base64
 import html
 import json
 import logging
@@ -494,6 +495,66 @@ def get_search(share_id):
     return json.loads(raw) if raw else None
 
 
+def search_stats(record):
+    """(checked, count, scanned): whether AI filtering ran, how many
+    listings it matched (or, without AI, how many were simply found), and
+    how many were scanned in total. Shared by the share-page meta tags and
+    the share image so both tell the same story."""
+    results = record.get("results") or []
+    checked = any(l.get("matched") or l.get("rejected") or l.get("unchecked") for l in results)
+    count = sum(1 for l in results if l.get("matched")) if checked else len(results)
+    scanned = record.get("scanned") or len(results)
+    return checked, count, scanned
+
+
+def _share_title_desc(record):
+    """Build the per-search social-share title/description from a saved
+    record, e.g. for a Twitter/Slack/iMessage unfurl of a `/s/<id>` link."""
+    wish = str(record.get("wish") or "").strip()
+    short_wish = wish if len(wish) <= 70 else wish[:69].rstrip() + "…"
+    checked, count, scanned = search_stats(record)
+    title = "“{}” — {} match{} · vindje.com".format(
+        short_wish, count, "" if count == 1 else "es")
+    if checked:
+        desc = (
+            "vindje.com read {} Marktplaats listing{} and kept the {} that "
+            "actually match — see exactly what it found.".format(
+                scanned, "" if scanned == 1 else "s", count)
+        )
+    else:
+        desc = f"{scanned} Marktplaats listings found for this search on vindje.com."
+    return title, desc
+
+
+# Cache the generated share image (PNG bytes, base64-encoded) in Upstash
+# alongside the search itself, since a saved search never changes and a
+# share link is typically fetched by several crawlers (Twitter, Facebook,
+# Slack, iMessage, ...) right after it's posted.
+def get_cached_og_image(share_id):
+    raw = upstash_command("GET", f"ogimg:{share_id}")
+    return base64.b64decode(raw) if raw else None
+
+
+def cache_og_image(share_id, png_bytes):
+    upstash_command("SET", f"ogimg:{share_id}", base64.b64encode(png_bytes).decode())
+
+
+def render_og_image(record):
+    """Render the share-preview PNG for a saved search. Returns None (and
+    logs) if Pillow isn't installed or rendering otherwise fails — the page
+    itself must never break because its share image couldn't be made."""
+    try:
+        from og_image import render_share_image
+    except Exception as e:
+        log.warning("og_image unavailable: %s", e)
+        return None
+    try:
+        return render_share_image(record)
+    except Exception as e:
+        log.warning("render_og_image failed: %s", e)
+        return None
+
+
 DEALS_KEY = "deals:latest"
 
 
@@ -629,17 +690,18 @@ HTML = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>vindje.com &mdash; Smart AI Search for Marktplaats</title>
-<meta name="description" content="Describe what you want to buy in plain language. vindje.com turns it into a real Marktplaats search and uses AI to read every listing, keeping only the ones that actually match.">
-<link rel="canonical" href="__ORIGIN__/">
+<title>__PAGE_TITLE__</title>
+<meta name="description" content="__PAGE_DESCRIPTION__">
+<link rel="canonical" href="__CANONICAL_URL__">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="vindje.com">
-<meta property="og:title" content="vindje.com &mdash; Smart AI Search for Marktplaats">
-<meta property="og:description" content="Describe what you want to buy in plain language and get only the Marktplaats listings that actually match &mdash; no more scrolling through junk.">
-<meta property="og:url" content="__ORIGIN__/">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="vindje.com &mdash; Smart AI Search for Marktplaats">
-<meta name="twitter:description" content="Describe what you want to buy in plain language and get only the Marktplaats listings that actually match.">
+<meta property="og:title" content="__PAGE_TITLE__">
+<meta property="og:description" content="__PAGE_DESCRIPTION__">
+<meta property="og:url" content="__CANONICAL_URL__">
+__OG_IMAGE_META__
+<meta name="twitter:card" content="__TWITTER_CARD__">
+<meta name="twitter:title" content="__PAGE_TITLE__">
+<meta name="twitter:description" content="__PAGE_DESCRIPTION__">
 <meta name="theme-color" content="#ffffff">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"vindje.com","url":"__ORIGIN__/","description":"Describe what you want to buy in plain language and get only the Marktplaats listings that actually match, filtered by AI.","applicationCategory":"ShoppingApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}
@@ -1647,7 +1709,7 @@ def render_history(entries, origin=""):
     return HISTORY_HTML.replace("__ENTRIES__", inner).replace("__ORIGIN__", origin)
 
 
-def render_page(record, origin="", error=None, deals=None):
+def render_page(record, origin="", error=None, deals=None, share_id=None):
     """Render the app shell, optionally pre-loaded with a saved (shared)
     search and/or the day's deal-hunt finds."""
     if error:
@@ -1664,7 +1726,32 @@ def render_page(record, origin="", error=None, deals=None):
         })
     else:
         shared_json = "null"
-    return (HTML.replace("__SHARED_DATA__", shared_json)
+
+    if record and record.get("wish") and share_id:
+        title, desc = _share_title_desc(record)
+        title, desc = html.escape(title), html.escape(desc)
+        canonical = f"{origin}/s/{share_id}"
+        twitter_card = "summary_large_image"
+        og_image_meta = (
+            f'<meta property="og:image" content="{html.escape(canonical)}/og.png">\n'
+            '<meta property="og:image:width" content="1200">\n'
+            '<meta property="og:image:height" content="630">\n'
+            f'<meta property="og:image:alt" content="{title}">'
+        )
+    else:
+        title = "vindje.com &mdash; Smart AI Search for Marktplaats"
+        desc = ("Describe what you want to buy in plain language and get only the "
+                "Marktplaats listings that actually match &mdash; no more scrolling through junk.")
+        canonical = f"{origin}/"
+        twitter_card = "summary"
+        og_image_meta = ""
+
+    return (HTML.replace("__PAGE_TITLE__", title)
+                .replace("__PAGE_DESCRIPTION__", desc)
+                .replace("__CANONICAL_URL__", canonical)
+                .replace("__TWITTER_CARD__", twitter_card)
+                .replace("__OG_IMAGE_META__", og_image_meta)
+                .replace("__SHARED_DATA__", shared_json)
                 .replace("__DEALS_DATA__", json.dumps(deals) if deals else "null")
                 .replace("__ORIGIN__", origin))
 
@@ -1754,13 +1841,40 @@ def app(environ, start_response):
                 entries = []
             body = render_history(entries, origin=origin).encode()
             headers = [("Content-Type", "text/html; charset=utf-8")]
+        elif path.startswith("/s/") and path.endswith("/og.png") and len(path) > 10:
+            share_id = path[3:-len("/og.png")]
+            png = None
+            try:
+                png = get_cached_og_image(share_id)
+            except Exception as e:
+                log.warning("[%s] get_cached_og_image failed: %s", req_id, e)
+            if png is None:
+                try:
+                    record = get_search(share_id)
+                except Exception:
+                    record = None
+                if record:
+                    png = render_og_image(record)
+                    if png:
+                        try:
+                            cache_og_image(share_id, png)
+                        except Exception as e:
+                            log.warning("[%s] cache_og_image failed: %s", req_id, e)
+            if png:
+                body = png
+                headers = [("Content-Type", "image/png"),
+                           ("Cache-Control", "public, max-age=31536000, immutable")]
+            else:
+                body = b""
+                status = "404 Not Found"
+                headers = [("Content-Type", "image/png")]
         elif path.startswith("/s/") and len(path) > 3:
             try:
                 record = get_search(path[3:])
             except Exception:
                 record = None
             if record:
-                body = render_page(record, origin=origin).encode()
+                body = render_page(record, origin=origin, share_id=path[3:]).encode()
             else:
                 body = render_page(None, origin=origin, error="Shared search not found.").encode()
                 status = "404 Not Found"

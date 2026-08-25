@@ -47,6 +47,15 @@ share link" button appears once it's done. The link (`/s/<id>`) shows
 anyone who opens it precisely what you saw — no re-running of the search or
 the AI filtering, so it's instant and doesn't re-spend AI credits.
 
+Sharing that link on social media (Twitter/X, Slack, iMessage, WhatsApp,
+LinkedIn, ...) unfurls with a preview built for that specific search: the
+title and description say what was searched for and how many listings
+matched, and the image (`/s/<id>/og.png`, rendered by `og_image.py`) is a
+1200×630 collage of the matched listings' own photos with the wish and
+match count overlaid — generated once and cached in Upstash alongside the
+search itself. This needs Pillow (see `requirements.txt`); without it the
+page still works, it just has no working preview image.
+
 This requires an [Upstash Redis](https://upstash.com) database (the free
 tier is plenty) as storage. Without it configured, saving/sharing just
 silently degrades to a no-op — search still works fully, only the "Copy

@@ -4,3 +4,9 @@
 # mcp is only needed for the MCP server (mcp_server.py / api/mcp.py), which
 # exposes Marktplaats search as a tool for Claude, with no AI on our side.
 mcp==1.29.0
+
+# Pillow is only needed to render each shared search's social-preview image
+# (og_image.py, served at /s/<id>/og.png). Everything else keeps working
+# fine without it — the page just ends up with a broken og:image (404),
+# same as before this existed.
+Pillow==10.4.0
