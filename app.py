@@ -274,7 +274,10 @@ def search_marktplaats(terms, postcode=None, distance_meters=None,
         image = ""
         pics = raw.get("pictures") or []
         if pics:
-            image = pics[0].get("mediumUrl") or pics[0].get("largeUrl") or ""
+            # biggest first: the result cards render photos ~700px wide,
+            # so the ~500px mediumUrl comes out upscaled and soft
+            image = (pics[0].get("extraExtraLargeUrl") or pics[0].get("largeUrl")
+                     or pics[0].get("mediumUrl") or "")
         elif raw.get("imageUrls"):
             image = "https:" + raw["imageUrls"][0]
         dist = loc.get("distanceMeters", -1000)
