@@ -36,6 +36,8 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
+from sources import search_catawiki, search_ebay
+
 PORT = int(os.environ.get("PORT", "8000"))
 
 # ---------------------------------------------------------------- logging
@@ -290,6 +292,7 @@ def search_marktplaats(terms, postcode=None, distance_meters=None,
                 "attributes": attrs,
                 "image": image,
                 "url": "https://www.marktplaats.nl" + raw.get("vipUrl", ""),
+                "source": "marktplaats",
             }
         )
     total = data.get("totalResultCount", len(listings))
@@ -312,13 +315,48 @@ def format_price(price_info):
     }.get(ptype, ptype or "?")
 
 
+# ---------------------------------------------------------------- extra sources (eBay, Catawiki)
+#
+# Marktplaats has no affiliate program of its own; eBay (via the eBay
+# Partner Network) and Catawiki (via an Awin product feed, see sources.py)
+# do, so blending them into search is what actually turns this into a
+# revenue source. Both degrade to "no extra results" when unconfigured —
+# see affiliate.py / sources.py — so this is safe to always call.
+
+def search_extra_sources(terms, price_min_euro=None, price_max_euro=None, req_id="-"):
+    """Search eBay (live) and Catawiki (feed) concurrently alongside
+    Marktplaats. Returns (listings, notes) — notes carries the required
+    affiliate disclosure whenever a source actually returned results."""
+    listings, notes = [], []
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        futures = {
+            ex.submit(search_ebay, terms, price_min_euro=price_min_euro,
+                      price_max_euro=price_max_euro, req_id=req_id): "eBay",
+            ex.submit(search_catawiki, terms, price_max_euro=price_max_euro,
+                      req_id=req_id): "Catawiki",
+        }
+        for fut in as_completed(futures):
+            name = futures[fut]
+            try:
+                found, _total = fut.result()
+            except Exception as e:
+                log.warning("[%s] search_extra_sources: %s failed: %s", req_id, name, e)
+                continue
+            if found:
+                listings.extend(found)
+                notes.append(f"Some results are from {name} — vindje.com may earn a "
+                             f"commission on {name} purchases made through this page's links.")
+    return listings, notes
+
+
 # ---------------------------------------------------------------- Step 3: AI-filter results
 
-FILTER_PROMPT = """You are filtering Dutch classifieds listings for a buyer.
+FILTER_PROMPT = """You are filtering classifieds/marketplace listings for a buyer.
 Buyer's requirements:
 %s
 
-Below are numbered listings (title / description / attributes, in Dutch), each
+Below are numbered listings (title / description / attributes, in Dutch or English,
+from Marktplaats, eBay and/or Catawiki), each
 immediately followed by that listing's own photo. Use the photo together with
 the text — it's real evidence, not decoration: judge condition, materials,
 and whether the item visibly is what the title/description claims (sellers'
@@ -585,6 +623,12 @@ def smart_search(wish, postcode, parsed=_UNSET, notes=None, req_id="-"):
         price_min_euro=price_min, price_max_euro=price_max,
         req_id=req_id,
     )
+    extra, extra_notes = search_extra_sources(
+        terms, price_min_euro=price_min, price_max_euro=price_max, req_id=req_id
+    )
+    listings = listings + extra
+    total += len(extra)
+    notes.extend(extra_notes)
 
     kept = listings
     if parsed and requirements and listings:
@@ -769,6 +813,10 @@ HTML = """<!doctype html>
              letter-spacing: -.015em; line-height: 1.32;
              display: -webkit-box; -webkit-line-clamp: 2;
              -webkit-box-orient: vertical; overflow: hidden; }
+  .src-badge { display: inline-block; font-size: 10.5px; font-weight: 700;
+               letter-spacing: .02em; text-transform: uppercase; color: var(--muted);
+               border: 1px solid var(--line2); border-radius: 5px; padding: 1px 5px;
+               vertical-align: middle; }
   .meta { color: var(--muted); font-size: 13px; margin-bottom: 3px; }
   .price { font-weight: 600; color: var(--ink); }
   .desc { font-size: 13px; color: var(--muted); margin: 2px 0 0; line-height: 1.5;
@@ -1061,7 +1109,7 @@ function updateCount(checking) {
   const s = state, el = document.getElementById('count');
   const bar = document.getElementById('bar');
   if (!checking) {
-    el.textContent = s.listings.length + ' listings &middot; ' + s.total + ' hits on Marktplaats';
+    el.textContent = s.listings.length + ' listings &middot; ' + s.total + ' hits found';
     el.innerHTML = el.textContent;
     return;
   }
@@ -1080,14 +1128,19 @@ function updateCount(checking) {
   el.innerHTML = txt;
 }
 
+const SOURCE_LABELS = {ebay: 'eBay', catawiki: 'Catawiki'};
+
 function cardShell(l, extraClass, badgeHtml) {
+  const src = l.source && l.source !== 'marktplaats' ? SOURCE_LABELS[l.source] : null;
+  const meta = [l.city, l.distance_km != null ? l.distance_km + ' km' : ''].filter(Boolean);
+  const rel = 'noopener' + (src ? ' sponsored' : '');
   return `
-    <a class="card${extraClass ? ' ' + extraClass : ''}" id="c-${esc(l.id)}" href="${esc(l.url)}" target="_blank" rel="noopener">
+    <a class="card${extraClass ? ' ' + extraClass : ''}" id="c-${esc(l.id)}" href="${esc(l.url)}" target="_blank" rel="${rel}">
       ${l.image ? `<img src="${esc(l.image)}" alt="${esc(l.title)}" loading="lazy">` : '<div class="noimg">no photo</div>'}
       <div>
-        <h3>${esc(l.title)}</h3>
+        <h3>${esc(l.title)}${src ? ` <span class="src-badge">${esc(src)}</span>` : ''}</h3>
         <div class="meta"><span class="price">${esc(l.price)}</span>
-          &middot; ${esc(l.city)}${l.distance_km != null ? ' &middot; ' + l.distance_km + ' km' : ''}</div>
+          ${meta.length ? '&middot; ' + esc(meta.join(' &middot; ')) : ''}</div>
         <div class="desc">${esc(l.description)}</div>
         ${badgeHtml || ''}
       </div>
@@ -1125,7 +1178,7 @@ function renderSharedResults(rec) {
     countEl.innerHTML = parts.join(' &middot; ');
   } else {
     countEl.textContent = results.length + ' listings' +
-      (rec.total_on_marktplaats != null ? ' · ' + rec.total_on_marktplaats + ' hits on Marktplaats' : '');
+      (rec.total_on_marktplaats != null ? ' · ' + rec.total_on_marktplaats + ' hits found' : '');
   }
 }
 function renderDeals() {
@@ -1704,12 +1757,17 @@ def app(environ, start_response):
                 parsed, notes = interpret(wish, req_id=req_id)
                 result = {"ai": bool(parsed), "parsed": parsed, "notes": notes}
             elif action == "find":
-                # search Marktplaats only — fast, no AI calls
+                # search Marktplaats + eBay/Catawiki — fast, no AI calls
                 terms, distance, pmin, pmax, reqs, notes = search_params(
                     payload.get("parsed"), wish, postcode)
                 listings, total = search_marktplaats(
                     terms, postcode=postcode, distance_meters=distance,
                     price_min_euro=pmin, price_max_euro=pmax, req_id=req_id)
+                extra, extra_notes = search_extra_sources(
+                    terms, price_min_euro=pmin, price_max_euro=pmax, req_id=req_id)
+                listings = listings + extra
+                total += len(extra)
+                notes = notes + extra_notes
                 result = {"listings": listings, "total_on_marktplaats": total,
                           "requirements": reqs, "notes": notes}
             elif action == "results":

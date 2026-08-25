@@ -4,6 +4,11 @@
 # Needs three repository secrets (Settings → Secrets and variables →
 # Actions): OPENROUTER_API_KEY, UPSTASH_REDIS_REST_URL,
 # UPSTASH_REDIS_REST_TOKEN — the same values the Vercel deployment uses.
+#
+# Optionally also EBAY_CLIENT_ID, EBAY_CLIENT_SECRET, EBAY_EPN_CAMPAIGN_ID,
+# AWIN_PUBLISHER_ID, AWIN_CATAWIKI_FEED_URL, AWIN_CATAWIKI_ADVERTISER_ID —
+# see README's "Affiliate integrations" section. Without these the hunt
+# just skips eBay/Catawiki and scans Marktplaats only, as before.
 name: Daily deal hunt
 
 on:
@@ -29,4 +34,10 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          EBAY_CLIENT_ID: ${{ secrets.EBAY_CLIENT_ID }}
+          EBAY_CLIENT_SECRET: ${{ secrets.EBAY_CLIENT_SECRET }}
+          EBAY_EPN_CAMPAIGN_ID: ${{ secrets.EBAY_EPN_CAMPAIGN_ID }}
+          AWIN_PUBLISHER_ID: ${{ secrets.AWIN_PUBLISHER_ID }}
+          AWIN_CATAWIKI_FEED_URL: ${{ secrets.AWIN_CATAWIKI_FEED_URL }}
+          AWIN_CATAWIKI_ADVERTISER_ID: ${{ secrets.AWIN_CATAWIKI_ADVERTISER_ID }}
         run: python3 deals.py

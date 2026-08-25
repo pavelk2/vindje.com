@@ -92,6 +92,71 @@ The workflow needs `OPENROUTER_API_KEY`, `UPSTASH_REDIS_REST_URL` and
 `UPSTASH_REDIS_REST_TOKEN` as repository secrets (Settings → Secrets and
 variables → Actions) — the same values the Vercel deployment uses.
 
+## Affiliate integrations (eBay & Catawiki)
+
+Marktplaats itself has no affiliate program — vindje.com never earns anything
+from a Marktplaats click. eBay and Catawiki do, so `app.py` and `deals.py`
+both optionally pull in listings from those two as well, wrapped with
+affiliate-tracked links:
+
+- **Live search**: when you run a search, eBay (via its Browse API) is
+  searched alongside Marktplaats and matching results are blended into the
+  same AI-filtered result list, each labelled with a small "EBAY" badge and
+  linked through an [eBay Partner Network](https://partnernetwork.ebay.com)
+  (EPN) tracking URL. Catawiki has no live search API, so it isn't part of
+  live search — see the deal hunter below.
+- **Daily deal hunt**: `deals.py`'s per-category scans (see "Today's finds"
+  above) also search eBay, and separately search a downloaded snapshot of a
+  Catawiki product feed via [Awin](https://www.awin.com), for the same
+  undervalued-item categories — any qualifying find gets the same
+  affiliate-tracked link treatment.
+
+Both integrations degrade silently when unconfigured — the app and deal
+hunter just run Marktplaats-only, exactly as before, until you set the
+relevant env vars below.
+
+**eBay (via eBay Partner Network):**
+1. Create an [eBay Developer Program](https://developer.ebay.com) account,
+   then a **production** keyset under "Application Keys" — that gives you
+   `EBAY_CLIENT_ID` (App ID) and `EBAY_CLIENT_SECRET` (Cert ID). This alone
+   enables live eBay search (no affiliate tracking yet, plain links).
+2. Separately join the [eBay Partner Network](https://partnernetwork.ebay.com)
+   and create a Campaign — that gives you a 10-digit `EBAY_EPN_CAMPAIGN_ID`.
+   With this set, eBay links returned by the app carry EPN tracking and
+   commissions apply.
+3. Optionally set `EBAY_MARKETPLACE_ID` (default `EBAY_NL`) to search a
+   different eBay marketplace, e.g. `EBAY_GB` or `EBAY_US`.
+
+**Catawiki (via Awin):**
+1. Apply to Catawiki's affiliate program (contact `affiliates@catawiki.nl`
+   or check [Catawiki's partner page](https://www.catawiki.com/en/pages/p/partners-creators))
+   and confirm which affiliate network they currently run on for your
+   account — this has moved between networks over time, so verify before
+   assuming Awin.
+2. If (once accepted) it's on Awin: create an
+   [Awin publisher account](https://www.awin.com) to get `AWIN_PUBLISHER_ID`,
+   then from Awin's "Advertisers" / product feed area grab Catawiki's
+   `AWIN_CATAWIKI_ADVERTISER_ID` and the direct CSV/TXT download URL for
+   their product feed as `AWIN_CATAWIKI_FEED_URL` (an uncompressed feed is
+   simplest; the app also handles gzip). The deal hunter re-downloads and
+   caches this feed (up to every 6h) rather than hitting it per request.
+3. `sources.search_catawiki()` isn't actually Catawiki-specific — it reads
+   whatever Awin product feed you point it at, so the same env vars work
+   for any other Awin advertiser's feed if you'd rather monetize with
+   something else.
+
+**Disclosure**: whenever a search or "Today's finds" includes an eBay or
+Catawiki result, a note is shown ("vindje.com may earn a commission…") and
+those cards link out with `rel="sponsored"` — required for compliance with
+FTC/ACM affiliate-marketing disclosure rules. Don't remove this if you
+enable these integrations.
+
+**Known limitation**: the AI still turns a wish into *Dutch* search terms
+(Marktplaats needs that), and those same terms are reused verbatim for eBay
+and Catawiki search — cross-language recall for those two is weaker than
+for Marktplaats as a result. Full bilingual query generation is a possible
+future improvement, not implemented yet.
+
 ## Configuration (all optional, via environment variables)
 
 | Variable | Default | Purpose |
@@ -101,6 +166,12 @@ variables → Actions) — the same values the Vercel deployment uses.
 | `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` | Any OpenAI-compatible endpoint |
 | `UPSTASH_REDIS_REST_URL` | — | Your Upstash Redis REST URL, for saving/sharing searches |
 | `UPSTASH_REDIS_REST_TOKEN` | — | Upstash Redis REST token (secret, server-side only) |
+| `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` | — | eBay Developer Program production App ID / Cert ID — enables live eBay search |
+| `EBAY_EPN_CAMPAIGN_ID` | — | eBay Partner Network Campaign ID — enables affiliate-tracked eBay links |
+| `EBAY_MARKETPLACE_ID` | `EBAY_NL` | Which eBay marketplace to search |
+| `AWIN_PUBLISHER_ID` | — | Your Awin publisher (affiliate) ID |
+| `AWIN_CATAWIKI_FEED_URL` | — | Direct URL to an Awin product feed (Catawiki or otherwise) to search for deals |
+| `AWIN_CATAWIKI_ADVERTISER_ID` | — | The Awin advertiser ID that feed belongs to, for link wrapping |
 | `PORT` | `8000` | HTTP port |
 
 If the primary model errors or rate-limits, the app automatically falls
@@ -110,8 +181,9 @@ tells you so.
 
 ## Notes
 
-- Everything lives in a single file, `app.py` (stdlib only: `http.server` +
-  `urllib`).
+- The core app is `app.py`, plus `sources.py` (eBay/Catawiki search) and
+  `affiliate.py` (affiliate link building) for the integrations above —
+  all stdlib only (`http.server` + `urllib`), no dependencies to install.
 - The app uses Marktplaats' public website search endpoint
   (`/lrp/api/search`) — the same one your browser calls. Be gentle with it;
   this is a personal search tool, not a scraper.

@@ -36,6 +36,7 @@ from datetime import datetime, timezone
 
 from app import (DEALS_KEY, OPENROUTER_API_KEY, llm_json, search_marktplaats,
                  upstash_command)
+from sources import search_catawiki, search_ebay
 
 # ---------------------------------------------------------------- what to hunt
 
@@ -82,10 +83,11 @@ CATEGORIES = [
 
 # ---------------------------------------------------------------- valuation
 
-VALUE_PROMPT = """You are an expert reseller valuing Dutch classifieds listings.
+VALUE_PROMPT = """You are an expert reseller valuing classifieds/marketplace listings.
 The buyer hunts for: %s.
 
-Below are numbered listings (title | asking price | description | attributes, in Dutch).
+Below are numbered listings (title | asking price | description | attributes, in
+Dutch or English, from Marktplaats, eBay and/or Catawiki).
 For each, decide whether it is genuinely the target item (reject replicas, lookalikes,
 'stijl van' / 'geïnspireerd' items, spare parts, bare frames, shades, accessories,
 defective units, and wrong kinds of item) and estimate what it would REALISTICALLY
@@ -190,26 +192,41 @@ def dedupe_relistings(listings, threshold=0.6):
 
 # ---------------------------------------------------------------- per category
 
+
+# Extra sources beyond Marktplaats, run per query alongside it — eBay
+# (live) and Catawiki (Awin feed snapshot); both are affiliate-monetized,
+# unlike Marktplaats. Each degrades to zero results when unconfigured
+# (see sources.py), so this list is always safe to run in full.
+_EXTRA_SOURCES = [
+    ("eBay", lambda q: search_ebay(q, price_max_euro=PRICE_MAX_EURO)),
+    ("Catawiki", lambda q: search_catawiki(q, price_max_euro=PRICE_MAX_EURO)),
+]
+
+
 def hunt_category(cat):
-    """Search all of a category's queries, dedupe, value, and return the
-    qualifying finds (best upside first) plus how many listings were scanned."""
+    """Search all of a category's queries across every source, dedupe,
+    value, and return the qualifying finds (best upside first) plus how
+    many listings were scanned."""
     listings, seen = [], set()
     for q in cat["queries"]:
-        try:
-            found, _total = search_marktplaats(q, price_max_euro=PRICE_MAX_EURO)
-        except Exception as e:
-            print(f"  ! search '{q}' failed: {e}", file=sys.stderr)
-            continue
-        for l in found:
-            asking = parse_asking_price(l.get("price"))
-            # no fixed price -> no way to establish the upside; skip
-            if asking is None or asking == 0 or asking > PRICE_MAX_EURO:
+        sources = [("Marktplaats", lambda q=q: search_marktplaats(q, price_max_euro=PRICE_MAX_EURO))]
+        sources += [(name, (lambda fn=fn, q=q: fn(q))) for name, fn in _EXTRA_SOURCES]
+        for source_name, search_fn in sources:
+            try:
+                found, _total = search_fn()
+            except Exception as e:
+                print(f"  ! {source_name} search '{q}' failed: {e}", file=sys.stderr)
                 continue
-            if l["id"] in seen:
-                continue
-            seen.add(l["id"])
-            l["asking_euro"] = asking
-            listings.append(l)
+            for l in found:
+                asking = parse_asking_price(l.get("price"))
+                # no fixed price -> no way to establish the upside; skip
+                if asking is None or asking == 0 or asking > PRICE_MAX_EURO:
+                    continue
+                if l["id"] in seen:
+                    continue
+                seen.add(l["id"])
+                l["asking_euro"] = asking
+                listings.append(l)
     before = len(listings)
     listings = dedupe_relistings(listings)
     if len(listings) < before:
