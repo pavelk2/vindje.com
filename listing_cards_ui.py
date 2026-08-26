@@ -24,19 +24,20 @@ LISTING_CARDS_HTML = """<!doctype html>
 <title>Marktplaats listings</title>
 <style>
   :root {
-    --mp-bg: #ffffff;
-    --mp-fg: #14161a;
-    --mp-muted: #5b6270;
-    --mp-border: #e4e6ea;
+    --mp-bg: #f7f5f3;
+    --mp-fg: #0d0d0d;
+    --mp-muted: #6e6a69;
+    --mp-border: rgba(13,13,13,.12);
     --mp-card-bg: #ffffff;
-    --mp-accent: #f36c21;
+    --mp-accent: #0d0d0d;
   }
   :root[data-theme="dark"] {
     --mp-bg: #14161a;
     --mp-fg: #f2f3f5;
     --mp-muted: #9aa1ad;
-    --mp-border: #2a2d33;
+    --mp-border: rgba(255,255,255,.14);
     --mp-card-bg: #1c1f24;
+    --mp-accent: #f2f3f5;
   }
   * { box-sizing: border-box; }
   body {
@@ -44,7 +45,7 @@ LISTING_CARDS_HTML = """<!doctype html>
     padding: 12px;
     background: var(--mp-bg);
     color: var(--mp-fg);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: 'Fraunces', Georgia, 'Times New Roman', serif;
   }
   #status { color: var(--mp-muted); font-size: 14px; padding: 4px 2px 12px; }
   #grid {
@@ -54,7 +55,7 @@ LISTING_CARDS_HTML = """<!doctype html>
   }
   .card {
     border: 1px solid var(--mp-border);
-    border-radius: 12px;
+    border-radius: 16px;
     overflow: hidden;
     background: var(--mp-card-bg);
     display: flex;
@@ -74,7 +75,7 @@ LISTING_CARDS_HTML = """<!doctype html>
   }
   .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .body { padding: 10px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
-  .price { font-weight: 700; font-size: 15px; }
+  .price { font-weight: 500; font-size: 15px; }
   .title {
     font-size: 13px;
     line-height: 1.3;

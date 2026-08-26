@@ -630,6 +630,9 @@ HTML = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>vindje.com &mdash; Smart AI Search for Marktplaats</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,350;9..144,400;9..144,500&display=swap" rel="stylesheet">
 <meta name="description" content="Describe what you want to buy in plain language. vindje.com turns it into a real Marktplaats search and uses AI to read every listing, keeping only the ones that actually match.">
 <link rel="canonical" href="__ORIGIN__/">
 <meta property="og:type" content="website">
@@ -640,42 +643,48 @@ HTML = """<!doctype html>
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="vindje.com &mdash; Smart AI Search for Marktplaats">
 <meta name="twitter:description" content="Describe what you want to buy in plain language and get only the Marktplaats listings that actually match.">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#f7f5f3">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"vindje.com","url":"__ORIGIN__/","description":"Describe what you want to buy in plain language and get only the Marktplaats listings that actually match, filtered by AI.","applicationCategory":"ShoppingApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}
 </script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
 <style>
   :root {
-    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
-    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
+    --color-linen-canvas: #f7f5f3;
+    --color-ink-black: #0d0d0d;
+    --color-paper-white: #ffffff;
+    --color-stone: #6e6a69;
+    --color-pebble: #9a9796;
+    --font-cosmosoracle: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --ink: var(--color-ink-black); --body: var(--color-stone); --muted: var(--color-pebble);
+    --line: rgba(13,13,13,.12); --line2: rgba(13,13,13,.18); --field: var(--color-paper-white);
   }
   * { box-sizing: border-box; }
   ::selection { background: var(--ink); color: #fff; }
   html, body { height: 100%; }
   body {
-    margin: 0; background: #fff; color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
-                 system-ui, Helvetica, Arial, sans-serif;
+    margin: 0; background: var(--color-linen-canvas); color: var(--ink);
+    font-family: var(--font-cosmosoracle);
     -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
     display: flex; flex-direction: column; min-height: 100vh;
   }
   .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
           flex: 1 0 auto; }
 
-  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 500; letter-spacing: -.011em; }
 
   .hero { max-width: 660px; margin: 0 auto; }
   h1 {
-    font-size: clamp(38px, 7.5vw, 62px); font-weight: 700; letter-spacing: -.035em;
-    line-height: 1.04; text-align: center; margin: clamp(48px, 9vh, 88px) 0 30px;
+    font-size: clamp(38px, 7.5vw, 62px); font-weight: 350; letter-spacing: -.045em;
+    line-height: 1.06; text-align: center; margin: clamp(48px, 9vh, 88px) 0 30px;
   }
 
   .box {
-    background: var(--field); border-radius: 26px; padding: 6px;
-    transition: box-shadow .18s ease;
+    background: var(--field); border-radius: 16px; padding: 6px;
+    outline: 1.5px solid transparent; outline-offset: -1.5px;
+    transition: outline-color .18s ease;
   }
-  .box:focus-within { box-shadow: 0 0 0 1.5px var(--ink); }
+  .box:focus-within { outline-color: var(--ink); }
   textarea {
     width: 100%; min-height: 86px; padding: 16px 16px 4px; font: inherit;
     font-size: 17px; letter-spacing: -.01em; line-height: 1.45; border: 0;
@@ -685,14 +694,14 @@ HTML = """<!doctype html>
   .boxrow { display: flex; align-items: center; gap: 8px; padding: 6px; }
   input[type=text] {
     padding: 10px 16px; font: inherit; font-size: 15px; border: 0;
-    border-radius: 980px; width: 132px; background: #fff; color: var(--ink);
-    outline: none; transition: box-shadow .15s ease;
+    border-radius: 16px; width: 132px; background: var(--color-paper-white); color: var(--ink);
+    outline: 1.5px solid transparent; outline-offset: -1.5px; transition: outline-color .15s ease;
   }
-  input[type=text]:focus { box-shadow: 0 0 0 1.5px var(--ink); }
+  input[type=text]:focus { outline-color: var(--ink); }
   #go {
-    margin-left: auto; padding: 11px 26px; font: inherit; font-size: 15px;
-    font-weight: 600; color: #fff; background: var(--ink); border: 0;
-    border-radius: 980px; cursor: pointer;
+    margin-left: auto; padding: 16px 24px; font: inherit; font-size: 16px;
+    font-weight: 500; color: var(--color-paper-white); background: var(--ink); border: 0;
+    border-radius: 16px; cursor: pointer;
     transition: opacity .15s ease, transform .1s ease;
   }
   #go:hover { opacity: .85; }
@@ -702,7 +711,7 @@ HTML = """<!doctype html>
   .examples { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
               margin-top: 16px; }
   .ex {
-    background: transparent; border: 1px solid var(--line); border-radius: 980px;
+    background: var(--color-paper-white); border: 1px solid var(--line); border-radius: 16px;
     padding: 7px 15px; font: inherit; font-size: 13px; color: var(--muted);
     cursor: pointer; transition: color .15s ease, border-color .15s ease;
   }
@@ -711,8 +720,8 @@ HTML = """<!doctype html>
   .interp { display: none; flex-wrap: wrap; gap: 7px; justify-content: center;
             margin: 26px 0 0; animation: rise .35s ease both; }
   .tok {
-    font-size: 13px; padding: 6px 13px; border-radius: 980px;
-    border: 1px solid var(--line2); color: var(--body); background: #fff;
+    font-size: 13px; padding: 6px 13px; border-radius: 16px;
+    border: 1px solid var(--line2); color: var(--body); background: var(--color-paper-white);
   }
   .tok.dark { background: var(--ink); border-color: var(--ink); color: #fff;
               font-weight: 500; }
@@ -720,7 +729,7 @@ HTML = """<!doctype html>
                  font-size: 13px; color: var(--muted); text-align: center;
                  line-height: 1.5; animation: rise .35s ease both; }
 
-  .note { background: var(--field); color: var(--body); border-radius: 12px;
+  .note { background: var(--field); color: var(--body); border-radius: 16px;
           padding: 11px 16px; font-size: 13px; margin: 14px auto 0;
           max-width: 560px; text-align: center; animation: rise .3s ease both; }
   #status { text-align: center; margin-top: 22px; }
@@ -733,11 +742,11 @@ HTML = """<!doctype html>
              height: 26px; animation: spin .7s linear infinite; }
 
   .deals { margin-top: 70px; }
-  .deals-head { text-align: center; font-size: 24px; font-weight: 700;
+  .deals-head { text-align: center; font-size: 24px; font-weight: 350;
                 letter-spacing: -.02em; margin: 0 0 8px; }
   .deals-sub { text-align: center; color: var(--muted); font-size: 13px;
                line-height: 1.5; margin: 0 auto; max-width: 560px; }
-  .deals .cat { font-size: 15px; font-weight: 700; letter-spacing: -.01em;
+  .deals .cat { font-size: 15px; font-weight: 500; letter-spacing: -.011em;
                 margin: 30px 2px 12px; }
   .deals-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
   @media (min-width: 860px) { .deals-grid { grid-template-columns: 1fr 1fr; } }
@@ -753,42 +762,42 @@ HTML = """<!doctype html>
   @media (min-width: 860px) { #results { grid-template-columns: 1fr 1fr; } }
 
   .card {
-    display: flex; gap: 15px; background: #fff; border-radius: 20px; padding: 13px;
+    display: flex; gap: 15px; background: var(--color-paper-white); border-radius: 16px; padding: 13px;
     text-decoration: none; color: inherit; border: 1px solid var(--line);
     animation: rise .3s ease backwards;
-    transition: box-shadow .18s ease, border-color .18s ease, opacity .3s ease;
+    transition: border-color .18s ease, opacity .3s ease;
   }
-  .card:hover { border-color: var(--line2); box-shadow: 0 10px 34px rgba(0,0,0,.08); }
+  .card:hover { border-color: var(--line2); }
   .card img, .noimg { width: 104px; height: 104px; object-fit: cover;
-                      border-radius: 13px; background: var(--field); flex: none; }
+                      border-radius: 12px; background: var(--field); flex: none; }
   @media (min-width: 640px) { .card img, .noimg { width: 122px; height: 122px; } }
   .noimg { display: flex; align-items: center; justify-content: center;
            color: var(--line2); font-size: 11px; }
   .card > div:last-child { min-width: 0; align-self: center; }
-  .card h3 { margin: 0 0 3px; font-size: 15.5px; font-weight: 600;
-             letter-spacing: -.015em; line-height: 1.32;
+  .card h3 { margin: 0 0 3px; font-size: 15.5px; font-weight: 500;
+             letter-spacing: -.011em; line-height: 1.32;
              display: -webkit-box; -webkit-line-clamp: 2;
              -webkit-box-orient: vertical; overflow: hidden; }
   .meta { color: var(--muted); font-size: 13px; margin-bottom: 3px; }
-  .price { font-weight: 600; color: var(--ink); }
+  .price { font-weight: 500; color: var(--ink); }
   .desc { font-size: 13px; color: var(--muted); margin: 2px 0 0; line-height: 1.5;
           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
           overflow: hidden; }
 
   .why { font-size: 12.5px; margin-top: 8px; display: inline-flex; gap: 6px;
          align-items: baseline; color: var(--muted); line-height: 1.4; }
-  .why b { color: var(--ink); font-weight: 700; }
+  .why b { color: var(--ink); font-weight: 500; }
   .why.pending { align-items: center; }
   .why.pending::before {
     content: ''; width: 11px; height: 11px; border-radius: 50%; flex: none;
     border: 2px solid var(--line2); border-top-color: var(--ink);
     animation: spin .7s linear infinite;
   }
-  .why.warn { border: 1px dashed var(--line2); border-radius: 980px;
+  .why.warn { border: 1px dashed var(--line2); border-radius: 16px;
               padding: 3px 11px; }
   .card.pending { opacity: .5; }
-  .card.matched { border-color: var(--ink); box-shadow: 0 0 0 1.5px var(--ink); }
-  .card.matched:hover { box-shadow: 0 0 0 1.5px var(--ink), 0 10px 34px rgba(0,0,0,.08); }
+  .card.matched { border-color: var(--ink); outline: 1.5px solid var(--ink); outline-offset: -1.5px; }
+  .card.matched:hover { border-color: var(--ink); }
   .card.rejected { opacity: .08; filter: grayscale(60%); }
   .card.rejected:hover { opacity: .55; filter: none; }
 
@@ -811,13 +820,13 @@ HTML = """<!doctype html>
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4);
                    align-items: center; justify-content: center; z-index: 100; padding: 20px; }
   .modal-overlay.show { display: flex; }
-  .modal { background: #fff; border-radius: 20px; padding: 30px 26px 26px; max-width: 360px;
+  .modal { background: var(--color-paper-white); border-radius: 16px; padding: 30px 26px 26px; max-width: 360px;
            width: 100%; text-align: center; animation: rise .25s ease both;
-           box-shadow: 0 20px 60px rgba(0,0,0,.22); }
-  .modal h2 { margin: 0 0 10px; font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
+           border: 1px solid var(--line); }
+  .modal h2 { margin: 0 0 10px; font-size: 19px; font-weight: 500; letter-spacing: -.011em; }
   .modal p { margin: 0 0 22px; font-size: 14px; color: var(--body); line-height: 1.5; }
-  .modal button { padding: 10px 26px; font: inherit; font-size: 14px; font-weight: 600;
-                   color: #fff; background: var(--ink); border: 0; border-radius: 980px;
+  .modal button { padding: 16px 24px; font: inherit; font-size: 16px; font-weight: 500;
+                   color: var(--color-paper-white); background: var(--ink); border: 0; border-radius: 16px;
                    cursor: pointer; transition: opacity .15s ease; }
   .modal button:hover { opacity: .85; }
 </style>
@@ -1230,6 +1239,9 @@ HOW_IT_WORKS_HTML = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How vindje.com's AI Search Works &middot; Marktplaats</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,350;9..144,400;9..144,500&display=swap" rel="stylesheet">
 <meta name="description" content="See how vindje.com turns a plain-language wish into a Marktplaats search, then uses AI to read every listing and keep only the ones that really match.">
 <link rel="canonical" href="__ORIGIN__/how-it-works">
 <meta property="og:type" content="website">
@@ -1240,56 +1252,61 @@ HOW_IT_WORKS_HTML = """<!doctype html>
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="How vindje.com's AI Search Works &middot; Marktplaats">
 <meta name="twitter:description" content="See how vindje.com turns a plain-language wish into a Marktplaats search, then keeps only the listings that really match.">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#f7f5f3">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"vindje.com","item":"__ORIGIN__/"},{"@type":"ListItem","position":2,"name":"How it works","item":"__ORIGIN__/how-it-works"}]}
 </script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
 <style>
   :root {
-    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
-    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
+    --color-linen-canvas: #f7f5f3;
+    --color-ink-black: #0d0d0d;
+    --color-paper-white: #ffffff;
+    --color-stone: #6e6a69;
+    --color-pebble: #9a9796;
+    --font-cosmosoracle: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --ink: var(--color-ink-black); --body: var(--color-stone); --muted: var(--color-pebble);
+    --line: rgba(13,13,13,.12); --line2: rgba(13,13,13,.18); --field: var(--color-paper-white);
   }
   * { box-sizing: border-box; }
   ::selection { background: var(--ink); color: #fff; }
   html, body { height: 100%; }
   body {
-    margin: 0; background: #fff; color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
-                 system-ui, Helvetica, Arial, sans-serif;
+    margin: 0; background: var(--color-linen-canvas); color: var(--ink);
+    font-family: var(--font-cosmosoracle);
     -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
     display: flex; flex-direction: column; min-height: 100vh;
   }
   .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
           flex: 1 0 auto; }
-  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 500; letter-spacing: -.011em; }
   .top a { color: inherit; text-decoration: none; }
 
   .hero { max-width: 620px; margin: 0 auto; text-align: center; }
   h1 {
-    font-size: clamp(34px, 6.5vw, 52px); font-weight: 700; letter-spacing: -.035em;
-    line-height: 1.06; margin: clamp(40px, 8vh, 64px) 0 14px;
+    font-size: clamp(34px, 6.5vw, 52px); font-weight: 350; letter-spacing: -.04em;
+    line-height: 1.08; margin: clamp(40px, 8vh, 64px) 0 14px;
   }
   .sub { font-size: 18px; color: var(--body); line-height: 1.5; margin: 0 auto 8px; }
 
   .steps { list-style: none; margin: 56px 0 0; padding: 0; display: grid; gap: 16px; }
   .step {
     display: flex; gap: 18px; align-items: flex-start; background: var(--field);
-    border-radius: 20px; padding: 22px 22px; text-align: left;
+    border-radius: 16px; padding: 22px 22px; text-align: left;
     animation: rise .35s ease backwards;
   }
   .step .n {
     flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--ink);
-    color: #fff; font-weight: 700; font-size: 15px; display: flex; align-items: center;
+    color: var(--color-paper-white); font-weight: 500; font-size: 15px; display: flex; align-items: center;
     justify-content: center;
   }
-  .step h3 { margin: 3px 0 4px; font-size: 17px; font-weight: 700; letter-spacing: -.015em; }
+  .step h3 { margin: 3px 0 4px; font-size: 17px; font-weight: 500; letter-spacing: -.011em; }
   .step p { margin: 0; font-size: 14.5px; color: var(--body); line-height: 1.55; }
 
   .cta { text-align: center; margin: 56px 0 0; }
   .cta a {
-    display: inline-block; padding: 13px 30px; font-size: 15px; font-weight: 600;
-    color: #fff; background: var(--ink); border-radius: 980px; text-decoration: none;
+    display: inline-block; padding: 16px 24px; font-size: 16px; font-weight: 500;
+    color: var(--color-paper-white); background: var(--ink); border-radius: 16px; text-decoration: none;
     transition: opacity .15s ease;
   }
   .cta a:hover { opacity: .85; }
@@ -1387,6 +1404,9 @@ CREDITS_HTML = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Credits &middot; vindje.com</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,350;9..144,400;9..144,500&display=swap" rel="stylesheet">
 <meta name="description" content="Who and what made vindje.com happen &mdash; the idea, the model choices, and the name.">
 <link rel="canonical" href="__ORIGIN__/credits">
 <meta property="og:type" content="website">
@@ -1397,45 +1417,50 @@ CREDITS_HTML = """<!doctype html>
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Credits &middot; vindje.com">
 <meta name="twitter:description" content="Who and what made vindje.com happen &mdash; the idea, the model choices, and the name.">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#f7f5f3">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"vindje.com","item":"__ORIGIN__/"},{"@type":"ListItem","position":2,"name":"Credits","item":"__ORIGIN__/credits"}]}
 </script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
 <style>
   :root {
-    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
-    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
+    --color-linen-canvas: #f7f5f3;
+    --color-ink-black: #0d0d0d;
+    --color-paper-white: #ffffff;
+    --color-stone: #6e6a69;
+    --color-pebble: #9a9796;
+    --font-cosmosoracle: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --ink: var(--color-ink-black); --body: var(--color-stone); --muted: var(--color-pebble);
+    --line: rgba(13,13,13,.12); --line2: rgba(13,13,13,.18); --field: var(--color-paper-white);
   }
   * { box-sizing: border-box; }
   ::selection { background: var(--ink); color: #fff; }
   html, body { height: 100%; }
   body {
-    margin: 0; background: #fff; color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
-                 system-ui, Helvetica, Arial, sans-serif;
+    margin: 0; background: var(--color-linen-canvas); color: var(--ink);
+    font-family: var(--font-cosmosoracle);
     -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
     display: flex; flex-direction: column; min-height: 100vh;
   }
   .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
           flex: 1 0 auto; }
-  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 500; letter-spacing: -.011em; }
   .top a { color: inherit; text-decoration: none; }
 
   .hero { max-width: 620px; margin: 0 auto; text-align: center; }
   h1 {
-    font-size: clamp(34px, 6.5vw, 52px); font-weight: 700; letter-spacing: -.035em;
-    line-height: 1.06; margin: clamp(40px, 8vh, 64px) 0 14px;
+    font-size: clamp(34px, 6.5vw, 52px); font-weight: 350; letter-spacing: -.04em;
+    line-height: 1.08; margin: clamp(40px, 8vh, 64px) 0 14px;
   }
   .sub { font-size: 18px; color: var(--body); line-height: 1.5; margin: 0 auto 8px; }
 
   .list { list-style: none; margin: 56px 0 0; padding: 0; display: grid; gap: 16px; }
   .item {
     background: var(--field);
-    border-radius: 20px; padding: 22px 22px; text-align: left;
+    border-radius: 16px; padding: 22px 22px; text-align: left;
     animation: rise .35s ease backwards;
   }
-  .item h3 { margin: 0 0 6px; font-size: 17px; font-weight: 700; letter-spacing: -.015em; }
+  .item h3 { margin: 0 0 6px; font-size: 17px; font-weight: 500; letter-spacing: -.011em; }
   .item p { margin: 0; font-size: 14.5px; color: var(--body); line-height: 1.55; }
   .item p a { color: inherit; }
 
@@ -1510,34 +1535,42 @@ HISTORY_HTML = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Search History &middot; vindje.com</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,350;9..144,400;9..144,500&display=swap" rel="stylesheet">
 <meta name="description" content="Every search run on vindje.com, newest first &mdash; open any one of them to see the exact results it found.">
 <link rel="canonical" href="__ORIGIN__/history">
 <meta name="robots" content="noindex, follow">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#f7f5f3">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
 <style>
   :root {
-    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
-    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
+    --color-linen-canvas: #f7f5f3;
+    --color-ink-black: #0d0d0d;
+    --color-paper-white: #ffffff;
+    --color-stone: #6e6a69;
+    --color-pebble: #9a9796;
+    --font-cosmosoracle: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --ink: var(--color-ink-black); --body: var(--color-stone); --muted: var(--color-pebble);
+    --line: rgba(13,13,13,.12); --line2: rgba(13,13,13,.18); --field: var(--color-paper-white);
   }
   * { box-sizing: border-box; }
   ::selection { background: var(--ink); color: #fff; }
   html, body { height: 100%; }
   body {
-    margin: 0; background: #fff; color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
-                 system-ui, Helvetica, Arial, sans-serif;
+    margin: 0; background: var(--color-linen-canvas); color: var(--ink);
+    font-family: var(--font-cosmosoracle);
     -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
     display: flex; flex-direction: column; min-height: 100vh;
   }
   .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
           flex: 1 0 auto; }
-  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 500; letter-spacing: -.011em; }
   .top a { color: inherit; text-decoration: none; }
 
   h1 {
-    font-size: clamp(30px, 5.5vw, 42px); font-weight: 700; letter-spacing: -.03em;
-    line-height: 1.08; margin: clamp(32px, 6vh, 52px) 0 8px;
+    font-size: clamp(30px, 5.5vw, 42px); font-weight: 350; letter-spacing: -.038em;
+    line-height: 1.1; margin: clamp(32px, 6vh, 52px) 0 8px;
   }
   .sub { font-size: 15.5px; color: var(--muted); line-height: 1.5; margin: 0 0 36px; }
 
@@ -1545,12 +1578,13 @@ HISTORY_HTML = """<!doctype html>
   .entry {
     display: flex; gap: 14px; align-items: baseline; justify-content: space-between;
     background: var(--field); border-radius: 16px; padding: 16px 18px;
+    border: 1px solid transparent;
     text-decoration: none; color: inherit; animation: rise .3s ease backwards;
-    transition: box-shadow .18s ease, background .18s ease;
+    transition: border-color .18s ease;
   }
-  .entry:hover { background: #eeeef1; box-shadow: 0 8px 26px rgba(0,0,0,.06); }
+  .entry:hover { border-color: var(--line2); }
   .entry-main { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-  .entry .wish { font-size: 15px; font-weight: 600; letter-spacing: -.01em;
+  .entry .wish { font-size: 15px; font-weight: 500; letter-spacing: -.011em;
                  line-height: 1.4; overflow-wrap: break-word; }
   .entry .url { font-size: 12px; color: var(--muted); overflow-wrap: anywhere;
                 font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
