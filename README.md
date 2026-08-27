@@ -17,6 +17,9 @@ searching through trash.
    search: Dutch keywords, price range, and a search radius (it even converts
    "15 minutes driving" into km).
 2. **Search** — the app queries Marktplaats' own search API with those filters.
+   Tick **Fixed price only** to drop auction ads (pure bidding, and ones
+   priced "from" an opening bid), where the price shown isn't what you'd
+   actually pay.
 3. **Filter** — the LLM reads every returned listing (title, description,
    attributes) and keeps only the ones that actually satisfy your requirements,
    each with a one-line reason.
@@ -72,8 +75,12 @@ of €500+ — across four curated categories:
 - design chairs (Vitra, Herman Miller)
 - Mac minis (Apple Silicon only — Intel ones aren't worth flipping)
 
+Auction listings are skipped outright: their price is only an opening
+bid, so there's no asking price to measure the upside against and no way
+to just buy the item at the number shown.
+
 The LLM values each listing skeptically (replicas, "stijl van"
-lookalikes, bare frames, parts and bidding-only listings are rejected),
+lookalikes, bare frames and parts are rejected),
 and only finds whose low-end estimate clears €500 *and* 2× the asking
 price survive. The result is stored in Upstash Redis (`deals:latest`
 plus a dated `deals:<YYYY-MM-DD>` copy) and rendered on the homepage as
@@ -142,11 +149,13 @@ search results, so there's nothing sensitive to protect).
 
 ### The tool
 
-`search_marktplaats_listings(query, postcode=None, radius_km=None, price_min_euro=None, price_max_euro=None, limit=60)`
+`search_marktplaats_listings(query, postcode=None, radius_km=None, price_min_euro=None, price_max_euro=None, exclude_bids=False, limit=60)`
 — searches live Marktplaats listings by Dutch keywords, price and radius,
 and returns each one's full title, description, attributes, price,
-location, image and URL. Claude reads that data itself to decide which
-listings satisfy what you actually asked for.
+location, image and URL. Each listing also carries a `bid` flag (true for
+auction ads, where the price is only an opening bid); pass
+`exclude_bids=True` to leave those out entirely. Claude reads that data
+itself to decide which listings satisfy what you actually asked for.
 
 ### Listing cards (MCP Apps)
 

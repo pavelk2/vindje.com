@@ -231,7 +231,7 @@ def snap_radius(meters):
 
 def search_marktplaats(terms, postcode=None, distance_meters=None,
                        price_min_euro=None, price_max_euro=None, limit=60,
-                       req_id="-"):
+                       exclude_bids=False, req_id="-"):
     params = [
         ("query", terms),
         ("limit", str(limit)),
@@ -265,7 +265,8 @@ def search_marktplaats(terms, postcode=None, distance_meters=None,
 
     listings = []
     for raw in data.get("listings", []):
-        price = format_price(raw.get("priceInfo") or {})
+        price_info = raw.get("priceInfo") or {}
+        price = format_price(price_info)
         loc = raw.get("location") or {}
         attrs = []
         for a in (raw.get("extendedAttributes") or raw.get("attributes") or []):
@@ -285,6 +286,7 @@ def search_marktplaats(terms, postcode=None, distance_meters=None,
                 "description": (raw.get("categorySpecificDescription")
                                 or raw.get("description") or ""),
                 "price": price,
+                "bid": is_bid(price_info),
                 "city": loc.get("cityName", ""),
                 "distance_km": round(dist / 1000, 1) if dist and dist > 0 else None,
                 "attributes": attrs,
@@ -292,6 +294,9 @@ def search_marktplaats(terms, postcode=None, distance_meters=None,
                 "url": "https://www.marktplaats.nl" + raw.get("vipUrl", ""),
             }
         )
+    if exclude_bids:
+        listings, hidden = drop_bids(listings)
+        log.info("[%s] search_marktplaats: dropped %d bidding listing(s)", req_id, hidden)
     total = data.get("totalResultCount", len(listings))
     with_image = sum(1 for l in listings if l["image"])
     log.info("[%s] search_marktplaats: got %d listings (%d with image) of %d total, in %.2fs",
@@ -310,6 +315,20 @@ def format_price(price_info):
         "NOTK": "Negotiable", "ON_REQUEST": "On request", "RESERVED": "Reserved",
         "SEE_DESCRIPTION": "See description", "EXCHANGE": "Exchange",
     }.get(ptype, ptype or "?")
+
+
+def is_bid(price_info):
+    """True for an auction-style ad — pure bidding ("Bidding") or a bid floor
+    ("€75 (bid from)"). What you pay isn't the number shown: you have to win
+    the auction first, so these are worth hiding when you want a price you can
+    just accept."""
+    return "BID" in (price_info.get("priceType") or "")
+
+
+def drop_bids(listings):
+    """Keep only fixed-price listings. Returns (kept, number dropped)."""
+    kept = [l for l in listings if not l.get("bid")]
+    return kept, len(listings) - len(kept)
 
 
 # ---------------------------------------------------------------- Step 3: AI-filter results
@@ -470,6 +489,7 @@ def save_search(record):
     row = {
         "wish": wish,
         "postcode": str(record["postcode"])[:20] if record.get("postcode") else None,
+        "exclude_bids": bool(record.get("exclude_bids")),
         "interpreted": record.get("interpreted"),
         "results": results,
         "scanned": record.get("scanned"),
@@ -565,11 +585,21 @@ def search_params(parsed, wish, postcode):
     return terms, distance, price_min, price_max, requirements, notes
 
 
-def smart_search(wish, postcode, parsed=_UNSET, notes=None, req_id="-"):
+def bid_note(hidden):
+    """The note shown when auction listings were filtered out, or None."""
+    if not hidden:
+        return None
+    return (f"{hidden} bidding listing{'s' if hidden != 1 else ''} hidden — "
+            "untick 'Fixed price only' to include auctions.")
+
+
+def smart_search(wish, postcode, parsed=_UNSET, notes=None, exclude_bids=False,
+                 req_id="-"):
     """Phase 2: search Marktplaats and AI-filter. Runs phase 1 first unless a
     pre-parsed result (possibly None) is handed in."""
     t0 = time.time()
-    log.info("[%s] smart_search: wish=%r postcode=%s", req_id, _preview(wish, 150), postcode)
+    log.info("[%s] smart_search: wish=%r postcode=%s exclude_bids=%s",
+             req_id, _preview(wish, 150), postcode, exclude_bids)
     if parsed is _UNSET:
         parsed, notes = interpret(wish, req_id=req_id)
     notes = list(notes or [])
@@ -585,6 +615,11 @@ def smart_search(wish, postcode, parsed=_UNSET, notes=None, req_id="-"):
         price_min_euro=price_min, price_max_euro=price_max,
         req_id=req_id,
     )
+    if exclude_bids:
+        listings, hidden = drop_bids(listings)
+        note = bid_note(hidden)
+        if note:
+            notes.append(note)
 
     kept = listings
     if parsed and requirements and listings:
@@ -614,6 +649,7 @@ def smart_search(wish, postcode, parsed=_UNSET, notes=None, req_id="-"):
             "distance_meters": snap_radius(int(distance)) if distance and postcode else None,
             "requirements": requirements,
         },
+        "exclude_bids": bool(exclude_bids),
         "scanned": len(listings),
         "total_on_marktplaats": total,
         "results": kept,
@@ -689,6 +725,16 @@ HTML = """<!doctype html>
     outline: none; transition: box-shadow .15s ease;
   }
   input[type=text]:focus { box-shadow: 0 0 0 1.5px var(--ink); }
+  .toggle { display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+            font-size: 13.5px; color: var(--body); white-space: nowrap;
+            user-select: none; }
+  .toggle:hover { color: var(--ink); }
+  .toggle input { accent-color: var(--ink); width: 15px; height: 15px;
+                  margin: 0; cursor: pointer; }
+  @media (max-width: 460px) {
+    .boxrow { flex-wrap: wrap; }
+    .toggle { order: 3; width: 100%; padding: 2px 4px 4px; }
+  }
   #go {
     margin-left: auto; padding: 11px 26px; font: inherit; font-size: 15px;
     font-weight: 600; color: #fff; background: var(--ink); border: 0;
@@ -832,6 +878,9 @@ HTML = """<!doctype html>
         <textarea id="q" rows="3" placeholder="Wooden closet with drawers and hangers, about 1.5&ndash;2 m tall, within 15 minutes driving, max &euro;150"></textarea>
         <div class="boxrow">
           <input type="text" id="pc" placeholder="Postcode" autocomplete="postal-code">
+          <label class="toggle" for="nobids" title="Hide auctions: listings you can only bid on, where the price shown is just the opening bid">
+            <input type="checkbox" id="nobids"> Fixed price only
+          </label>
           <button id="go" type="submit">Search</button>
         </div>
       </div>
@@ -931,7 +980,9 @@ f.addEventListener('submit', async e => {
   const q = document.getElementById('q').value.trim();
   if (!q) return;
   const pc = document.getElementById('pc').value.trim();
+  const noBids = document.getElementById('nobids').checked;
   localStorage.setItem('pc', pc);
+  localStorage.setItem('nobids', noBids ? '1' : '');
   // Starting a fresh search leaves any previously-shared URL behind;
   // the address bar gets the new search's own link once it's saved.
   if (location.pathname !== '/') history.pushState({}, '', '/');
@@ -965,7 +1016,8 @@ f.addEventListener('submit', async e => {
     showInterp(p.parsed, p.ai);
     showNotes([]);
     stage = 'Searching Marktplaats&hellip;';
-    const d = await post({action: 'find', wish: q, postcode: pc, parsed: p.parsed});
+    const d = await post({action: 'find', wish: q, postcode: pc,
+                          exclude_bids: noBids, parsed: p.parsed});
     if (d.error) throw new Error(d.error);
     baseNotes = baseNotes.concat(d.notes || []);
     showNotes([]);
@@ -987,7 +1039,7 @@ f.addEventListener('submit', async e => {
       showNoMatchesModal();
     }
     await saveSearch({
-      action: 'save', wish: q, postcode: pc,
+      action: 'save', wish: q, postcode: pc, exclude_bids: noBids,
       interpreted: p.parsed || null, ai: !!p.ai, notes: baseNotes,
       scanned: state.listings.length, total_on_marktplaats: state.total,
       results: orderResults(state.listings, checking),
@@ -1105,6 +1157,7 @@ function renderSharedResults(rec) {
   document.getElementById('spin').style.display = 'none';
   document.getElementById('q').value = rec.wish || '';
   document.getElementById('pc').value = rec.postcode || '';
+  document.getElementById('nobids').checked = !!rec.exclude_bids;
   showInterp(rec.interpreted, rec.ai);
   baseNotes = (rec.notes || []).concat(['Shared search results — click the logo above to start a new search.']);
   showNotes([]);
@@ -1164,6 +1217,7 @@ if (SHARED) {
   }
 } else {
   document.getElementById('pc').value = localStorage.getItem('pc') || '';
+  document.getElementById('nobids').checked = !!localStorage.getItem('nobids');
 }
 
 document.querySelectorAll('.ex').forEach(b => b.addEventListener('click', () => {
@@ -1344,7 +1398,9 @@ HOW_IT_WORKS_HTML = """<!doctype html>
         <h3>It searches Marktplaats for you</h3>
         <p>vindje.com queries Marktplaats' own search directly and pulls in
            every listing that could plausibly match &mdash; titles, descriptions,
-           photos, prices, and distance, all at once.</p>
+           photos, prices, and distance, all at once. Tick "Fixed price only"
+           and auctions are left out, so every price you see is one you can
+           simply accept.</p>
       </div>
     </li>
     <li class="step">
@@ -1656,6 +1712,7 @@ def render_page(record, origin="", error=None, deals=None):
         shared_json = json.dumps({
             "wish": record.get("wish"),
             "postcode": record.get("postcode"),
+            "exclude_bids": bool(record.get("exclude_bids")),
             "interpreted": record.get("interpreted"),
             "ai": record.get("ai"),
             "notes": record.get("notes") or [],
@@ -1683,8 +1740,9 @@ def app(environ, start_response):
             wish = (payload.get("wish") or "").strip()
             postcode = (payload.get("postcode") or "").strip()
             action = (payload.get("action") or "").strip() or "pipeline"
-            log.info("[%s] POST action=%s wish=%r postcode=%s",
-                     req_id, action, _preview(wish, 150), postcode)
+            exclude_bids = bool(payload.get("exclude_bids"))
+            log.info("[%s] POST action=%s wish=%r postcode=%s exclude_bids=%s",
+                     req_id, action, _preview(wish, 150), postcode, exclude_bids)
             if action == "check":
                 # validate one batch of listings against the requirements
                 requirements = [str(r) for r in (payload.get("requirements") or [])]
@@ -1710,13 +1768,19 @@ def app(environ, start_response):
                 listings, total = search_marktplaats(
                     terms, postcode=postcode, distance_meters=distance,
                     price_min_euro=pmin, price_max_euro=pmax, req_id=req_id)
+                if exclude_bids:
+                    listings, hidden = drop_bids(listings)
+                    note = bid_note(hidden)
+                    if note:
+                        notes.append(note)
                 result = {"listings": listings, "total_on_marktplaats": total,
                           "requirements": reqs, "notes": notes}
             elif action == "results":
-                result = smart_search(wish, postcode,
-                                      parsed=payload.get("parsed"), req_id=req_id)
+                result = smart_search(wish, postcode, parsed=payload.get("parsed"),
+                                      exclude_bids=exclude_bids, req_id=req_id)
             else:  # single-call pipeline (curl-friendly)
-                result = smart_search(wish, postcode, req_id=req_id)
+                result = smart_search(wish, postcode, exclude_bids=exclude_bids,
+                                      req_id=req_id)
             body = json.dumps(result).encode()
             status = "200 OK"
         except Exception as e:

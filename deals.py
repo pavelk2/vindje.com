@@ -7,7 +7,9 @@ for €500+ — and saves the day's finds so the homepage can show them.
 Pipeline (reuses app.py's LLM + search + Redis helpers):
   1. Search Marktplaats nationwide for each category's brand queries
      (vintage racing bikes, designer lamps, design chairs, Mac minis),
-     capped at €250 asking price.
+     capped at €250 asking price. Auction listings are skipped: their
+     price is only an opening bid, so the upside can't be established
+     and you can't just buy the item at the price shown.
   2. An LLM values every listing: is it a genuine, complete item from a
      target brand (not a replica, part, or accessory), what would it
      realistically resell for on the Dutch market, and is the upside
@@ -103,9 +105,10 @@ VALUE_CHUNK = 12  # listings per LLM call; chunks are valued concurrently
 
 
 def parse_asking_price(price_str):
-    """€-string from app.format_price -> euros (int), or None if no fixed
-    number (pure bidding / on request / see description). '€179 (bid from)'
-    counts: the bid floor is the effective asking price."""
+    """€-string from app.format_price -> euros (int), or None if there is no
+    fixed number (on request / see description / bidding). Auction listings
+    never get this far — the search drops them — so any number seen here is a
+    real asking price, not a bid floor."""
     m = re.match(r"€([\d.]+)", str(price_str or ""))
     if not m:
         return None
@@ -196,7 +199,8 @@ def hunt_category(cat):
     listings, seen = [], set()
     for q in cat["queries"]:
         try:
-            found, _total = search_marktplaats(q, price_max_euro=PRICE_MAX_EURO)
+            found, _total = search_marktplaats(q, price_max_euro=PRICE_MAX_EURO,
+                                               exclude_bids=True)
         except Exception as e:
             print(f"  ! search '{q}' failed: {e}", file=sys.stderr)
             continue
