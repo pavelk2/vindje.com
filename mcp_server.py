@@ -83,6 +83,7 @@ def search_marktplaats_listings(
     radius_km: float | None = None,
     price_min_euro: float | None = None,
     price_max_euro: float | None = None,
+    exclude_bids: bool = False,
     limit: int = 60,
 ) -> dict[str, Any]:
     """Search live listings on Marktplaats.nl (Dutch classifieds).
@@ -101,14 +102,19 @@ def search_marktplaats_listings(
             1, 2, 3, 5, 10, 15, 25, 50, 75, 100 km.
         price_min_euro: Minimum price in euros, if the user gave one.
         price_max_euro: Maximum price in euros, if the user gave one.
+        exclude_bids: Set True to drop auction listings (pure bidding ads and
+            ones priced "from" an opening bid) and keep only fixed-price ones.
+            Use it when the user wants to buy at the price shown rather than
+            bid — e.g. "no auctions", "geen biedingen", "vaste prijs".
         limit: Max listings to fetch, 1-100 (default 60).
 
     Returns:
         A dict with:
-        - listings: list of {id, title, description, price, city,
+        - listings: list of {id, title, description, price, bid, city,
           distance_km, attributes, image, url}, each a full, untruncated
           listing — read title/description/attributes to validate against
-          the user's requirements.
+          the user's requirements. `bid` is true for auction listings, where
+          `price` is only the opening bid, not what the item will cost.
         - total_on_marktplaats: total hits Marktplaats reports for this
           query (may be larger than len(listings) if it was capped by limit).
         - radius_km_used: the actual radius applied, after snapping to an
@@ -128,6 +134,7 @@ def search_marktplaats_listings(
         price_min_euro=price_min_euro,
         price_max_euro=price_max_euro,
         limit=limit,
+        exclude_bids=exclude_bids,
     )
     radius_used = None
     if distance_meters:
