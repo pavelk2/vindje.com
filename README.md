@@ -17,7 +17,7 @@ searching through trash.
    search: Dutch keywords, price range, and a search radius (it even converts
    "15 minutes driving" into km).
 2. **Search** — the app queries Marktplaats' own search API with those filters.
-   Tick **Fixed price only** to drop auction ads (pure bidding, and ones
+   Tick **No auctions** to drop bidding ads (pure auctions, and ones
    priced "from" an opening bid), where the price shown isn't what you'd
    actually pay.
 3. **Filter** — the LLM reads every returned listing (title, description,

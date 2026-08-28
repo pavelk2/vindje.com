@@ -590,7 +590,7 @@ def bid_note(hidden):
     if not hidden:
         return None
     return (f"{hidden} bidding listing{'s' if hidden != 1 else ''} hidden — "
-            "untick 'Fixed price only' to include auctions.")
+            "untick 'No auctions' to include them.")
 
 
 def smart_search(wish, postcode, parsed=_UNSET, notes=None, exclude_bids=False,
@@ -879,7 +879,7 @@ HTML = """<!doctype html>
         <div class="boxrow">
           <input type="text" id="pc" placeholder="Postcode" autocomplete="postal-code">
           <label class="toggle" for="nobids" title="Hide auctions: listings you can only bid on, where the price shown is just the opening bid">
-            <input type="checkbox" id="nobids"> Fixed price only
+            <input type="checkbox" id="nobids"> No auctions
           </label>
           <button id="go" type="submit">Search</button>
         </div>
@@ -1398,9 +1398,9 @@ HOW_IT_WORKS_HTML = """<!doctype html>
         <h3>It searches Marktplaats for you</h3>
         <p>vindje.com queries Marktplaats' own search directly and pulls in
            every listing that could plausibly match &mdash; titles, descriptions,
-           photos, prices, and distance, all at once. Tick "Fixed price only"
-           and auctions are left out, so every price you see is one you can
-           simply accept.</p>
+           photos, prices, and distance, all at once. Tick "No auctions"
+           and bidding listings are left out, so every price you see is one
+           you can simply accept.</p>
       </div>
     </li>
     <li class="step">
