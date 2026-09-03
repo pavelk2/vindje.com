@@ -98,7 +98,7 @@ or condition unclear, value it low.
 Keep ONLY listings where the conservative LOW end of your resale estimate is at least
 €%d AND at least twice the asking price. Reply with ONLY JSON:
 {"finds": [{"n": <listing number>, "resale_low": <euro>, "resale_high": <euro>,
-            "why": "<max 15 words, English: what makes this undervalued>"}]}
+            "why": "<max 15 words, English, no em dashes: what makes this undervalued>"}]}
 If nothing qualifies, reply {"finds": []}."""
 
 VALUE_CHUNK = 12  # listings per LLM call; chunks are valued concurrently
