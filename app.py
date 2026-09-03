@@ -783,6 +783,11 @@ HTML = """<!doctype html>
                 letter-spacing: -.02em; margin: 0 0 8px; }
   .deals-sub { text-align: center; color: var(--muted); font-size: 13px;
                line-height: 1.5; margin: 0 auto; max-width: 560px; }
+  .deals-meme { display: flex; flex-direction: column; align-items: center;
+                gap: 5px; margin: 0 0 12px; }
+  .deals-meme svg { display: block; }
+  .deals-meme span { font-size: 11px; font-weight: 800; letter-spacing: .05em;
+                      color: var(--muted); text-transform: uppercase; }
   .deals .cat { font-size: 15px; font-weight: 700; letter-spacing: -.01em;
                 margin: 30px 2px 12px; }
   .deals-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
@@ -1193,6 +1198,19 @@ function renderDeals() {
       .toLocaleDateString('en-GB', {day: 'numeric', month: 'short'});
   } catch (err) {}
   document.getElementById('deals').innerHTML =
+    '<div class="deals-meme" aria-hidden="true">' +
+      '<svg width="72" height="52" viewBox="0 0 80 56" fill="none">' +
+        '<circle cx="14" cy="20" r="6" fill="var(--ink)"/>' +
+        '<rect x="8" y="17" width="12" height="4" rx="1.5" fill="#fff"/>' +
+        '<rect x="8" y="27" width="13" height="17" rx="5" fill="var(--ink)"/>' +
+        '<line x1="19" y1="30" x2="31" y2="19" stroke="var(--ink)" stroke-width="3.5" stroke-linecap="round"/>' +
+        '<line x1="10" y1="44" x2="8" y2="54" stroke="var(--ink)" stroke-width="3.5" stroke-linecap="round"/>' +
+        '<line x1="18" y1="44" x2="20" y2="54" stroke="var(--ink)" stroke-width="3.5" stroke-linecap="round"/>' +
+        '<polyline points="31,19 42,23 50,11 60,15 72,5" fill="none" stroke="#1f9d55" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="M62,5 H72 V15" fill="none" stroke="#1f9d55" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '</svg>' +
+      '<span>stonks</span>' +
+    '</div>' +
     '<h2 class="deals-head">Today&rsquo;s finds</h2>' +
     '<p class="deals-sub">Undervalued items spotted this morning' + when +
     ' &mdash; asking under &euro;250, estimated to resell for &euro;500+.' +
