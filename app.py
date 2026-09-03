@@ -539,6 +539,120 @@ def get_history(limit=HISTORY_MAX):
     return entries
 
 
+# ---------------------------------------------------------------- ideas board (/ideas)
+
+# Anyone can post a change they'd like to see, upvote others', and comment.
+# A voter is identified by an anonymous "vid" cookie (set the first time
+# someone visits /ideas) so votes can be deduped to distinct people without
+# any real account system. IDEA_VOTE_THRESHOLD is how many distinct voters
+# an idea needs before it "qualifies" — configurable so the bar can move
+# without a code change.
+IDEAS_KEY = "ideas:all"
+IDEAS_MAX = 500
+IDEA_TITLE_MAX = 140
+IDEA_DESC_MAX = 600
+IDEA_COMMENT_MAX = 500
+IDEA_COMMENTS_MAX = 200
+IDEA_VOTE_THRESHOLD = int(os.environ.get("IDEA_VOTE_THRESHOLD", "3"))
+
+
+def submit_idea(title, desc):
+    title = (title or "").strip()
+    if not title:
+        raise ValueError("An idea needs a title")
+    idea_id = secrets.token_urlsafe(9)
+    entry = {
+        "id": idea_id,
+        "title": title[:IDEA_TITLE_MAX],
+        "desc": (desc or "").strip()[:IDEA_DESC_MAX],
+        "ts": time.time(),
+    }
+    upstash_command("LPUSH", IDEAS_KEY, json.dumps(entry))
+    upstash_command("LTRIM", IDEAS_KEY, "0", str(IDEAS_MAX - 1))
+    return idea_id
+
+
+def get_ideas():
+    """All ideas, unsorted (caller sorts by vote count)."""
+    raw = upstash_command("LRANGE", IDEAS_KEY, "0", str(IDEAS_MAX - 1))
+    ideas = []
+    for item in raw or []:
+        try:
+            ideas.append(json.loads(item))
+        except (TypeError, ValueError):
+            continue
+    return ideas
+
+
+def idea_votes(idea_id):
+    return int(upstash_command("SCARD", f"idea:votes:{idea_id}") or 0)
+
+
+def voter_has_voted(idea_id, voter_id):
+    return bool(upstash_command("SISMEMBER", f"idea:votes:{idea_id}", voter_id))
+
+
+def toggle_vote(idea_id, voter_id):
+    """Upvote, or take the vote back if this voter already cast it."""
+    key = f"idea:votes:{idea_id}"
+    if upstash_command("SISMEMBER", key, voter_id):
+        upstash_command("SREM", key, voter_id)
+        voted = False
+    else:
+        upstash_command("SADD", key, voter_id)
+        voted = True
+    return voted, int(upstash_command("SCARD", key) or 0)
+
+
+def add_comment(idea_id, text):
+    text = (text or "").strip()
+    if not text:
+        raise ValueError("Say something first")
+    entry = {"text": text[:IDEA_COMMENT_MAX], "ts": time.time()}
+    key = f"idea:comments:{idea_id}"
+    upstash_command("RPUSH", key, json.dumps(entry))
+    upstash_command("LTRIM", key, "-" + str(IDEA_COMMENTS_MAX), "-1")
+    return entry
+
+
+def get_comments(idea_id):
+    raw = upstash_command("LRANGE", f"idea:comments:{idea_id}", "0", "-1")
+    comments = []
+    for item in raw or []:
+        try:
+            comments.append(json.loads(item))
+        except (TypeError, ValueError):
+            continue
+    return comments
+
+
+VOTER_COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 5  # 5 years - a vote should stick
+
+
+def _voter_id_from_cookie(environ):
+    for part in (environ.get("HTTP_COOKIE") or "").split(";"):
+        if "=" not in part:
+            continue
+        k, v = part.strip().split("=", 1)
+        if k == "vid" and v:
+            return v
+    return None
+
+
+def _ensure_voter(environ, headers, secure):
+    """Return this visitor's voter id, minting and Set-Cookie-ing a new
+    one (appended to `headers`) the first time they show up."""
+    voter_id = _voter_id_from_cookie(environ)
+    if voter_id:
+        return voter_id
+    voter_id = secrets.token_urlsafe(16)
+    flags = f"Path=/; Max-Age={VOTER_COOKIE_MAX_AGE}; SameSite=Lax"
+    if secure:
+        flags += "; Secure"
+    headers.append(("Set-Cookie", f"vid={voter_id}; {flags}"))
+    return voter_id
+
+
 # ---------------------------------------------------------------- pipeline
 
 _UNSET = object()
@@ -913,6 +1027,7 @@ HTML = """<!doctype html>
     <span class="footer-brand">vindje.com</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
+      <a href="/ideas">Ideas</a>
       <a href="/history">History</a>
       <a href="/credits">Credits</a>
       <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
@@ -1427,6 +1542,7 @@ HOW_IT_WORKS_HTML = """<!doctype html>
     <span class="footer-brand">vindje.com</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
+      <a href="/ideas">Ideas</a>
       <a href="/history">History</a>
       <a href="/credits">Credits</a>
       <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
@@ -1550,6 +1666,7 @@ CREDITS_HTML = """<!doctype html>
     <span class="footer-brand">vindje.com</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
+      <a href="/ideas">Ideas</a>
       <a href="/history">History</a>
       <a href="/credits">Credits</a>
       <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
@@ -1645,6 +1762,7 @@ HISTORY_HTML = """<!doctype html>
     <span class="footer-brand">vindje.com</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
+      <a href="/ideas">Ideas</a>
       <a href="/history">History</a>
       <a href="/credits">Credits</a>
       <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
@@ -1653,6 +1771,312 @@ HISTORY_HTML = """<!doctype html>
 </footer>
 </body>
 </html>"""
+
+
+IDEAS_HTML = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ideas &middot; vindje.com</title>
+<meta name="description" content="Suggest a change to vindje.com, upvote the ones you'd actually use, and argue about it in the comments.">
+<link rel="canonical" href="__ORIGIN__/ideas">
+<meta name="robots" content="noindex, follow">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
+<style>
+  :root {
+    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
+    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
+  }
+  * { box-sizing: border-box; }
+  ::selection { background: var(--ink); color: #fff; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: #fff; color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
+                 system-ui, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
+          flex: 1 0 auto; }
+  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  .top a { color: inherit; text-decoration: none; }
+
+  h1 {
+    font-size: clamp(30px, 5.5vw, 42px); font-weight: 700; letter-spacing: -.03em;
+    line-height: 1.08; margin: clamp(32px, 6vh, 52px) 0 8px;
+  }
+  .sub { font-size: 15.5px; color: var(--muted); line-height: 1.5; margin: 0 0 30px; }
+
+  .form-card { background: var(--field); border-radius: 20px; padding: 16px;
+               margin: 0 0 40px; display: flex; flex-direction: column; gap: 10px; }
+  .form-card input[type=text], .form-card textarea {
+    border: 0; background: #fff; border-radius: 12px; padding: 12px 14px;
+    font: inherit; font-size: 15px; color: var(--ink); outline: none;
+    width: 100%; transition: box-shadow .15s ease;
+  }
+  .form-card textarea { min-height: 60px; resize: vertical; }
+  .form-card input:focus, .form-card textarea:focus { box-shadow: 0 0 0 1.5px var(--ink); }
+  .form-card ::placeholder { color: var(--muted); }
+  .form-row { display: flex; align-items: center; gap: 10px; }
+  .form-hint { font-size: 12.5px; color: #d33; margin-right: auto; }
+  #ideaSubmit {
+    margin-left: auto; padding: 10px 24px; font: inherit; font-size: 14.5px;
+    font-weight: 600; color: #fff; background: var(--ink); border: 0;
+    border-radius: 980px; cursor: pointer;
+    transition: opacity .15s ease, transform .1s ease;
+  }
+  #ideaSubmit:hover { opacity: .85; }
+  #ideaSubmit:active { transform: scale(.97); }
+  #ideaSubmit:disabled { opacity: .35; cursor: wait; }
+
+  .idea-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .idea-card {
+    display: flex; gap: 14px; background: var(--field); border-radius: 18px;
+    padding: 16px 18px; animation: rise .3s ease backwards;
+  }
+  .vote-btn {
+    flex: none; width: 54px; height: 54px; border-radius: 14px;
+    border: 1px solid var(--line2); background: #fff; color: var(--ink);
+    font: inherit; cursor: pointer; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 2px;
+    transition: background .15s ease, color .15s ease, border-color .15s ease, transform .1s ease;
+  }
+  .vote-btn:hover { border-color: var(--ink); }
+  .vote-btn:active { transform: scale(.94); }
+  .vote-btn:disabled { opacity: .6; cursor: wait; }
+  .vote-btn .arrow { font-size: 13px; line-height: 1; }
+  .vote-btn .n { font-size: 14px; font-weight: 700; line-height: 1; }
+  .vote-btn.voted { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+  .idea-main { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 5px; }
+  .idea-title { font-size: 15.5px; font-weight: 600; letter-spacing: -.01em;
+                line-height: 1.4; overflow-wrap: break-word; }
+  .idea-desc { font-size: 13.5px; color: var(--body); line-height: 1.5; margin: 0;
+               overflow-wrap: break-word; }
+  .idea-meta { display: flex; align-items: center; gap: 10px; font-size: 12.5px;
+               color: var(--muted); margin-top: 2px; }
+  .badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 700;
+           letter-spacing: .01em; text-transform: uppercase; color: #fff;
+           background: var(--ink); border-radius: 980px; padding: 3px 9px; }
+
+  .comments { margin-top: 2px; }
+  .comments summary { cursor: pointer; font-size: 12.5px; color: var(--muted);
+                       list-style: none; }
+  .comments summary::-webkit-details-marker { display: none; }
+  .comments summary::before { content: '\\1F4AC  '; }
+  .comments summary:hover { color: var(--ink); }
+  .comment-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+  .comment {
+    background: #fff; border-radius: 10px; padding: 8px 12px; font-size: 13px;
+    color: var(--body); line-height: 1.45; overflow-wrap: break-word;
+  }
+  .comment-form { display: flex; gap: 8px; margin-top: 10px; }
+  .comment-form input {
+    flex: 1; min-width: 0; border: 1px solid var(--line2); background: #fff;
+    border-radius: 980px; padding: 8px 14px; font: inherit; font-size: 13px; outline: none;
+    transition: box-shadow .15s ease;
+  }
+  .comment-form input:focus { box-shadow: 0 0 0 1.5px var(--ink); }
+  .comment-form button {
+    flex: none; border: 0; background: var(--ink); color: #fff; border-radius: 980px;
+    padding: 8px 16px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .comment-form button:hover { opacity: .85; }
+
+  .empty { text-align: center; color: var(--muted); font-size: 14.5px; padding: 60px 0; }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); }
+                    to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .01s !important; transition-duration: .01s !important; }
+  }
+
+  .footer { flex-shrink: 0; margin-top: 70px; border-top: 1px solid var(--line); }
+  .footer-inner { max-width: 1040px; margin: 0 auto; padding: 22px 20px 30px;
+                  display: flex; align-items: center; justify-content: space-between;
+                  flex-wrap: wrap; gap: 12px; }
+  .footer-brand { font-size: 13px; color: var(--muted); }
+  .footer-links { display: flex; gap: 22px; }
+  .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; }
+  .footer-links a:hover { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="/">vindje.com</a></div>
+  <h1>What should vindje.com do next?</h1>
+  <p class="sub">Post an idea, upvote the ones you'd actually use, argue about it in the
+     comments. __VOTE_THRESHOLD__ votes from __VOTE_THRESHOLD__ different people and an
+     idea qualifies for the build queue &mdash; Pavel still hits merge, so this is a
+     suggestion box, not Skynet.</p>
+
+  <form class="form-card" id="ideaForm">
+    <input type="text" id="ideaTitle" maxlength="140"
+           placeholder="e.g. dark mode, saved searches that email me, a &lsquo;nope&rsquo; button&hellip;" required>
+    <textarea id="ideaDesc" maxlength="600" placeholder="Why though? (optional, but it helps)"></textarea>
+    <div class="form-row">
+      <span class="form-hint" id="ideaError"></span>
+      <button type="submit" id="ideaSubmit">Toss it in</button>
+    </div>
+  </form>
+
+  __IDEAS__
+</div>
+<footer class="footer">
+  <div class="footer-inner">
+    <span class="footer-brand">vindje.com</span>
+    <nav class="footer-links">
+      <a href="/how-it-works">How it works</a>
+      <a href="/ideas">Ideas</a>
+      <a href="/history">History</a>
+      <a href="/credits">Credits</a>
+      <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
+    </nav>
+  </div>
+</footer>
+<script>
+async function ideaApi(action, data) {
+  const res = await fetch('/', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(Object.assign({action}, data)),
+  });
+  const json = await res.json();
+  if (!res.ok || json.error) throw new Error(json.error || 'Something broke');
+  return json;
+}
+
+document.getElementById('ideaForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const title = document.getElementById('ideaTitle').value.trim();
+  const desc = document.getElementById('ideaDesc').value.trim();
+  const btn = document.getElementById('ideaSubmit');
+  const err = document.getElementById('ideaError');
+  err.textContent = '';
+  if (!title) { err.textContent = 'Needs a title.'; return; }
+  btn.disabled = true;
+  try {
+    await ideaApi('idea_submit', {title, desc});
+    location.reload();
+  } catch (e) {
+    err.textContent = e.message;
+    btn.disabled = false;
+  }
+});
+
+function wireVoteButton(btn) {
+  btn.addEventListener('click', async () => {
+    const id = btn.dataset.id;
+    btn.disabled = true;
+    try {
+      const r = await ideaApi('idea_vote', {id});
+      btn.classList.toggle('voted', r.voted);
+      btn.querySelector('.n').textContent = r.votes;
+      const meta = btn.closest('.idea-card').querySelector('.idea-meta');
+      let badge = meta.querySelector('.badge');
+      if (r.votes >= __VOTE_THRESHOLD__ && !badge) {
+        badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.textContent = 'Qualified';
+        meta.prepend(badge);
+      } else if (r.votes < __VOTE_THRESHOLD__ && badge) {
+        badge.remove();
+      }
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+function wireCommentForm(form) {
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = form.dataset.id;
+    const input = form.querySelector('input');
+    const text = input.value.trim();
+    if (!text) return;
+    const btn = form.querySelector('button');
+    btn.disabled = true;
+    try {
+      await ideaApi('idea_comment', {id, text});
+      const list = form.previousElementSibling;
+      const li = document.createElement('li');
+      li.className = 'comment';
+      li.textContent = text;
+      list.appendChild(li);
+      input.value = '';
+      const count = list.children.length;
+      form.closest('details').querySelector('summary').textContent =
+        count + (count === 1 ? ' comment' : ' comments');
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+document.querySelectorAll('.vote-btn').forEach(wireVoteButton);
+document.querySelectorAll('.comment-form').forEach(wireCommentForm);
+</script>
+</body>
+</html>"""
+
+
+def render_ideas(ideas, origin=""):
+    """Render the /ideas board: submit form + every idea, highest-voted
+    first, each with its vote count and comment thread."""
+    if not ideas:
+        inner = '<p class="empty">Nothing here yet. Be the first to complain productively.</p>'
+    else:
+        cards = []
+        for idea in ideas:
+            idea_id = html.escape(str(idea.get("id") or ""))
+            if not idea_id:
+                continue
+            title = html.escape(str(idea.get("title") or "")[:IDEA_TITLE_MAX])
+            desc = html.escape(str(idea.get("desc") or "")[:IDEA_DESC_MAX])
+            votes = int(idea.get("votes") or 0)
+            voted = bool(idea.get("voted"))
+            comments = idea.get("comments") or []
+            ts = idea.get("ts")
+            when = ""
+            if isinstance(ts, (int, float)):
+                when = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%d %b %Y")
+            badge = '<span class="badge">Qualified</span>' if votes >= IDEA_VOTE_THRESHOLD else ""
+            comment_items = "".join(
+                f'<li class="comment">{html.escape(str(c.get("text") or ""))}</li>'
+                for c in comments
+            )
+            n = len(comments)
+            comment_label = f"{n} comment" if n == 1 else f"{n} comments"
+            desc_html = f'<p class="idea-desc">{desc}</p>' if desc else ""
+            cards.append(f"""<li class="idea-card">
+  <button type="button" class="vote-btn{' voted' if voted else ''}" data-id="{idea_id}">
+    <span class="arrow">&#9650;</span><span class="n">{votes}</span>
+  </button>
+  <div class="idea-main">
+    <span class="idea-title">{title}</span>
+    {desc_html}
+    <div class="idea-meta">{badge}<span>{html.escape(when)}</span></div>
+    <details class="comments">
+      <summary>{comment_label}</summary>
+      <ul class="comment-list">{comment_items}</ul>
+      <form class="comment-form" data-id="{idea_id}">
+        <input type="text" maxlength="{IDEA_COMMENT_MAX}" placeholder="Add a thought&hellip;">
+        <button type="submit">Post</button>
+      </form>
+    </details>
+  </div>
+</li>""")
+        inner = '<ul class="idea-list" id="ideaList">' + "".join(cards) + "</ul>"
+    return (IDEAS_HTML.replace("__IDEAS__", inner)
+                       .replace("__VOTE_THRESHOLD__", str(IDEA_VOTE_THRESHOLD))
+                       .replace("__ORIGIN__", origin))
 
 
 ROBOTS_TXT = """User-agent: *
@@ -1665,6 +2089,7 @@ SITEMAP_XML = """<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>__ORIGIN__/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
   <url><loc>__ORIGIN__/how-it-works</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>__ORIGIN__/ideas</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
   <url><loc>__ORIGIN__/credits</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
 </urlset>
 """
@@ -1732,8 +2157,13 @@ def render_page(record, origin="", error=None, deals=None):
 def app(environ, start_response):
     req_id = _new_req_id()
     t0 = time.time()
+    scheme = environ.get(
+        "HTTP_X_FORWARDED_PROTO", environ.get("wsgi.url_scheme", "https")
+    ).split(",")[0].strip()
+    secure = scheme == "https"
     if environ.get("REQUEST_METHOD") == "POST":
         action = "-"
+        extra_headers = []
         try:
             length = int(environ.get("CONTENT_LENGTH") or 0)
             payload = json.loads(environ["wsgi.input"].read(length).decode())
@@ -1756,6 +2186,22 @@ def app(environ, start_response):
             elif action == "save":
                 share_id = save_search(payload)
                 result = {"id": share_id, "url": "/s/" + share_id}
+            elif action == "idea_submit":
+                idea_id = submit_idea(payload.get("title"), payload.get("desc"))
+                result = {"id": idea_id}
+            elif action == "idea_vote":
+                idea_id = str(payload.get("id") or "")
+                if not idea_id:
+                    raise ValueError("Missing idea id")
+                voter_id = _ensure_voter(environ, extra_headers, secure)
+                voted, votes = toggle_vote(idea_id, voter_id)
+                result = {"voted": voted, "votes": votes}
+            elif action == "idea_comment":
+                idea_id = str(payload.get("id") or "")
+                if not idea_id:
+                    raise ValueError("Missing idea id")
+                comment = add_comment(idea_id, payload.get("text"))
+                result = {"comment": comment}
             elif not wish:
                 raise ValueError("Empty search")
             elif action == "parse":
@@ -1790,12 +2236,9 @@ def app(environ, start_response):
             status = "500 Internal Server Error"
         log.info("[%s] POST action=%s -> %s in %.2fs, %d bytes",
                  req_id, action, status, time.time() - t0, len(body))
-        headers = [("Content-Type", "application/json")]
+        headers = [("Content-Type", "application/json")] + extra_headers
     else:
         path = (environ.get("PATH_INFO") or "/").rstrip("/") or "/"
-        scheme = environ.get(
-            "HTTP_X_FORWARDED_PROTO", environ.get("wsgi.url_scheme", "https")
-        ).split(",")[0].strip()
         host = environ.get("HTTP_HOST") or environ.get("SERVER_NAME") or "localhost"
         origin = f"{scheme}://{host}"
         status = "200 OK"
@@ -1818,6 +2261,25 @@ def app(environ, start_response):
                 entries = []
             body = render_history(entries, origin=origin).encode()
             headers = [("Content-Type", "text/html; charset=utf-8")]
+        elif path == "/ideas":
+            headers = [("Content-Type", "text/html; charset=utf-8")]
+            voter_id = _ensure_voter(environ, headers, secure)
+            try:
+                enriched = []
+                for idea in get_ideas():
+                    idea_id = str(idea.get("id") or "")
+                    if not idea_id:
+                        continue
+                    enriched.append({
+                        **idea,
+                        "votes": idea_votes(idea_id),
+                        "voted": voter_has_voted(idea_id, voter_id),
+                        "comments": get_comments(idea_id),
+                    })
+            except Exception:
+                enriched = []
+            enriched.sort(key=lambda i: (-i["votes"], -(i.get("ts") or 0)))
+            body = render_ideas(enriched, origin=origin).encode()
         elif path.startswith("/s/") and len(path) > 3:
             try:
                 record = get_search(path[3:])
