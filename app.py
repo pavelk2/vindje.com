@@ -980,6 +980,28 @@ HTML = """<!doctype html>
                    color: #fff; background: var(--ink); border: 0; border-radius: 980px;
                    cursor: pointer; transition: opacity .15s ease; }
   .modal button:hover { opacity: .85; }
+
+  .fab {
+    position: fixed; right: 20px; bottom: 20px; z-index: 40;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--ink); color: #fff; text-decoration: none;
+    padding: 13px 20px 13px 16px; border-radius: 980px;
+    font-size: 14px; font-weight: 600; letter-spacing: -.01em;
+    box-shadow: 0 10px 30px rgba(0,0,0,.18), 0 2px 10px rgba(0,0,0,.1);
+    transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+    animation: fab-in .4s ease .15s backwards;
+  }
+  .fab:hover { transform: translateY(-3px);
+               box-shadow: 0 16px 38px rgba(0,0,0,.24), 0 4px 12px rgba(0,0,0,.12); }
+  .fab:active { transform: translateY(-1px) scale(.96); }
+  .fab.fab-hide { opacity: 0; pointer-events: none; transform: translateY(8px); }
+  .fab-emoji { font-size: 17px; line-height: 1; }
+  @keyframes fab-in { from { opacity: 0; transform: translateY(16px) scale(.85); }
+                      to { opacity: 1; transform: none; } }
+  @media (max-width: 480px) {
+    .fab-text { display: none; }
+    .fab { padding: 14px; }
+  }
 </style>
 </head>
 <body>
@@ -1034,6 +1056,19 @@ HTML = """<!doctype html>
     </nav>
   </div>
 </footer>
+<a href="/ideas" class="fab" aria-label="See or share ideas for vindje.com">
+  <span class="fab-emoji">&#128161;</span><span class="fab-text">Ideas</span>
+</a>
+<script>
+(function () {
+  var fab = document.querySelector('.fab');
+  var foot = document.querySelector('footer.footer');
+  if (!fab || !foot || !('IntersectionObserver' in window)) return;
+  new IntersectionObserver(function (entries) {
+    fab.classList.toggle('fab-hide', entries[0].isIntersecting);
+  }).observe(foot);
+})();
+</script>
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <h2>No good matches found</h2>
@@ -1483,6 +1518,28 @@ HOW_IT_WORKS_HTML = """<!doctype html>
   @media (prefers-reduced-motion: reduce) {
     * { animation-duration: .01s !important; transition-duration: .01s !important; }
   }
+
+  .fab {
+    position: fixed; right: 20px; bottom: 20px; z-index: 40;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--ink); color: #fff; text-decoration: none;
+    padding: 13px 20px 13px 16px; border-radius: 980px;
+    font-size: 14px; font-weight: 600; letter-spacing: -.01em;
+    box-shadow: 0 10px 30px rgba(0,0,0,.18), 0 2px 10px rgba(0,0,0,.1);
+    transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+    animation: fab-in .4s ease .15s backwards;
+  }
+  .fab:hover { transform: translateY(-3px);
+               box-shadow: 0 16px 38px rgba(0,0,0,.24), 0 4px 12px rgba(0,0,0,.12); }
+  .fab:active { transform: translateY(-1px) scale(.96); }
+  .fab.fab-hide { opacity: 0; pointer-events: none; transform: translateY(8px); }
+  .fab-emoji { font-size: 17px; line-height: 1; }
+  @keyframes fab-in { from { opacity: 0; transform: translateY(16px) scale(.85); }
+                      to { opacity: 1; transform: none; } }
+  @media (max-width: 480px) {
+    .fab-text { display: none; }
+    .fab { padding: 14px; }
+  }
 </style>
 </head>
 <body>
@@ -1549,6 +1606,19 @@ HOW_IT_WORKS_HTML = """<!doctype html>
     </nav>
   </div>
 </footer>
+<a href="/ideas" class="fab" aria-label="See or share ideas for vindje.com">
+  <span class="fab-emoji">&#128161;</span><span class="fab-text">Ideas</span>
+</a>
+<script>
+(function () {
+  var fab = document.querySelector('.fab');
+  var foot = document.querySelector('footer.footer');
+  if (!fab || !foot || !('IntersectionObserver' in window)) return;
+  new IntersectionObserver(function (entries) {
+    fab.classList.toggle('fab-hide', entries[0].isIntersecting);
+  }).observe(foot);
+})();
+</script>
 </body>
 </html>"""
 
@@ -1631,6 +1701,28 @@ CREDITS_HTML = """<!doctype html>
   @media (prefers-reduced-motion: reduce) {
     * { animation-duration: .01s !important; transition-duration: .01s !important; }
   }
+
+  .fab {
+    position: fixed; right: 20px; bottom: 20px; z-index: 40;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--ink); color: #fff; text-decoration: none;
+    padding: 13px 20px 13px 16px; border-radius: 980px;
+    font-size: 14px; font-weight: 600; letter-spacing: -.01em;
+    box-shadow: 0 10px 30px rgba(0,0,0,.18), 0 2px 10px rgba(0,0,0,.1);
+    transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+    animation: fab-in .4s ease .15s backwards;
+  }
+  .fab:hover { transform: translateY(-3px);
+               box-shadow: 0 16px 38px rgba(0,0,0,.24), 0 4px 12px rgba(0,0,0,.12); }
+  .fab:active { transform: translateY(-1px) scale(.96); }
+  .fab.fab-hide { opacity: 0; pointer-events: none; transform: translateY(8px); }
+  .fab-emoji { font-size: 17px; line-height: 1; }
+  @keyframes fab-in { from { opacity: 0; transform: translateY(16px) scale(.85); }
+                      to { opacity: 1; transform: none; } }
+  @media (max-width: 480px) {
+    .fab-text { display: none; }
+    .fab { padding: 14px; }
+  }
 </style>
 </head>
 <body>
@@ -1673,6 +1765,19 @@ CREDITS_HTML = """<!doctype html>
     </nav>
   </div>
 </footer>
+<a href="/ideas" class="fab" aria-label="See or share ideas for vindje.com">
+  <span class="fab-emoji">&#128161;</span><span class="fab-text">Ideas</span>
+</a>
+<script>
+(function () {
+  var fab = document.querySelector('.fab');
+  var foot = document.querySelector('footer.footer');
+  if (!fab || !foot || !('IntersectionObserver' in window)) return;
+  new IntersectionObserver(function (entries) {
+    fab.classList.toggle('fab-hide', entries[0].isIntersecting);
+  }).observe(foot);
+})();
+</script>
 </body>
 </html>"""
 
@@ -1747,6 +1852,28 @@ HISTORY_HTML = """<!doctype html>
   .footer-links { display: flex; gap: 22px; }
   .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; }
   .footer-links a:hover { color: var(--ink); }
+
+  .fab {
+    position: fixed; right: 20px; bottom: 20px; z-index: 40;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--ink); color: #fff; text-decoration: none;
+    padding: 13px 20px 13px 16px; border-radius: 980px;
+    font-size: 14px; font-weight: 600; letter-spacing: -.01em;
+    box-shadow: 0 10px 30px rgba(0,0,0,.18), 0 2px 10px rgba(0,0,0,.1);
+    transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+    animation: fab-in .4s ease .15s backwards;
+  }
+  .fab:hover { transform: translateY(-3px);
+               box-shadow: 0 16px 38px rgba(0,0,0,.24), 0 4px 12px rgba(0,0,0,.12); }
+  .fab:active { transform: translateY(-1px) scale(.96); }
+  .fab.fab-hide { opacity: 0; pointer-events: none; transform: translateY(8px); }
+  .fab-emoji { font-size: 17px; line-height: 1; }
+  @keyframes fab-in { from { opacity: 0; transform: translateY(16px) scale(.85); }
+                      to { opacity: 1; transform: none; } }
+  @media (max-width: 480px) {
+    .fab-text { display: none; }
+    .fab { padding: 14px; }
+  }
 </style>
 </head>
 <body>
@@ -1769,6 +1896,19 @@ HISTORY_HTML = """<!doctype html>
     </nav>
   </div>
 </footer>
+<a href="/ideas" class="fab" aria-label="See or share ideas for vindje.com">
+  <span class="fab-emoji">&#128161;</span><span class="fab-text">Ideas</span>
+</a>
+<script>
+(function () {
+  var fab = document.querySelector('.fab');
+  var foot = document.querySelector('footer.footer');
+  if (!fab || !foot || !('IntersectionObserver' in window)) return;
+  new IntersectionObserver(function (entries) {
+    fab.classList.toggle('fab-hide', entries[0].isIntersecting);
+  }).observe(foot);
+})();
+</script>
 </body>
 </html>"""
 
