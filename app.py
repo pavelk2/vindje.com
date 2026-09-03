@@ -361,7 +361,7 @@ check, not an appraisal. Say so implicitly by keeping "why" honest (e.g.
 "looks like a genuine Artemide ITIS, plausible resale value" rather than
 asserting a precise price).
 
-Reply with ONLY JSON: {"matches": [{"n": <listing number>, "why": "<max 12 words, English>"}]}"""
+Reply with ONLY JSON: {"matches": [{"n": <listing number>, "why": "<max 12 words, English, no em dashes>"}]}"""
 
 
 FILTER_CHUNK = 8  # listings per LLM call; smaller than before since each one
