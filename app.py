@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-vindje.com — smart search for Marktplaats: describe what you want in
+vindje.com, smart search for Marktplaats: describe what you want in
 plain language, get only the listings that actually match.
 
 How it works (single file, zero dependencies, Python 3.8+):
@@ -8,7 +8,7 @@ How it works (single file, zero dependencies, Python 3.8+):
      into a structured Marktplaats search (Dutch keywords, price range,
      search radius).
   2. We query Marktplaats' own search API.
-  3. The LLM reads every result — text and its first photo — and keeps
+  3. The LLM reads every result, text and its first photo, and keeps
      only the ones that really match your requirements (size, features,
      condition, resale value, ...).
 
@@ -16,7 +16,7 @@ Run:
   OPENROUTER_API_KEY=sk-or-... python3 app.py
   open http://localhost:8000
 
-Get a key at https://openrouter.ai/keys and add credits — the default
+Get a key at https://openrouter.ai/keys and add credits. The default
 model (GPT-5.6 Luna) is paid, not one of OpenRouter's free models.
 Without a key the app still works as a plain Marktplaats search,
 just without the smart parsing/filtering.
@@ -65,7 +65,7 @@ def _preview(value, n=200):
 
 def _summarize_messages(messages):
     """One-line shape of an outgoing LLM request (roles, text sizes, image
-    counts) — logged instead of the full payload so a photo-heavy filter
+    counts), logged instead of the full payload so a photo-heavy filter
     chunk doesn't flood the log with URLs, while still making it obvious
     whether images were actually included in the request."""
     parts = []
@@ -444,7 +444,7 @@ def filter_listings(requirements, listings, req_id="-"):
 
 # Every completed search is saved (frozen snapshot) and given a short
 # share id, so a link to /s/<id> shows the exact same results later, to
-# anyone. Uses Upstash Redis' HTTP REST API directly via urllib — no
+# anyone. Uses Upstash Redis' HTTP REST API directly via urllib, no
 # extra dependency. Configure with UPSTASH_REDIS_REST_URL and
 # UPSTASH_REDIS_REST_TOKEN (from the Upstash console; the token is
 # secret and only ever used server-side).
@@ -545,7 +545,7 @@ def get_history(limit=HISTORY_MAX):
 # A voter is identified by an anonymous "vid" cookie (set the first time
 # someone visits /ideas) so votes can be deduped to distinct people without
 # any real account system. IDEA_VOTE_THRESHOLD is how many distinct voters
-# an idea needs before it "qualifies" — configurable so the bar can move
+# an idea needs before it "qualifies", configurable so the bar can move
 # without a code change.
 IDEAS_KEY = "ideas:all"
 IDEAS_MAX = 500
@@ -676,7 +676,7 @@ def interpret(wish, req_id="-"):
             log.warning("[%s] interpret: parse_wish failed: %s", req_id, e)
             notes.append(f"AI query parsing failed ({e}); using your text as-is.")
     else:
-        notes.append("OPENROUTER_API_KEY not set — running as a plain search "
+        notes.append("OPENROUTER_API_KEY not set, running as a plain search "
                      "without AI parsing/filtering.")
     return parsed, notes
 
@@ -693,8 +693,8 @@ def search_params(parsed, wish, postcode):
     else:
         terms, distance, price_min, price_max, requirements = wish, None, None, None, []
     if distance and not postcode:
-        notes.append("Your wish limits distance but no postcode was given — "
-                     "add your postcode to enable the radius filter.")
+        notes.append("Your wish limits distance but no postcode was given. "
+                     "Add your postcode to enable the radius filter.")
         distance = None
     return terms, distance, price_min, price_max, requirements, notes
 
@@ -703,8 +703,8 @@ def bid_note(hidden):
     """The note shown when auction listings were filtered out, or None."""
     if not hidden:
         return None
-    return (f"{hidden} bidding listing{'s' if hidden != 1 else ''} hidden — "
-            "untick 'Fixed price only' to include auctions.")
+    return (f"{hidden} bidding listing{'s' if hidden != 1 else ''} hidden. "
+            "Untick 'Fixed price only' to include auctions.")
 
 
 def smart_search(wish, postcode, parsed=_UNSET, notes=None, exclude_bids=False,
@@ -779,53 +779,58 @@ HTML = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>vindje.com &mdash; Smart AI Search for Marktplaats</title>
+<title>vindje.com &middot; Smart AI Search for Marktplaats</title>
 <meta name="description" content="Describe what you want to buy in plain language. vindje.com turns it into a real Marktplaats search and uses AI to read every listing, keeping only the ones that actually match.">
 <link rel="canonical" href="__ORIGIN__/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="vindje.com">
-<meta property="og:title" content="vindje.com &mdash; Smart AI Search for Marktplaats">
-<meta property="og:description" content="Describe what you want to buy in plain language and get only the Marktplaats listings that actually match &mdash; no more scrolling through junk.">
+<meta property="og:title" content="vindje.com &middot; Smart AI Search for Marktplaats">
+<meta property="og:description" content="Describe what you want to buy in plain language and get only the Marktplaats listings that actually match. No more scrolling through junk.">
 <meta property="og:url" content="__ORIGIN__/">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="vindje.com &mdash; Smart AI Search for Marktplaats">
+<meta name="twitter:title" content="vindje.com &middot; Smart AI Search for Marktplaats">
 <meta name="twitter:description" content="Describe what you want to buy in plain language and get only the Marktplaats listings that actually match.">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#f4f4f4">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"vindje.com","url":"__ORIGIN__/","description":"Describe what you want to buy in plain language and get only the Marktplaats listings that actually match, filtered by AI.","applicationCategory":"ShoppingApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}
 </script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
 <style>
   :root {
-    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
-    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
+    --paper: #f4f4f4; --surface: #fff;
+    --ink: #000; --body: #6e6e73; --muted: #b4b4b8;
+    --line: #e6e6e6; --line2: #d6d6da; --field: #fff;
+    --accent: #0a8f5c;
   }
   * { box-sizing: border-box; }
   ::selection { background: var(--ink); color: #fff; }
   html, body { height: 100%; }
   body {
-    margin: 0; background: #fff; color: var(--ink);
+    margin: 0; background: var(--paper); color: var(--ink);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
                  system-ui, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
     display: flex; flex-direction: column; min-height: 100vh;
   }
+  a { color: inherit; }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
           flex: 1 0 auto; }
 
   .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
 
-  .hero { max-width: 660px; margin: 0 auto; }
+  .hero { max-width: 700px; margin: 0 auto; }
   h1 {
-    font-size: clamp(38px, 7.5vw, 62px); font-weight: 700; letter-spacing: -.035em;
-    line-height: 1.04; text-align: center; margin: clamp(48px, 9vh, 88px) 0 30px;
+    font-size: clamp(40px, 8.5vw, 86px); font-weight: 700; letter-spacing: -.04em;
+    line-height: 0.98; text-align: center; margin: clamp(48px, 9vh, 88px) 0 30px;
   }
+  h1 .cont { color: var(--muted); }
 
   .box {
-    background: var(--field); border-radius: 26px; padding: 6px;
+    background: var(--surface); border-radius: 26px; padding: 6px;
     transition: box-shadow .18s ease;
   }
-  .box:focus-within { box-shadow: 0 0 0 1.5px var(--ink); }
+  .box:focus-within { box-shadow: 0 0 0 1.5px var(--accent); }
   textarea {
     width: 100%; min-height: 86px; padding: 16px 16px 4px; font: inherit;
     font-size: 17px; letter-spacing: -.01em; line-height: 1.45; border: 0;
@@ -838,7 +843,7 @@ HTML = """<!doctype html>
     border-radius: 980px; width: 132px; background: #fff; color: var(--ink);
     outline: none; transition: box-shadow .15s ease;
   }
-  input[type=text]:focus { box-shadow: 0 0 0 1.5px var(--ink); }
+  input[type=text]:focus { box-shadow: 0 0 0 1.5px var(--accent); }
   .toggle { display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
             font-size: 13.5px; color: var(--body); white-space: nowrap;
             user-select: none; }
@@ -913,12 +918,12 @@ HTML = """<!doctype html>
   @media (min-width: 860px) { #results { grid-template-columns: 1fr 1fr; } }
 
   .card {
-    display: flex; gap: 15px; background: #fff; border-radius: 20px; padding: 13px;
+    display: flex; gap: 15px; background: var(--surface); border-radius: 20px; padding: 13px;
     text-decoration: none; color: inherit; border: 1px solid var(--line);
     animation: rise .3s ease backwards;
-    transition: box-shadow .18s ease, border-color .18s ease, opacity .3s ease;
+    transition: border-color .18s ease, opacity .3s ease;
   }
-  .card:hover { border-color: var(--line2); box-shadow: 0 10px 34px rgba(0,0,0,.08); }
+  .card:hover { border-color: var(--ink); }
   .card img, .noimg { width: 104px; height: 104px; object-fit: cover;
                       border-radius: 13px; background: var(--field); flex: none; }
   @media (min-width: 640px) { .card img, .noimg { width: 122px; height: 122px; } }
@@ -929,15 +934,15 @@ HTML = """<!doctype html>
              letter-spacing: -.015em; line-height: 1.32;
              display: -webkit-box; -webkit-line-clamp: 2;
              -webkit-box-orient: vertical; overflow: hidden; }
-  .meta { color: var(--muted); font-size: 13px; margin-bottom: 3px; }
-  .price { font-weight: 600; color: var(--ink); }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 3px; font-variant-numeric: tabular-nums; }
+  .price { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
   .desc { font-size: 13px; color: var(--muted); margin: 2px 0 0; line-height: 1.5;
           display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
           overflow: hidden; }
 
   .why { font-size: 12.5px; margin-top: 8px; display: inline-flex; gap: 6px;
          align-items: baseline; color: var(--muted); line-height: 1.4; }
-  .why b { color: var(--ink); font-weight: 700; }
+  .why b { color: var(--accent); font-weight: 700; }
   .why.pending { align-items: center; }
   .why.pending::before {
     content: ''; width: 11px; height: 11px; border-radius: 50%; flex: none;
@@ -947,8 +952,8 @@ HTML = """<!doctype html>
   .why.warn { border: 1px dashed var(--line2); border-radius: 980px;
               padding: 3px 11px; }
   .card.pending { opacity: .5; }
-  .card.matched { border-color: var(--ink); box-shadow: 0 0 0 1.5px var(--ink); }
-  .card.matched:hover { box-shadow: 0 0 0 1.5px var(--ink), 0 10px 34px rgba(0,0,0,.08); }
+  .card.matched { border-color: var(--accent); box-shadow: 0 0 0 1.5px var(--accent); }
+  .card.matched:hover { box-shadow: 0 0 0 1.5px var(--accent); }
   .card.rejected { opacity: .08; filter: grayscale(60%); }
   .card.rejected:hover { opacity: .55; filter: none; }
 
@@ -1008,7 +1013,7 @@ HTML = """<!doctype html>
 <div class="wrap">
   <div class="top"><a href="/" style="color:inherit;text-decoration:none">vindje.com</a></div>
   <section class="hero">
-    <h1>Advanced search for Marktplaats</h1>
+    <h1>Find it.<br><span class="cont">Not the trash around it.</span></h1>
     <form id="f">
       <div class="box">
         <textarea id="q" rows="3" placeholder="Wooden closet with drawers and hangers, about 1.5&ndash;2 m tall, within 15 minutes driving, max &euro;150"></textarea>
@@ -1046,7 +1051,7 @@ HTML = """<!doctype html>
 </div>
 <footer class="footer">
   <div class="footer-inner">
-    <span class="footer-brand">vindje.com</span>
+    <span class="footer-brand">vindje.com, built by Pavel</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
       <a href="/ideas">Ideas</a>
@@ -1105,7 +1110,7 @@ async function saveSearch(payload) {
     if (r && r.id) {
       shareUrl = location.origin + r.url;
       // Every search is saved automatically, so the address bar itself
-      // becomes the shareable link — not just the copy button below.
+      // becomes the shareable link, not just the copy button below.
       history.pushState({shareId: r.id}, '', r.url);
       document.getElementById('shareRow').style.display = 'block';
     }
@@ -1157,7 +1162,7 @@ f.addEventListener('submit', async e => {
   const tick = setInterval(() => {
     const s = Math.round((Date.now() - t0) / 1000);
     statusEl.innerHTML = stage + ' ' + s + 's' +
-      (s > 30 ? ' &mdash; free AI can take a minute' : '');
+      (s > 30 ? ', free AI can take a minute' : '');
   }, 1000);
   try {
     const p = await post({action: 'parse', wish: q});
@@ -1309,7 +1314,7 @@ function renderSharedResults(rec) {
   document.getElementById('pc').value = rec.postcode || '';
   document.getElementById('nobids').checked = !!rec.exclude_bids;
   showInterp(rec.interpreted, rec.ai);
-  baseNotes = (rec.notes || []).concat(['Shared search results — click the logo above to start a new search.']);
+  baseNotes = (rec.notes || []).concat(['Shared search results. Click the logo above to start a new search.']);
   showNotes([]);
   const results = rec.results || [];
   document.getElementById('results').innerHTML = results.map(l => {
@@ -1345,7 +1350,7 @@ function renderDeals() {
   document.getElementById('deals').innerHTML =
     '<h2 class="deals-head">Today&rsquo;s finds</h2>' +
     '<p class="deals-sub">Undervalued items spotted this morning' + when +
-    ' &mdash; asking under &euro;250, estimated to resell for &euro;500+.' +
+    ', asking under &euro;250, estimated to resell for &euro;500+.' +
     ' Estimates are AI-made; judge for yourself before buying.</p>' +
     cats.map(c =>
       '<h3 class="cat">' + esc(c.label) + '</h3><div class="deals-grid">' +
@@ -1444,21 +1449,23 @@ HOW_IT_WORKS_HTML = """<!doctype html>
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="How vindje.com's AI Search Works &middot; Marktplaats">
 <meta name="twitter:description" content="See how vindje.com turns a plain-language wish into a Marktplaats search, then keeps only the listings that really match.">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#f4f4f4">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"vindje.com","item":"__ORIGIN__/"},{"@type":"ListItem","position":2,"name":"How it works","item":"__ORIGIN__/how-it-works"}]}
 </script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
 <style>
   :root {
-    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
-    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
+    --paper: #f4f4f4; --surface: #fff;
+    --ink: #000; --body: #6e6e73; --muted: #b4b4b8;
+    --line: #e6e6e6; --line2: #d6d6da; --field: #fff;
+    --accent: #0a8f5c;
   }
   * { box-sizing: border-box; }
   ::selection { background: var(--ink); color: #fff; }
   html, body { height: 100%; }
   body {
-    margin: 0; background: #fff; color: var(--ink);
+    margin: 0; background: var(--paper); color: var(--ink);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
                  system-ui, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
@@ -1471,24 +1478,23 @@ HOW_IT_WORKS_HTML = """<!doctype html>
 
   .hero { max-width: 620px; margin: 0 auto; text-align: center; }
   h1 {
-    font-size: clamp(34px, 6.5vw, 52px); font-weight: 700; letter-spacing: -.035em;
-    line-height: 1.06; margin: clamp(40px, 8vh, 64px) 0 14px;
+    font-size: clamp(34px, 6.5vw, 56px); font-weight: 700; letter-spacing: -.035em;
+    line-height: 1.05; margin: clamp(40px, 8vh, 64px) 0 8px;
   }
-  .sub { font-size: 18px; color: var(--body); line-height: 1.5; margin: 0 auto 8px; }
+  h1 .cont { color: var(--muted); }
+  .sub { font-size: 17px; color: var(--body); line-height: 1.5; margin: 0 auto 8px; }
 
-  .steps { list-style: none; margin: 56px 0 0; padding: 0; display: grid; gap: 16px; }
+  .steps { list-style: none; margin: 56px 0 0; padding: 0; }
   .step {
-    display: flex; gap: 18px; align-items: flex-start; background: var(--field);
-    border-radius: 20px; padding: 22px 22px; text-align: left;
+    display: flex; gap: 20px; align-items: baseline; padding: 28px 0;
+    border-top: 1px solid var(--line); text-align: left;
     animation: rise .35s ease backwards;
   }
-  .step .n {
-    flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--ink);
-    color: #fff; font-weight: 700; font-size: 15px; display: flex; align-items: center;
-    justify-content: center;
-  }
-  .step h3 { margin: 3px 0 4px; font-size: 17px; font-weight: 700; letter-spacing: -.015em; }
-  .step p { margin: 0; font-size: 14.5px; color: var(--body); line-height: 1.55; }
+  .step:first-child { border-top: 0; padding-top: 0; }
+  .step .n { flex: none; width: 24px; font-size: 13px; font-weight: 600;
+             color: var(--muted); font-variant-numeric: tabular-nums; }
+  .step h3 { margin: 0 0 6px; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+  .step p { margin: 0; font-size: 17px; color: var(--body); line-height: 1.5; max-width: 52ch; }
 
   .cta { text-align: center; margin: 56px 0 0; }
   .cta a {
@@ -1546,18 +1552,15 @@ HOW_IT_WORKS_HTML = """<!doctype html>
 <div class="wrap">
   <div class="top"><a href="/">vindje.com</a></div>
   <section class="hero">
-    <h1>How vindje.com works</h1>
-    <p class="sub">Marktplaats is full of listings that almost fit. vindje.com reads
-       every one of them for you, like a friend who actually knows what you're
-       looking for &mdash; and only shows you the ones that do.</p>
+    <h1>How it works.<br><span class="cont">Say it in plain words, get back only the real matches.</span></h1>
   </section>
 
   <ol class="steps">
     <li class="step">
-      <span class="n">1</span>
+      <span class="n">01</span>
       <div>
         <h3>Tell it what you want, in plain words</h3>
-        <p>Describe your wish however it comes to mind, in any language &mdash;
+        <p>Describe your wish however it comes to mind, in any language:
            "a wooden closet with drawers and hangers, about 1.5&ndash;2 m tall,
            within 15 minutes driving, max &euro;150." An AI reads that and turns
            it into a real Marktplaats search: Dutch keywords, a price range, and
@@ -1565,23 +1568,23 @@ HOW_IT_WORKS_HTML = """<!doctype html>
       </div>
     </li>
     <li class="step">
-      <span class="n">2</span>
+      <span class="n">02</span>
       <div>
         <h3>It searches Marktplaats for you</h3>
         <p>vindje.com queries Marktplaats' own search directly and pulls in
-           every listing that could plausibly match &mdash; titles, descriptions,
+           every listing that could plausibly match: titles, descriptions,
            photos, prices, and distance, all at once. Tick "Fixed price only"
            and auctions are left out, so every price you see is one you can
            simply accept.</p>
       </div>
     </li>
     <li class="step">
-      <span class="n">3</span>
+      <span class="n">03</span>
       <div>
         <h3>It reads each listing and keeps only the real matches</h3>
         <p>Instead of you scrolling through dozens of near-misses, the AI checks
-           every result against what you actually asked for &mdash; size, condition,
-           features, whatever you mentioned &mdash; and shows only the listings
+           every result against what you actually asked for (size, condition,
+           features, whatever you mentioned) and shows only the listings
            that hold up, each with a one-line reason why.</p>
       </div>
     </li>
@@ -1596,7 +1599,7 @@ HOW_IT_WORKS_HTML = """<!doctype html>
 </div>
 <footer class="footer">
   <div class="footer-inner">
-    <span class="footer-brand">vindje.com</span>
+    <span class="footer-brand">vindje.com, built by Pavel</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
       <a href="/ideas">Ideas</a>
@@ -1629,31 +1632,33 @@ CREDITS_HTML = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Credits &middot; vindje.com</title>
-<meta name="description" content="Who and what made vindje.com happen &mdash; the idea, the model choices, and the name.">
+<meta name="description" content="Who and what made vindje.com happen: the idea, the model choices, and the name.">
 <link rel="canonical" href="__ORIGIN__/credits">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="vindje.com">
 <meta property="og:title" content="Credits &middot; vindje.com">
-<meta property="og:description" content="Who and what made vindje.com happen &mdash; the idea, the model choices, and the name.">
+<meta property="og:description" content="Who and what made vindje.com happen: the idea, the model choices, and the name.">
 <meta property="og:url" content="__ORIGIN__/credits">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Credits &middot; vindje.com">
-<meta name="twitter:description" content="Who and what made vindje.com happen &mdash; the idea, the model choices, and the name.">
-<meta name="theme-color" content="#ffffff">
+<meta name="twitter:description" content="Who and what made vindje.com happen: the idea, the model choices, and the name.">
+<meta name="theme-color" content="#f4f4f4">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"vindje.com","item":"__ORIGIN__/"},{"@type":"ListItem","position":2,"name":"Credits","item":"__ORIGIN__/credits"}]}
 </script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
 <style>
   :root {
-    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
-    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
+    --paper: #f4f4f4; --surface: #fff;
+    --ink: #000; --body: #6e6e73; --muted: #b4b4b8;
+    --line: #e6e6e6; --line2: #d6d6da; --field: #fff;
+    --accent: #0a8f5c;
   }
   * { box-sizing: border-box; }
   ::selection { background: var(--ink); color: #fff; }
   html, body { height: 100%; }
   body {
-    margin: 0; background: #fff; color: var(--ink);
+    margin: 0; background: var(--paper); color: var(--ink);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
                  system-ui, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
@@ -1671,14 +1676,14 @@ CREDITS_HTML = """<!doctype html>
   }
   .sub { font-size: 18px; color: var(--body); line-height: 1.5; margin: 0 auto 8px; }
 
-  .list { list-style: none; margin: 56px 0 0; padding: 0; display: grid; gap: 16px; }
+  .list { list-style: none; margin: 56px 0 0; padding: 0; }
   .item {
-    background: var(--field);
-    border-radius: 20px; padding: 22px 22px; text-align: left;
+    padding: 24px 0; border-top: 1px solid var(--line); text-align: left;
     animation: rise .35s ease backwards;
   }
-  .item h3 { margin: 0 0 6px; font-size: 17px; font-weight: 700; letter-spacing: -.015em; }
-  .item p { margin: 0; font-size: 14.5px; color: var(--body); line-height: 1.55; }
+  .item:first-child { border-top: 0; padding-top: 0; }
+  .item h3 { margin: 0 0 6px; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+  .item p { margin: 0; font-size: 17px; color: var(--body); line-height: 1.5; max-width: 52ch; }
   .item p a { color: inherit; }
 
   .aside { margin: 36px auto 0; font-size: 13px; color: var(--muted); max-width: 480px; text-align: center; }
@@ -1755,7 +1760,7 @@ CREDITS_HTML = """<!doctype html>
 </div>
 <footer class="footer">
   <div class="footer-inner">
-    <span class="footer-brand">vindje.com</span>
+    <span class="footer-brand">vindje.com, built by Pavel</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
       <a href="/ideas">Ideas</a>
@@ -1788,21 +1793,23 @@ HISTORY_HTML = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Search History &middot; vindje.com</title>
-<meta name="description" content="Every search run on vindje.com, newest first &mdash; open any one of them to see the exact results it found.">
+<meta name="description" content="Every search run on vindje.com, newest first. Open any one of them to see the exact results it found.">
 <link rel="canonical" href="__ORIGIN__/history">
 <meta name="robots" content="noindex, follow">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#f4f4f4">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
 <style>
   :root {
-    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
-    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
+    --paper: #f4f4f4; --surface: #fff;
+    --ink: #000; --body: #6e6e73; --muted: #b4b4b8;
+    --line: #e6e6e6; --line2: #d6d6da; --field: #fff;
+    --accent: #0a8f5c;
   }
   * { box-sizing: border-box; }
   ::selection { background: var(--ink); color: #fff; }
   html, body { height: 100%; }
   body {
-    margin: 0; background: #fff; color: var(--ink);
+    margin: 0; background: var(--paper); color: var(--ink);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
                  system-ui, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
@@ -1819,21 +1826,21 @@ HISTORY_HTML = """<!doctype html>
   }
   .sub { font-size: 15.5px; color: var(--muted); line-height: 1.5; margin: 0 0 36px; }
 
-  .history-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .history-list { list-style: none; margin: 0; padding: 0; }
   .entry {
     display: flex; gap: 14px; align-items: baseline; justify-content: space-between;
-    background: var(--field); border-radius: 16px; padding: 16px 18px;
+    padding: 18px 2px; border-top: 1px solid var(--line);
     text-decoration: none; color: inherit; animation: rise .3s ease backwards;
-    transition: box-shadow .18s ease, background .18s ease;
   }
-  .entry:hover { background: #eeeef1; box-shadow: 0 8px 26px rgba(0,0,0,.06); }
+  .history-list li:first-child .entry { border-top: 0; }
+  .entry:hover .wish { text-decoration: underline; }
   .entry-main { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-  .entry .wish { font-size: 15px; font-weight: 600; letter-spacing: -.01em;
+  .entry .wish { font-size: 17px; font-weight: 500; letter-spacing: -.01em;
                  line-height: 1.4; overflow-wrap: break-word; }
   .entry .url { font-size: 12px; color: var(--muted); overflow-wrap: anywhere;
                 font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-  .entry .meta { flex: none; font-size: 12.5px; color: var(--muted); text-align: right;
-                 white-space: nowrap; }
+  .entry .meta { flex: none; font-size: 13px; color: var(--muted); text-align: right;
+                 white-space: nowrap; font-variant-numeric: tabular-nums; }
 
   .empty { text-align: center; color: var(--muted); font-size: 14.5px;
            padding: 60px 0; }
@@ -1880,13 +1887,13 @@ HISTORY_HTML = """<!doctype html>
 <div class="wrap">
   <div class="top"><a href="/">vindje.com</a></div>
   <h1>Search history</h1>
-  <p class="sub">Every search anyone has run, newest first. Open one to see the exact
-     results it found &mdash; searches aren't tied to any account, so this is everyone's.</p>
+  <p class="sub">Every search anyone has run, newest first. Searches aren't tied to
+     any account, so this is everyone's.</p>
   __ENTRIES__
 </div>
 <footer class="footer">
   <div class="footer-inner">
-    <span class="footer-brand">vindje.com</span>
+    <span class="footer-brand">vindje.com, built by Pavel</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
       <a href="/ideas">Ideas</a>
@@ -1922,18 +1929,20 @@ IDEAS_HTML = """<!doctype html>
 <meta name="description" content="Suggest a change to vindje.com, upvote the ones you'd actually use, and argue about it in the comments.">
 <link rel="canonical" href="__ORIGIN__/ideas">
 <meta name="robots" content="noindex, follow">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#f4f4f4">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
 <style>
   :root {
-    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
-    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
+    --paper: #f4f4f4; --surface: #fff;
+    --ink: #000; --body: #6e6e73; --muted: #b4b4b8;
+    --line: #e6e6e6; --line2: #d6d6da; --field: #fff;
+    --accent: #0a8f5c;
   }
   * { box-sizing: border-box; }
   ::selection { background: var(--ink); color: #fff; }
   html, body { height: 100%; }
   body {
-    margin: 0; background: #fff; color: var(--ink);
+    margin: 0; background: var(--paper); color: var(--ink);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
                  system-ui, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
@@ -1950,15 +1959,15 @@ IDEAS_HTML = """<!doctype html>
   }
   .sub { font-size: 15.5px; color: var(--muted); line-height: 1.5; margin: 0 0 30px; }
 
-  .form-card { background: var(--field); border-radius: 20px; padding: 16px;
+  .form-card { background: var(--surface); border-radius: 20px; padding: 16px;
                margin: 0 0 40px; display: flex; flex-direction: column; gap: 10px; }
   .form-card input[type=text], .form-card textarea {
-    border: 0; background: #fff; border-radius: 12px; padding: 12px 14px;
+    border: 0; background: var(--paper); border-radius: 12px; padding: 12px 14px;
     font: inherit; font-size: 15px; color: var(--ink); outline: none;
     width: 100%; transition: box-shadow .15s ease;
   }
   .form-card textarea { min-height: 60px; resize: vertical; }
-  .form-card input:focus, .form-card textarea:focus { box-shadow: 0 0 0 1.5px var(--ink); }
+  .form-card input:focus, .form-card textarea:focus { box-shadow: 0 0 0 1.5px var(--accent); }
   .form-card ::placeholder { color: var(--muted); }
   .form-row { display: flex; align-items: center; gap: 10px; }
   .form-hint { font-size: 12.5px; color: #d33; margin-right: auto; }
@@ -1972,14 +1981,15 @@ IDEAS_HTML = """<!doctype html>
   #ideaSubmit:active { transform: scale(.97); }
   #ideaSubmit:disabled { opacity: .35; cursor: wait; }
 
-  .idea-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .idea-list { list-style: none; margin: 0; padding: 0; }
   .idea-card {
-    display: flex; gap: 14px; background: var(--field); border-radius: 18px;
-    padding: 16px 18px; animation: rise .3s ease backwards;
+    display: flex; gap: 16px; padding: 20px 2px; border-top: 1px solid var(--line);
+    animation: rise .3s ease backwards;
   }
+  .idea-list li:first-child .idea-card { border-top: 0; padding-top: 0; }
   .vote-btn {
-    flex: none; width: 54px; height: 54px; border-radius: 14px;
-    border: 1px solid var(--line2); background: #fff; color: var(--ink);
+    flex: none; width: 50px; height: 50px; border-radius: 14px;
+    border: 1px solid var(--line2); background: var(--surface); color: var(--ink);
     font: inherit; cursor: pointer; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 2px;
     transition: background .15s ease, color .15s ease, border-color .15s ease, transform .1s ease;
@@ -1988,19 +1998,19 @@ IDEAS_HTML = """<!doctype html>
   .vote-btn:active { transform: scale(.94); }
   .vote-btn:disabled { opacity: .6; cursor: wait; }
   .vote-btn .arrow { font-size: 13px; line-height: 1; }
-  .vote-btn .n { font-size: 14px; font-weight: 700; line-height: 1; }
+  .vote-btn .n { font-size: 14px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
   .vote-btn.voted { background: var(--ink); border-color: var(--ink); color: #fff; }
 
   .idea-main { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 5px; }
-  .idea-title { font-size: 15.5px; font-weight: 600; letter-spacing: -.01em;
+  .idea-title { font-size: 17px; font-weight: 600; letter-spacing: -.01em;
                 line-height: 1.4; overflow-wrap: break-word; }
-  .idea-desc { font-size: 13.5px; color: var(--body); line-height: 1.5; margin: 0;
+  .idea-desc { font-size: 14.5px; color: var(--body); line-height: 1.5; margin: 0;
                overflow-wrap: break-word; }
   .idea-meta { display: flex; align-items: center; gap: 10px; font-size: 12.5px;
                color: var(--muted); margin-top: 2px; }
   .badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 700;
            letter-spacing: .01em; text-transform: uppercase; color: #fff;
-           background: var(--ink); border-radius: 980px; padding: 3px 9px; }
+           background: var(--accent); border-radius: 980px; padding: 3px 9px; }
 
   .comments { margin-top: 2px; }
   .comments summary { cursor: pointer; font-size: 12.5px; color: var(--muted);
@@ -2010,16 +2020,16 @@ IDEAS_HTML = """<!doctype html>
   .comments summary:hover { color: var(--ink); }
   .comment-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
   .comment {
-    background: #fff; border-radius: 10px; padding: 8px 12px; font-size: 13px;
+    background: var(--surface); border-radius: 10px; padding: 8px 12px; font-size: 13px;
     color: var(--body); line-height: 1.45; overflow-wrap: break-word;
   }
   .comment-form { display: flex; gap: 8px; margin-top: 10px; }
   .comment-form input {
-    flex: 1; min-width: 0; border: 1px solid var(--line2); background: #fff;
+    flex: 1; min-width: 0; border: 1px solid var(--line2); background: var(--surface);
     border-radius: 980px; padding: 8px 14px; font: inherit; font-size: 13px; outline: none;
     transition: box-shadow .15s ease;
   }
-  .comment-form input:focus { box-shadow: 0 0 0 1.5px var(--ink); }
+  .comment-form input:focus { box-shadow: 0 0 0 1.5px var(--accent); }
   .comment-form button {
     flex: none; border: 0; background: var(--ink); color: #fff; border-radius: 980px;
     padding: 8px 16px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
@@ -2050,7 +2060,7 @@ IDEAS_HTML = """<!doctype html>
   <h1>What should vindje.com do next?</h1>
   <p class="sub">Post an idea, upvote the ones you'd actually use, argue about it in the
      comments. __VOTE_THRESHOLD__ votes from __VOTE_THRESHOLD__ different people and an
-     idea qualifies for the build queue &mdash; Pavel still hits merge, so this is a
+     idea qualifies for the build queue. Pavel still hits merge, so this is a
      suggestion box, not Skynet.</p>
 
   <form class="form-card" id="ideaForm">
@@ -2067,7 +2077,7 @@ IDEAS_HTML = """<!doctype html>
 </div>
 <footer class="footer">
   <div class="footer-inner">
-    <span class="footer-brand">vindje.com</span>
+    <span class="footer-brand">vindje.com, built by Pavel</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
       <a href="/ideas">Ideas</a>
@@ -2238,7 +2248,7 @@ SITEMAP_XML = """<?xml version="1.0" encoding="UTF-8"?>
 def render_history(entries, origin=""):
     """Render the /history page listing every saved search, newest first."""
     if not entries:
-        inner = '<p class="empty">No searches yet &mdash; run one to see it here.</p>'
+        inner = '<p class="empty">No searches yet. Run one to see it here.</p>'
     else:
         items = []
         for e in entries:
@@ -2348,7 +2358,7 @@ def app(environ, start_response):
                 parsed, notes = interpret(wish, req_id=req_id)
                 result = {"ai": bool(parsed), "parsed": parsed, "notes": notes}
             elif action == "find":
-                # search Marktplaats only — fast, no AI calls
+                # search Marktplaats only, fast, no AI calls
                 terms, distance, pmin, pmax, reqs, notes = search_params(
                     payload.get("parsed"), wish, postcode)
                 listings, total = search_marktplaats(
