@@ -110,7 +110,7 @@ th{
 }
 th:last-child,td:last-child{padding-right:0;}
 td{
-  padding:1.9mm 5mm 1.9mm 0;
+  padding:2.8mm 5mm 2.8mm 0;
   border-bottom:1px solid var(--hairline);
   font-size:8.4pt;
   color:var(--ink-2);
@@ -201,25 +201,25 @@ footer .sig{color:var(--ink);font-weight:500;white-space:nowrap;}
   </div>
 
   <div class="sec">
-    <h2><span>The direction, and what vindje should stand for.</span> <span class="cont">A layer on supply that already exists, on the buyer's side of it. Three commitments, each with what it rules out.</span></h2>
+    <h2><span>The direction, and what vindje should stand for.</span> <span class="cont">A layer on supply that already exists, on the buyer's side of it.</span></h2>
     <div class="stands">
       <div>
         <div class="idx">One</div>
-        <h3>Paid by the buyer, so it can answer to the buyer</h3>
-        <p>Platform revenue comes from sellers, listings and the transaction, so no incumbent is paid to tell a buyer that nothing here fits.</p>
-        <p class="rules">Rules out seller tools, paid placement, and any fee that grows with transaction volume.</p>
+        <h3>Paid by the buyer</h3>
+        <p>Platform revenue comes from sellers and transactions, so nobody in this market is paid to tell a buyer that nothing here fits.</p>
+        <p class="rules">No seller tools. No paid placement.</p>
       </div>
       <div>
         <div class="idx">Two</div>
-        <h3>Shows its work, every time</h3>
-        <p>Each match states why it matched, each rejection is counted and grouped, and each price verdict shows how many comparable items it rests on.</p>
-        <p class="rules">Rules out silent ranking, undisclosed placement, and a number without the data behind it.</p>
+        <h3>Shows its work</h3>
+        <p>Every match gives its reason. Every rejection is counted. Every price verdict names the comparables it rests on.</p>
+        <p class="rules">No silent ranking. No hidden placement.</p>
       </div>
       <div>
         <div class="idx">Three</div>
-        <h3>Says nothing when it does not know</h3>
-        <p>Fraud is the buyer's main worry in this market, so a confident wrong price or a jumpy risk flag costs more than an empty state.</p>
-        <p class="rules">Rules out filling a thin comparable set, or a missing attribute, with a plausible guess.</p>
+        <h3>Silent when unsure</h3>
+        <p>Fraud is the buyer's main exposure here, so a confident wrong price costs more than an empty state.</p>
+        <p class="rules">No guess in place of missing data.</p>
       </div>
     </div>
   </div>
@@ -238,10 +238,10 @@ footer .sig{color:var(--ink);font-weight:500;white-space:nowrap;}
   </div>
 
   <div class="sec">
-    <h2><span>Ten hypotheses to test.</span> <span class="cont">Each states its test and the result that kills it. Thresholds are judgement calls, sized to be decidable in weeks at current traffic.</span></h2>
+    <h2><span>Ten hypotheses to test.</span> <span class="cont">Each states its test and the result that kills it. H1 gates the others, so it runs first.</span></h2>
     <table>
       <tr><th style="width:4%"></th><th style="width:29%">Hypothesis</th><th style="width:43%">How it is tested</th><th style="width:24%">Falsified if</th></tr>
-      <tr><td class="n">H1</td><td class="lead">Match quality is already good enough to build on</td><td>50 hand-labelled wishes across five categories, run against one frozen listing snapshot, reporting precision, recall and cost per search</td><td>Precision below 70%</td></tr>
+      <tr><td class="n" style="color:var(--accent)">H1</td><td class="lead">Match quality is already good enough to build on</td><td>50 hand-labelled wishes across five categories, run against one frozen listing snapshot, reporting precision, recall and cost per search</td><td>Precision below 70%</td></tr>
       <tr><td class="n">H2</td><td class="lead">Constraint-rich wishes are where the value sits</td><td>Parse and store the constraint count per search, then compare listing views per search across constraint bands over four weeks of live traffic</td><td>No positive relationship</td></tr>
       <tr><td class="n">H3</td><td class="lead">The stated reason is what makes a result usable</td><td>Equal-split A/B, reason line shown against hidden, decided at a sample fixed before the test starts</td><td>No positive difference</td></tr>
       <tr><td class="n">H4</td><td class="lead">Disclosing what was hidden builds trust rather than doubt</td><td>A/B on the "43 listings hidden, here is why" panel, measured on 7 day return rate, not on clicks</td><td>The disclosure arm returns less</td></tr>
@@ -252,15 +252,6 @@ footer .sig{color:var(--ink);font-weight:500;white-space:nowrap;}
       <tr><td class="n">H9</td><td class="lead">Buyers who do not write Dutch are a distinct segment</td><td>Split engagement and 30 day retention by input language, and interview five non-Dutch speakers to read the quantitative result</td><td>The two groups behave alike</td></tr>
       <tr><td class="n">H10</td><td class="lead">Dutch long-tail pages acquire buyers at a workable cost</td><td>Publish 200 constraint pages and 25 valuation pages, measure organic sessions and saved-search conversion at day 90, with a &euro;500 category-intent ads test as the comparison</td><td>Under 1,000 sessions a month, or over &euro;3 per saved search</td></tr>
     </table>
-  </div>
-
-  <div class="figs">
-    <div class="fig"><div class="fig-n hot">50</div><div class="fig-l">labelled wishes, the fixed set every quality claim is measured against</div></div>
-    <div class="fig"><div class="fig-n">1</div><div class="fig-l">frozen listing snapshot, so results stay comparable between runs</div></div>
-    <div class="fig"><div class="fig-n">5</div><div class="fig-l">user interviews a week, recorded, to read the numbers against</div></div>
-    <div class="fig"><div class="fig-n">0</div><div class="fig-l">features shipped without events, since an untracked test decides nothing</div></div>
-    <div class="fig"><div class="fig-n">2</div><div class="fig-l">weeks maximum per A/B, with the sample fixed in advance</div></div>
-    <div class="fig"><div class="fig-n">4</div><div class="fig-l">weeks to first read on H1 to H6, the ones that gate the rest</div></div>
   </div>
 
   <div class="sources">
