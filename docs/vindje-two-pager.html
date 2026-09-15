@@ -26,6 +26,7 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 td,.fig-n{font-variant-numeric:tabular-nums;}
+.r{color:var(--ink-3);font-weight:500;}
 
 .page{
   width:210mm;
@@ -49,62 +50,57 @@ td,.fig-n{font-variant-numeric:tabular-nums;}
 .masthead .meta{font-size:7.4pt;font-weight:500;color:var(--ink-2);}
 
 h1{
-  font-size:25pt;
+  font-size:24pt;
   font-weight:600;
   letter-spacing:-.035em;
-  line-height:.99;
+  line-height:1;
   margin:7mm 0 0;
-  max-width:34ch;
+  max-width:36ch;
 }
 h1 .cont{color:var(--ink-3);}
 
 h2{
-  font-size:14.5pt;
+  font-size:14pt;
   font-weight:600;
   letter-spacing:-.03em;
-  line-height:1.1;
-  max-width:50ch;
+  line-height:1.12;
+  max-width:52ch;
 }
 h2 .cont{color:var(--ink-3);}
 .sec{margin-top:6.5mm;}
 
-/* figure band */
 .figs{
   display:grid;
   grid-template-columns:repeat(6,1fr);
-  margin-top:6.5mm;
+  margin-top:6mm;
   border-top:1px solid var(--ink);
   border-bottom:1px solid var(--hairline);
 }
-.fig{padding:3.6mm 4mm 3.6mm 0;}
-.fig-n{font-size:16.5pt;font-weight:600;letter-spacing:-.03em;line-height:1;}
+.fig{padding:3.4mm 4mm 3.4mm 0;}
+.fig-n{font-size:16pt;font-weight:600;letter-spacing:-.03em;line-height:1;}
 .fig-n.hot{color:var(--accent);}
-.fig-l{margin-top:1.8mm;font-size:7.2pt;color:var(--ink-2);line-height:1.3;}
+.fig-l{margin-top:1.8mm;font-size:7.1pt;color:var(--ink-2);line-height:1.3;}
 
-/* findings, as a plain typographic list in two columns */
 .findings{
-  margin-top:5mm;
+  margin-top:4.5mm;
   display:grid;
   grid-template-columns:1fr 1fr;
   column-gap:10mm;
-  row-gap:0;
   list-style:none;
 }
-.findings li{padding:2.4mm 0;border-top:1px solid var(--hairline);}
-.findings .k{display:block;font-size:9.4pt;font-weight:600;letter-spacing:-.01em;}
-.findings .v{display:block;margin-top:.8mm;font-size:8.6pt;color:var(--ink-2);line-height:1.4;}
+.findings li{padding:2.3mm 0;border-top:1px solid var(--hairline);}
+.findings .k{display:block;font-size:9.2pt;font-weight:600;letter-spacing:-.01em;}
+.findings .v{display:block;margin-top:.8mm;font-size:8.5pt;color:var(--ink-2);line-height:1.4;}
 
-/* jobs */
 .jobs{margin-top:4.5mm;display:grid;grid-template-columns:1fr 1fr 1fr;gap:9mm;}
-.job .idx{font-size:7.2pt;font-weight:500;color:var(--ink-3);}
-.job h3{font-size:11pt;font-weight:600;letter-spacing:-.02em;margin-top:1.5mm;line-height:1.15;}
-.job p{font-size:8.9pt;color:var(--ink-2);margin-top:2.5mm;line-height:1.4;}
+.job .idx{font-size:7.1pt;font-weight:500;color:var(--ink-3);}
+.job h3{font-size:10.6pt;font-weight:600;letter-spacing:-.02em;margin-top:1.5mm;line-height:1.15;}
+.job p{font-size:8.5pt;color:var(--ink-2);margin-top:2.2mm;line-height:1.4;}
 
-/* tables */
-table{width:100%;border-collapse:collapse;margin-top:4.5mm;}
+table{width:100%;border-collapse:collapse;margin-top:4mm;}
 th{
   text-align:left;
-  font-size:7.2pt;
+  font-size:7.1pt;
   font-weight:500;
   color:var(--ink-2);
   padding:0 5mm 2mm 0;
@@ -113,27 +109,36 @@ th{
 }
 th:last-child,td:last-child{padding-right:0;}
 td{
-  padding:2.2mm 5mm 2.2mm 0;
+  padding:2.1mm 5mm 2.1mm 0;
   border-bottom:1px solid var(--hairline);
-  font-size:8.7pt;
+  font-size:8.5pt;
   color:var(--ink-2);
-  line-height:1.38;
+  line-height:1.36;
   vertical-align:top;
 }
-td.lead{color:var(--ink);font-weight:600;font-size:9pt;}
-td.right{text-align:right;color:var(--ink);font-weight:500;}
-.plan td{font-size:8.5pt;}
+td.lead{color:var(--ink);font-weight:600;font-size:8.8pt;}
+.plan td{font-size:8.3pt;}
 .plan td.lead{white-space:nowrap;line-height:1.25;}
+
+.sources{
+  margin-top:5mm;
+  padding-top:3mm;
+  border-top:1px solid var(--hairline);
+  font-size:6.6pt;
+  line-height:1.5;
+  color:var(--ink-2);
+}
+.sources b{color:var(--ink);font-weight:600;}
 
 footer{
   margin-top:auto;
-  padding-top:3.6mm;
+  padding-top:3.4mm;
   border-top:1px solid var(--ink);
   display:flex;
   justify-content:space-between;
   align-items:baseline;
   gap:10mm;
-  font-size:7.2pt;
+  font-size:7.1pt;
   color:var(--ink-2);
 }
 footer .sig{color:var(--ink);font-weight:500;white-space:nowrap;}
@@ -153,62 +158,62 @@ footer .sig{color:var(--ink);font-weight:500;white-space:nowrap;}
 <section class="page">
   <div class="masthead">
     <div class="wordmark">vindje.com</div>
-    <div class="meta">Marktplaats research, jobs to be done, one month plan &middot; September 2026</div>
+    <div class="meta">Desk research on second-hand trade in the Netherlands &middot; 15 September 2026</div>
   </div>
 
   <h1>
-    <span>Marktplaats owns the supply and none of the affection.</span>
-    <span class="cont">Every platform in this market builds for sellers. Nobody sells buyers a better way to find.</span>
+    <span>Marktplaats holds the supply. The buyer's side of it is unmeasured.</span>
+    <span class="cont">Ten observations, four comparison markets, and the inferences we draw.</span>
   </h1>
 
   <div class="figs">
-    <div class="fig"><div class="fig-n">18.7M</div><div class="fig-l">live ads, 350,000 added every day</div></div>
-    <div class="fig"><div class="fig-n">73%</div><div class="fig-l">of the Dutch online reuse market</div></div>
-    <div class="fig"><div class="fig-n hot">1.2</div><div class="fig-l">out of 5 on Trustpilot, 4,379 reviews</div></div>
-    <div class="fig"><div class="fig-n">61%</div><div class="fig-l">of Dutch consumers bought used last year</div></div>
-    <div class="fig"><div class="fig-n">49%</div><div class="fig-l">a bicycle, 42% furniture. Both size constrained</div></div>
-    <div class="fig"><div class="fig-n">&euro;7&ndash;11</div><div class="fig-l">a month Dutch buyers already pay for alerts</div></div>
+    <div class="fig"><div class="fig-n">18.7M</div><div class="fig-l">live listings, 350,000 added daily <span class="r">[1][5]</span></div></div>
+    <div class="fig"><div class="fig-n">73%</div><div class="fig-l">of online reuse, self-reported by Marktplaats <span class="r">[5]</span></div></div>
+    <div class="fig"><div class="fig-n hot">1.2</div><div class="fig-l">of 5 on Trustpilot, 4,379 self-selected reviews <span class="r">[9]</span></div></div>
+    <div class="fig"><div class="fig-n">61%</div><div class="fig-l">of Dutch consumers bought used in the past year <span class="r">[18]</span></div></div>
+    <div class="fig"><div class="fig-n">7%</div><div class="fig-l">were victims of purchase fraud in 2024, CBS <span class="r">[16]</span></div></div>
+    <div class="fig"><div class="fig-n">&euro;6.95</div><div class="fig-l">to &euro;10.95 a month, charged today for listing alerts <span class="r">[21]</span></div></div>
   </div>
 
   <div class="sec">
-    <h2><span>Ten findings, five countries, one conclusion.</span> <span class="cont">Trust and logistics are won with capital. Discovery is won with software.</span></h2>
+    <h2><span>Ten observations.</span> <span class="cont">Recorded from public sources. Company-reported and review-site figures are labelled, because neither is a representative sample.</span></h2>
     <ul class="findings">
-      <li><span class="k">Search is the unfixed part</span><span class="v">Dutch keywords only, unreliable attributes, opening bids shown as prices. What actually decides a purchase cannot be typed.</span></li>
-      <li><span class="k">UK: focus beat brand in four years</span><span class="v">Vinted took 50 to 60% of UK C2C apparel on free to sell and one category. eBay fell to 10 to 20% and scrapped seller fees.</span></li>
-      <li><span class="k">Every loud complaint is about trust</span><span class="v">Fraud that survives reporting, protection charged either way, a chatbot instead of support, day one bans on new accounts.</span></li>
-      <li><span class="k">Germany: the rails win money and lose goodwill</span><span class="v">Kleinanzeigen, 35M monthly users and about &euro;300M revenue, with forced DHL shipping and protection users read as a tax.</span></li>
-      <li><span class="k">Speed already sells here</span><span class="v">MarktAlert, MPAlerts and Marktplaats Scanner charge &euro;6.95 to &euro;10.95 a month, and one already advertises AI filtering.</span></li>
-      <li><span class="k">Russia: escrow, delivery, then an assistant</span><span class="v">Avito holds the money until the buyer confirms and refunds return postage. Every user gets an AI assistant in 2026.</span></li>
-      <li><span class="k">Price confidence is an open hole</span><span class="v">No sold price data exists in this market. Our morning deal hunt already contains the machine that answers it.</span></li>
-      <li><span class="k">China: touch the item, or build a place</span><span class="v">Zhuanzhuan inspects phones in 66 steps. Xianyu has 209M monthly actives across 1.3M interest communities.</span></li>
-      <li><span class="k">The window is 12 to 18 months</span><span class="v">Once Marktplaats ships its own assistant the question becomes distribution, and we lose that. The habit comes first.</span></li>
-      <li><span class="k">USA: discovery can be fun</span><span class="v">Whatnot doubled to about $8B GMV on live auctions, converting at 9 to 30% against 2 to 3% for a grid of thumbnails.</span></li>
+      <li><span class="k">Search matches keywords, not descriptions</span><span class="v">It needs the Dutch noun a Dutch seller typed. Attributes are optional, so dimensions and included parts cannot be filtered. Marktplaats publishes rules against keyword stuffing, which implies it is common. <span class="r">[15]</span></span></li>
+      <li><span class="k">UK: share moved fast between platforms</span><span class="v">Reporting on CMA analysis puts Vinted at 50 to 60% of UK C2C apparel volume in 2025, against 5 to 10% in 2021, with eBay falling to 10 to 20%. <span class="r">[25]</span></span></li>
+      <li><span class="k">No price history is exposed to buyers</span><span class="v">Unlike eBay, nothing shows what comparable items sold for. Auction listings also show an opening bid in the price position, so prices are not comparable across listings.</span></li>
+      <li><span class="k">Germany: same complaints, plus forced rails</span><span class="v">Kleinanzeigen is reported at about 35M monthly users. Reviewers describe being pushed onto its own shipping and reading its buyer protection as a fee. <span class="r">[30][31]</span></span></li>
+      <li><span class="k">Complaints cluster on trust and support</span><span class="v">Fraudulent listings staying live after reports, protection charged either way, no route to a human, bans shortly after registration. Self-selected sample. <span class="r">[9][10][11]</span></span></li>
+      <li><span class="k">Russia: funds held, goods moved</span><span class="v">Avito holds the buyer's money until the item is confirmed and refunds return postage. One trade source reports an assistant for all users in 2026, which we could not corroborate. <span class="r">[36][38]</span></span></li>
+      <li><span class="k">Purchase fraud is the most common online fraud</span><span class="v">CBS: 7% of people 15+ in 2024, up from 5.6% in 2022, ahead of sales fraud at 1.5%. Not attributed to any platform. <span class="r">[16]</span></span></li>
+      <li><span class="k">China: trust is operational, engagement is social</span><span class="v">Zhuanzhuan inspects items in custody with over 2,000 staff. Xianyu reports 209M monthly actives organised around 1.3M interest groups. Both company-derived. <span class="r">[39][42]</span></span></li>
+      <li><span class="k">Three Dutch services already sell alert speed</span><span class="v">MarktAlert publishes &euro;6.95 and &euro;10.95 tiers. MPAlerts is described as filtering listings with a model, though its site refused our request. <span class="r">[21][22][23]</span></span></li>
+      <li><span class="k">USA: live auctions grew, on company numbers</span><span class="v">Whatnot reports over $8B volume in 2025, doubling. A second source says $6B for the same year. Conversion claims come from the industry, not from an independent test. <span class="r">[33][34]</span></span></li>
     </ul>
   </div>
 
   <div class="sec">
-    <h2><span>Three jobs to own, out of twenty five.</span> <span class="cont">Each one needs a rebuild of the incumbent's core, which is why it stays open.</span></h2>
+    <h2><span>Three of twenty five jobs, proposed for focus.</span> <span class="cont">Each rests on a named inference, and each says what would remove it from the list.</span></h2>
     <div class="jobs">
       <div class="job">
-        <div class="idx">Job one</div>
-        <h3>See only what actually fits, and know why</h3>
-        <p>Describe it in any language, with the constraints that decide it. Matches only, a one line reason each, and an honest count of what we hid.</p>
+        <div class="idx">Jobs 1, 2, 3, 9</div>
+        <h3>State constraints, see only what meets them</h3>
+        <p>Rests on the inference that the limitation is structural, not a ranking problem. Drops if interviews show buyers mostly search for named products rather than described objects.</p>
       </div>
       <div class="job">
-        <div class="idx">Job two</div>
-        <h3>Tell me first, and only when it really matches</h3>
-        <p>A standing hunt that keeps looking and pings within minutes. This is the habit and the revenue. A one off search is a demo people visit twice.</p>
+        <div class="idx">Jobs 7, 8</div>
+        <h3>A search that keeps running and reports back</h3>
+        <p>The only candidate with external evidence that people in this market pay for it. Drops if measured match quality stays low, since then there is nothing worth notifying about.</p>
       </div>
       <div class="job">
-        <div class="idx">Job three</div>
-        <h3>Is this a good price, yes or no</h3>
-        <p>A verdict with the comparables behind it. It turns a match into a decision, and every day of listings we observe makes it sharper.</p>
+        <div class="idx">Jobs 5, 17</div>
+        <h3>How this price compares with comparable items</h3>
+        <p>Our own observed listings are the only available comparable set, and disappearance is a weak proxy for a sale. Drops if the proxy proves too noisy to state a verdict.</p>
       </div>
     </div>
   </div>
 
   <footer>
-    <span>Not this quarter: seller tools, escrow, payments, logistics, live commerce, and never our own marketplace.</span>
+    <span>Desk research only, with no interviews yet. Bracketed numbers are sources on page two.</span>
     <span class="sig">1 of 2</span>
   </footer>
 </section>
@@ -217,68 +222,83 @@ footer .sig{color:var(--ink);font-weight:500;white-space:nowrap;}
 <section class="page">
   <div class="masthead">
     <div class="wordmark">vindje.com</div>
-    <div class="meta">Ten hypotheses and a four week plan</div>
+    <div class="meta">Hypotheses, four week plan, sources</div>
   </div>
 
   <div class="sec">
-    <h2><span>Ten hypotheses, each with the number that kills it.</span> <span class="cont">Six on the product, four on getting Dutch buyers to show up. Twenty in the long version.</span></h2>
+    <h2><span>Six of twenty hypotheses.</span> <span class="cont">Thresholds are judgement calls chosen to be decidable in weeks at our traffic, not benchmarks.</span></h2>
     <table>
-      <tr><th style="width:36%">Hypothesis</th><th style="width:40%">What we measure</th><th style="width:24%;text-align:right">Target, and kill</th></tr>
-      <tr><td class="lead">The reason line is the product</td><td>Listing clicks with it shown against hidden</td><td class="right">+25%, kill if flat</td></tr>
-      <tr><td class="lead">The rejected pile builds trust</td><td>D7 return when we say what we hid and why</td><td class="right">+10pp, kill if negative</td></tr>
-      <tr><td class="lead">Hunts turn searchers into users</td><td>Hunt creation after results, D7 return by cohort</td><td class="right">25% and 3x</td></tr>
-      <tr><td class="lead">Speed and relevance sell at &euro;7</td><td>Paid conversion of active hunt users</td><td class="right">5%, kill under 2%</td></tr>
-      <tr><td class="lead">A price verdict changes decisions</td><td>Seller contact clicks, plus one survey question</td><td class="right">+20%, kill if it drops</td></tr>
-      <tr><td class="lead">Internationals are the beachhead</td><td>Engagement and referral by input language</td><td class="right">1.5x and 2x</td></tr>
-      <tr><td class="lead">Dutch long tail SEO carries acquisition</td><td>Organic sessions from 200 listing and 25 price pages</td><td class="right">5,000 a month by day 90</td></tr>
-      <tr><td class="lead">WhatsApp beats email for alerts</td><td>Open rate, on a channel 89% of Dutch adults use</td><td class="right">70% against 35%</td></tr>
-      <tr><td class="lead">Category intent ads, never brand terms</td><td>Cost per created hunt on a &euro;500 test</td><td class="right">&euro;3 or less</td></tr>
-      <tr><td class="lead">The morning deal hunt is acquisition</td><td>New visitors landing on finds pages, and their hunt rate</td><td class="right">30% and 15%</td></tr>
+      <tr><th style="width:34%">Prediction</th><th style="width:40%">Measurement</th><th style="width:26%">Falsified if</th></tr>
+      <tr><td class="lead">The stated reason raises listing views</td><td>Click-through with the reason line shown against hidden</td><td>No positive difference</td></tr>
+      <tr><td class="lead">Disclosing hidden listings does not cost trust</td><td>7 day return rate by arm, with grouped reasons shown</td><td>The disclosure arm returns less</td></tr>
+      <tr><td class="lead">A saved search creates repeat use</td><td>Creation rate at the offer point, 7 day return by cohort</td><td>Creation under 10%</td></tr>
+      <tr><td class="lead">Some users pay for a saved search</td><td>Paid conversion among users with an active search</td><td>Conversion under 2%</td></tr>
+      <tr><td class="lead">A price comparison changes behaviour</td><td>Seller contacts by arm, plus one direct question. Direction is uncertain: it should also prevent some purchases</td><td>It moves neither contacts nor stated decisions</td></tr>
+      <tr><td class="lead">Dutch long-tail pages attract search traffic</td><td>Organic sessions and conversion from 200 constraint pages and 25 valuation pages, at day 90</td><td>Under about 1,000 sessions a month</td></tr>
     </table>
   </div>
 
   <div class="sec">
-    <h2><span>One month, three people, one number that matters.</span> <span class="cont">Weekly retained hunters: people with a live hunt who opened a result in the last seven days.</span></h2>
+    <h2><span>Four weeks, three people.</span> <span class="cont">Primary metric: users with an active saved search who opened a result in the last seven days.</span></h2>
     <table class="plan">
       <tr><th style="width:13%">Week</th><th style="width:29%">Designer</th><th style="width:29%">Engineer</th><th style="width:29%">Marketing</th></tr>
       <tr>
-        <td class="lead">1<br>Measure<br>the core</td>
-        <td>Five buyer interviews, two of them non Dutch. Result rows rebuilt around the reason line, mobile first.</td>
-        <td>PostHog events. A 50 wish golden set that prints precision, recall and cost per search. Fix what it shows.</td>
-        <td>Keyword map: 200 constraint pages, 25 valuation pages. Expat and niche forum conversations opened by hand.</td>
+        <td class="lead">1<br>Measure<br>first</td>
+        <td>Five interviews, two with non-Dutch speakers, testing the two competing readings of the complaint data.</td>
+        <td>Event schema, then a 50 wish labelled set that reports precision, recall and cost per search. Fix what it exposes.</td>
+        <td>Keyword map: 200 constraint pages, 25 valuation pages. Community conversations opened by hand.</td>
       </tr>
       <tr>
-        <td class="lead">2<br>Ship<br>the hunt</td>
-        <td>One tap hunt creation, and the notification itself, legible in a lock screen glance. Hunts as rows.</td>
-        <td>Hunt storage and a 5 to 15 minute runner, gentle on the endpoint, filtering only new listings. Push and email.</td>
-        <td>First 60 SEO pages and 10 price pages live. Ten phone shot clips from the morning finds.</td>
+        <td class="lead">2<br>Saved<br>searches</td>
+        <td>Creation in one step. The notification itself, readable at a glance. A management list.</td>
+        <td>Storage and a 5 to 15 minute runner with caching, jitter and back-off, filtering only new listings.</td>
+        <td>First 60 constraint pages and 10 valuation pages. Ten short videos from the daily finds.</td>
       </tr>
       <tr>
-        <td class="lead">3<br>Price, and<br>ask for money</td>
-        <td>The price verdict, a number and a word, comparables on tap. Paywall with the price in the button.</td>
-        <td>Comparables corpus from the daily pulls. A valuation that refuses to guess. Mollie and iDEAL at &euro;7.</td>
-        <td>25 price pages live, first organic read, &euro;500 ads test measured on hunts created, not clicks.</td>
+        <td class="lead">3<br>Price and<br>payment</td>
+        <td>The verdict component with comparables on demand. The paid tier, price stated plainly.</td>
+        <td>Persist observed listings as the comparable set. A valuation that refuses to answer when data is thin.</td>
+        <td>25 valuation pages live. First organic reading. A &euro;500 paid test measured on saved searches.</td>
       </tr>
       <tr>
-        <td class="lead">4<br>Make<br>it hold</td>
-        <td>Fix the two worst funnel drop offs. Landing page with a real search as the hero. A design.md in the repo.</td>
-        <td>Alerting on dead hunts and model fallbacks. A quiet scam badge, measured before it gets loud. 2dehands as a second source.</td>
-        <td>Press push measured on D30, not sessions. Referral on the share link. Kill two channels, double one.</td>
+        <td class="lead">4<br>Reliability<br>and reach</td>
+        <td>Fix the two largest drop-offs. Landing page using a real search. Record the design tokens.</td>
+        <td>Alerting on failed runs and model fallbacks. Quiet risk flags. 2dehands as a second source.</td>
+        <td>Press outreach measured on 30 day retention. Referral on shared snapshots. One page review by channel.</td>
       </tr>
     </table>
   </div>
 
   <div class="figs">
-    <div class="fig"><div class="fig-n hot">250</div><div class="fig-l">weekly retained hunters, end of month</div></div>
-    <div class="fig"><div class="fig-n">1,000</div><div class="fig-l">hunts created</div></div>
-    <div class="fig"><div class="fig-n">40</div><div class="fig-l">paying &euro;7, which is &euro;280 and the only honest proof</div></div>
-    <div class="fig"><div class="fig-n">85%</div><div class="fig-l">match precision on the golden set, 80% recall</div></div>
-    <div class="fig"><div class="fig-n">8 min</div><div class="fig-l">median time from new listing to alert</div></div>
-    <div class="fig"><div class="fig-n">5</div><div class="fig-l">user interviews a week, every week</div></div>
+    <div class="fig"><div class="fig-n hot">250</div><div class="fig-l">retained users with a saved search, day 30</div></div>
+    <div class="fig"><div class="fig-n">1,000</div><div class="fig-l">saved searches created</div></div>
+    <div class="fig"><div class="fig-n">40</div><div class="fig-l">paying users, the smallest sample that decides it</div></div>
+    <div class="fig"><div class="fig-n">85%</div><div class="fig-l">precision on the internal set, 80% recall</div></div>
+    <div class="fig"><div class="fig-n">8 min</div><div class="fig-l">median delay from listing to alert</div></div>
+    <div class="fig"><div class="fig-n">5</div><div class="fig-l">interviews a week, recorded</div></div>
+  </div>
+
+  <div class="sources">
+    <b>Sources.</b>
+    [1] Marktplaats.nl, Wikipedia.
+    [5] The Marktplaats Effect, Marktplaats with Vaayu, 2023 data, company-reported.
+    [9] Trustpilot, accessed 15 Sep 2026, self-selected sample.
+    [10] AVROTROS Radar forum.
+    [11] Google Play and App Store reviews.
+    [15] Marktplaats help, rules on keywords in advertisements.
+    [16] CBS, Online veiligheid en criminaliteit 2024.
+    [18] Consumentenonderzoek Potentie Tweedehands Spullen 2025, via Circulair Ambachtscentrum.
+    [21][22][23] MarktAlert, a competitor; MPAlerts, which returned HTTP 403; Marktplaats Scanner.
+    [25] CMA analysis of UK C2C apparel, via Value Added Resource.
+    [30][31] Kleinanzeigen on Trustpilot; Coraly GPPI, where revenue is a third party estimate.
+    [33][34] Whatnot via Ebrun and Ringing the Bell, whose figures conflict.
+    [36][38] Ship24 and TAdviser; www1.ru, a single source.
+    [39][42] ChinaTalk; Baidu Baike, company-derived.
+    The full source list, with quality labels, is in the long version.
   </div>
 
   <footer>
-    <span>Biggest risk: an undocumented endpoint that hunts hit harder. Poll gently, cache, add a second source.</span>
+    <span>Unverified and carried as open items: the buyer protection cost figures, since the official page did not load; the claim about native alert frequency, which comes from a competitor; and the payment method assumption.</span>
     <span class="sig">Amsterdam &middot; 2 of 2</span>
   </footer>
 </section>

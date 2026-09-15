@@ -1,481 +1,489 @@
-# Buying second hand in the Netherlands: what is broken, what wins elsewhere, and what vindje should build next
+# Second-hand trade in the Netherlands: observations, comparison with four other markets, and a research plan for vindje
 
-Research and plan, September 2026. Written for the vindje team (product, design, engineering, marketing).
-
----
-
-## 0. What this document is
-
-A deep read on Marktplaats (how people actually use it and what they hate about it), a scan of the best buy and sell experiences in the USA, Germany, UK, Russia and China, and then the part that matters: 25 jobs to be done, the three we should own, 20 hypotheses, and a concrete one month plan for a designer, an engineer and a marketer.
-
-vindje today is one Python file that does three things: it turns a wish written in any language into a real Marktplaats search, it reads every returned listing with an LLM and keeps only the ones that satisfy the stated constraints (with a one line reason each), and every morning it hunts nationwide for underpriced items and puts them on the homepage. There is also a share link per search, a search history, an ideas board, and an MCP server so Claude can do the same thing inside a chat.
-
-That is a sharper starting position than it looks, for a reason the research makes obvious: everyone in this market is investing in sellers, and nobody is selling buyers a better way to find.
+Desk research. Compiled 15 September 2026. All sources are listed in section 13 and cited inline as [n].
 
 ---
 
-## 1. Method and confidence
+## 1. Purpose and scope
 
-Desk research, September 2026: Marktplaats' own help pages and product pages, Trustpilot and App Store review bodies, the AVROTROS Radar consumer forum, Dutch consumer research on second hand behaviour, Similarweb and Statista traffic and share data, the UK CMA's read on C2C apparel, Vinted's 2025 financials, Adevinta and Kleinanzeigen material, Avito product coverage, and Chinese platform coverage for Xianyu, Zhuanzhuan and Aihuishou.
+This document does four things.
 
-Confidence notes, stated up front so nobody over-trusts a number:
+1. It records what can be observed about Marktplaats and its users from public sources.
+2. It compares the Dutch market with the United States, Germany, the United Kingdom, Russia and China.
+3. It separates those observations from our inferences, and states both as such.
+4. It proposes 25 jobs to be done, a selection of three, twenty hypotheses, and a four week plan to test the first few.
 
-- Review sites are selection biased. A 1.2 Trustpilot score for a platform with tens of millions of monthly visits does not mean 78% of users are furious. It means the people motivated to write are furious, and it tells you which failure modes generate the most emotion. That is still useful; treat it as a map of pain, not a satisfaction measurement.
-- Traffic and user figures come from different methodologies (Similarweb visits, Statista survey panels, company statements) and do not reconcile cleanly. Ranges are given where they differ.
-- Nothing here substitutes for 20 user interviews. Week one of the plan below puts that in the calendar.
+The document does not claim to establish user needs. Desk research cannot do that. It can narrow the set of questions worth asking, which is what section 8 onward attempts.
 
----
+### What vindje is today
 
-## 2. Marktplaats: the incumbent
-
-### 2.1 Scale and position
-
-- Founded May 1999 by René van Mullem. Sold to eBay in November 2004 for €225 million, and moved to Adevinta in June 2021 as part of eBay's $9.2 billion classifieds divestment. Adevinta was itself taken private by a Permira and Blackstone led consortium, so Marktplaats now sits inside a private equity owned portfolio. That ownership matters for predicting behaviour: PE owned classifieds monetise harder, and they do it on the seller and the payment rails.
-- Roughly 8 to 10.3 million monthly active users or unique visitors depending on the source, around 48 million monthly visits (October 2025), approximately 350,000 new listings per day, and about 18.7 million live advertisements at any moment.
-- 7.6% share of all Dutch marketplace activity (bol 46.1%, Amazon 30.4%), but 73% of the online reuse market and about 29% of the total reuse market including physical thrift. In second hand, Marktplaats is not a competitor, it is the substrate.
-- Second in Dutch retail web traffic after bol.com.
-
-Read that as: supply is not contestable. 18.7 million live ads is a moat nobody in the Netherlands is going to rebuild. Any Dutch second hand product decision that starts with "we will build a marketplace" is starting with a fundraising problem, not a product.
-
-### 2.2 How Marktplaats makes money
-
-- Listing fees by category. Free in most consumer categories, paid in premium ones (cars, holiday rentals, water sports, services, business goods), historically €9 to €25 per listing. On 1 January 2025 the cars tariff went from €24 to €34.99, a 46% rise, and holiday rentals rose about 50%.
-- Admarkt and Marktplaats Pro: paid placement and visibility for commercial sellers.
-- Kopersbescherming (buyer protection): the buyer pays roughly 5% of the asking price, minimum €0.59, maximum €20, plus €0.40 service cost per payment request. Money sits with Online Payment Platform, and there is a 48 hour inspection window after delivery before the seller is paid automatically.
-- Direct Kopen (buy now) as the managed checkout path.
-
-Two things follow. First, the fee incidence in the Netherlands is on the buyer, not the seller, which is the opposite of what you would guess and the same direction Vinted took. Second, Marktplaats' incentives are to push volume into the managed payment and shipping rails, because that is where the take rate lives. Search relevance does not earn them anything. Sponsored placement does.
-
-### 2.3 What users complain about
-
-From Trustpilot (1.2 out of 5 across roughly 4,379 reviews, 78% one star), App Store and Play reviews, the Radar consumer forum, and Dutch consumer coverage. Grouped and ranked by how often and how loudly it shows up:
-
-1. **Fraud volume and the feeling that nobody is stopping it.** Purchase fraud is the most reported form of online fraud in the Netherlands. Published figures put damage from purchase fraud at around €247 million in 2023 with only about a tenth reimbursed, and Dutch victim support organisations run dedicated Marktplaats fraud pages. The dominant mechanic is the fake payment link: "pay me one cent to verify", which is a phishing page. Reviewers report scam listings staying live after reporting.
-2. **Buyer protection that does not feel like protection.** Mandatory fee whether or not the transaction goes well, return shipping not reimbursed even on counterfeit goods, and disputes decided in the seller's favour. The recurring phrasing is that the platform earns either way.
-3. **No human support.** A chatbot with no path to a person, no published address for a formal complaint, appeals that go unanswered.
-4. **Account bans out of nowhere.** Suspensions on day one for "suspicious activity", frequently for accounts without a Dutch phone number, with no working recovery path. This one hits expats hardest.
-5. **Moderation inconsistency.** The same listing removed repeatedly over the €200 threshold rule, each time acknowledged as a mistake. Users perceive uneven enforcement between private and commercial advertisers.
-6. **Commercialisation of the feed.** Private sellers say they are crowded out by professional ones, that you cannot tell a business listing from a private one at a glance, and that sponsored slots and ad units interrupt browsing. One review reads: no longer a treasure trove, now a soulless e-commerce wasteland. Play Store reviews complain that ad units swallow swipes and open on tap.
-7. **App quality.** Hangs when publishing a listing, buggy and inconsistent, coasting on market position.
-8. **Fees rising.** The 2025 category increases produced public defections in cars, where sellers listed the free alternatives they moved to by name.
-
-### 2.4 What almost nobody complains about, and why that is the finding
-
-Search quality barely appears in review sites, and that is not because it is good. It is because users do not report a bad search, they just give up on the item. The structural facts:
-
-- Search is keyword based and Dutch. You need the Dutch noun a Dutch seller would have typed. There is no semantic understanding of "wooden closet, 1.5 to 2 metres, with drawers and a hanging rail".
-- Sellers stuff keywords deliberately. Marktplaats publishes rules about keyword use in listings, which tells you how much of it there is.
-- Structured attributes are optional and unreliable, so filters cannot express the constraints that actually decide a purchase: dimensions, whether the charger is included, whether it is the real thing or a "stijl van" lookalike, whether it fits in a Fiat 500.
-- There is no sold price history, unlike eBay. Nothing on the page answers "is €180 a good price for this bike".
-- Bidding listings show an opening bid as if it were a price, which poisons price comparison. vindje already has an exclude-bids flag, which was the right instinct.
-- The good listings are gone in hours, and the platform's own saved search notification is, per the third party comparisons, as slow as a once daily digest.
-
-That is the whole vindje thesis, stated in the incumbent's own constraints.
+For readers outside the team. vindje is a single Python file plus a Vercel deployment. It takes a wish written in any language, converts it into a Marktplaats search with Dutch keywords, a price range and a radius, then passes each returned listing to a language model that keeps only the listings satisfying the stated constraints and attaches a one line reason. A daily job (`deals.py`) searches nationwide for items priced under €250 whose conservative estimated resale value exceeds €500, and publishes the result on the homepage. Searches can be shared as frozen snapshots. An MCP server exposes the same search to Claude. These are internal facts, not cited.
 
 ---
 
-## 3. The Dutch demand side
+## 2. Method and limits
 
-From the 2025 Consumentenonderzoek Potentie Tweedehands Spullen and adjacent data:
+Sources used: company help pages and self-published reports, Wikipedia, Statistics Netherlands (CBS), review platforms (Trustpilot, App Store, Google Play), one Dutch consumer forum (AVROTROS Radar), trade press, competitor pricing pages, and secondary summaries of Similarweb and Statista data.
 
-- 61% of Dutch consumers bought something second hand in the past year. Only 13% never have.
-- Top categories: bicycles 49%, books 47%, furniture 42%. 39% would buy phones, TVs or laptops second hand.
-- Preferred channels: kringloopwinkels 63%, Marktplaats 60%. Thrift shops score highest on positive experience at 66%, which is a quiet indictment of the online experience.
-- 32% buy more second hand than five years ago. Second hand retail revenue is around €11.2 billion in 2025, growing slowly.
+Four limits apply throughout and are not repeated at every claim.
 
-Two implications. Bicycles and furniture are the two biggest Dutch second hand categories and both are physically constrained purchases (size, frame height, does it fit through the door, can I transport it), which is exactly where keyword search fails hardest and where vindje's constraint parsing is worth the most. And the fact that a dusty warehouse outscores the online channel on experience means the ceiling here is not "slightly better search", it is "make buying second hand feel good".
+**L1. Review sites are self-selected samples.** People who write reviews of a platform they use for free are disproportionately people with an unresolved complaint. A low score tells us which failure modes provoke the most complaint. It does not measure satisfaction in the user population. Every Trustpilot number below should be read this way.
 
----
+**L2. Several key figures are self-reported by the companies they describe.** Marktplaats' market share, Whatnot's transaction volume and Xianyu's user counts all originate with the platform. They are reported here as claims, labelled.
 
-## 4. There is already a paid layer on top of Marktplaats
+**L3. Traffic and user numbers from different providers do not reconcile.** Similarweb visits, Statista survey panels and company statements measure different things. Ranges are given where they conflict.
 
-This is the single most commercially useful thing in the research, and it was not in anyone's slide deck.
+**L4. No primary research was done.** No interviews, no survey, no instrumented measurement of our own product. Section 11 puts that first in the plan.
 
-A small Dutch market exists for "tell me about the listing before anyone else":
-
-- **MarktAlert** (marktalert.nl), iOS and Android. Monitors Marktplaats, 2dehands and Vinted. Free tier: 2 alerts, 15 minute checks. Plus: €6.95 per month, 5 alerts, 5 minute checks. PRO: €10.95 per month, 10 or more alerts, 3 minute checks. Email, Telegram and push.
-- **MPAlerts** (mpalerts.nl). Marktplaats, 2dehands, Vinted and Facebook Marketplace in one dashboard, and it already advertises an AI that reads each listing and filters out irrelevant results.
-- **Marktplaats Scanner** (mpscanner.nl / marktplaatsscanner.nl). New listing and price drop alerts via push, Telegram, Discord, Slack or email.
-
-What this tells us:
-
-1. Dutch consumers will pay €7 to €11 a month for speed on a free platform. The willingness to pay question is answered.
-2. The AI filtering wedge is already being claimed. vindje is not early to the idea, it is early to doing it well. The differentiator has to be match quality and the explanation, not the existence of AI.
-3. All of them sell to the same person: the hobbyist and the flipper, who runs many searches. None of them serve the one time buyer who needs a specific wardrobe this month, which is a far larger population and the one that generates word of mouth.
-4. Multi source (Marktplaats plus 2dehands plus Vinted plus Facebook Marketplace) is table stakes in this category, and vindje is single source today.
+Where a source could not be verified, it says so.
 
 ---
 
-## 5. Global scan: what the best buy and sell experiences actually built
+## 3. Observations: Marktplaats
 
-### 5.1 USA: distribution, verification, and turning discovery into entertainment
+### Scale and ownership
 
-- **Facebook Marketplace** won on distribution alone. No new account, a real identity attached, and every listing one degree from a social graph. Its weakness is the same thing: no vetting, trivial fake profiles, and shopping scams are the most reported social media fraud category. Buyers deal with it because the supply is there.
-- **OfferUp** made trust a product: TruYou identity verification, profile ratings, in-app messaging, suggested safe public meetup spots, and a list-in-under-a-minute photo flow.
-- **Mercari** made the transaction managed end to end: in-app payments, shipping labels from day one, ratings visible before you buy. Buyer protection is the best in the US set.
-- **Craigslist** is instructive in the opposite direction. No account needed to browse, no algorithm, no feed, no seller brand to build. Post, wait, answer, meet, done. People who stay are staying for the absence of product. Traffic has fallen roughly 85% from its peak, so this is not a strategy, but the lesson stands: every mechanic you add has to earn its friction.
-- **Whatnot** is the most interesting data point in the whole scan. Live auction commerce, GMV doubling year over year to roughly $8 billion in 2025, the number one shopping app in the US and UK that year. Live shopping converts at 9% to 30% against 2% to 3% for standard e-commerce, and fashion returns run 10% against 30% to 35%. 42% of US shoppers say they do it because it is fun. Second hand supply is one of a kind, so urgency and a human voice work better on it than a grid of thumbnails does.
+**O1.** Marktplaats was founded in May 1999 and sold to eBay in November 2004 for €225 million. Adevinta acquired it in June 2021 as part of eBay's classifieds divestment, valued at $9.2 billion [1].
 
-**Takeaway.** Trust can be manufactured with verification and managed payments. Discovery can be made enjoyable instead of merely efficient. Both are being monetised. Neither is being done in the Netherlands.
+**O2.** A consortium led by Permira and Blackstone, with General Atlantic and TCV, offered NOK 115 per share for Adevinta in November 2023, approximately $13.1 billion [2][3]. The offer settled around 29 May 2024 [4]. Marktplaats is therefore inside a private equity owned group. One secondary source reports eBay retaining about 20% and Schibsted about 13.6% after the transaction [3]; this residual split is not confirmed by a primary source here.
 
-### 5.2 Germany: the rails play, and its cost
+**O3.** Marktplaats' own circular impact report, produced with the research firm Vaayu and covering 2023, states: 8 million unique visitors per month, 350,000 new listings per day, 18.3 million second-hand items sold in 2023, a 29% share of the total reuse market and a 73% share of the online platforms market [5]. These are the company's figures about itself.
 
-- **Kleinanzeigen** is Germany's dominant generalist: around 35 million monthly users, 55 million live listings, 110 million monthly sessions, 480,000+ commercial sellers, roughly €300 million annual revenue, and a 2025 UX Design Award. It is what Marktplaats would look like with more design investment.
-- Its user complaints are the same family as Marktplaats' and sharper on one point: users describe being forced onto the platform's own shipping (DHL only after alternatives were removed) and its own payment with buyer protection, and they experience protection as "you just pay more". Plus instant bans on accounts without a German phone number, and no complaint tracking.
+**O4.** Wikipedia reports approximately 18.7 million active advertisements live on the site in 2024, and 8 million monthly unique visitors [1]. Some trade and blog sources report 10.3 million monthly visitors. Secondary summaries of Similarweb report approximately 48 million monthly visits in October 2025 and rank Marktplaats second among Dutch retail websites after bol.com [6]. Visits and visitors are different units and should not be compared directly.
 
-**Takeaway.** Owning the shipping and payment rails is the standard classifieds monetisation endgame, it works financially, and it reliably burns goodwill. Marktplaats is walking the same path. That goodwill is the opening for a third party that is unambiguously on the buyer's side.
+**O5.** One 2026 market overview gives Dutch marketplace shares as bol 46.1%, Amazon 30.4% and Marktplaats 7.6% [7]. Statista ranked Marktplaats second by visit share among Dutch marketplaces in 2023 [8]. The 7.6% figure covers all marketplace activity, including new goods, and is not comparable with the 73% online reuse figure in O3.
 
-### 5.3 UK: the fee incidence lesson and the vertical lesson
+### Monetisation
 
-- **Vinted** took an estimated 50% to 60% of UK C2C apparel GMV in 2025, up from 5% to 10% in 2021. Over the same period eBay fell from 30% to 40% down to 10% to 20%, and Depop from 10% to 20% down to 0% to 5%. In October 2025 Vinted did 30.3 million UK monthly visits against Gumtree's 16.9 million, making it the most visited horizontal marketplace in the country. Group wide, 2025 GMV was €10.8 billion (up 47%), revenue €1.1 billion, net profit €62 million.
-- The mechanism: no seller fees, buyer pays a protection fee, and a social, scrollable, single category experience where every visitor is already in second hand clothing mode. eBay responded by removing UK private seller fees in October 2024, which is what a defensive move looks like.
-- **Gumtree** kept exactly one structural advantage: large, heavy, awkward items that cannot be posted. Local collection is not a legacy feature, it is a defensible niche.
+**O6.** Listing was free at launch. Fees were introduced for high value items, then organised by category. Premium categories, including cars, holiday rentals, water sports, services and business goods, carried per-listing fees in the range of €9 to €25 [1].
 
-**Takeaway.** Free to sell, buyer pays, plus a focused category, beat a horizontal generalist with better brand recognition in four years. And the one place a local classifieds site cannot be displaced is bulky goods, which in the Netherlands means furniture and bicycles.
+**O7.** On 1 January 2025 the cars category tariff rose from €24 to €34.99, an increase of about 46%, and the holiday rental category rose by about 50% [12]. The same article records sellers stating they would move to Autowereld, AutoScout24 and Gaspedaal.
 
-### 5.4 Russia: escrow plus logistics, then an AI assistant
+**O8.** Buyer protection (kopersbescherming) is paid by the buyer. A secondary source describes the cost as about 5% of the asking price, minimum €0.59, maximum €20, plus €0.40 per payment request, with funds held by Online Payment Platform and released to the seller automatically 48 hours after delivery if the buyer does nothing [13]. The official Marktplaats help page on these costs [14] did not load when checked on 15 September 2026, so these figures are unverified against the primary source and should be confirmed before use in any pricing argument.
 
-- **Avito** built Safe Deal: the buyer's money is reserved on their card and held in an escrow account until they have the item and confirm it, with free returns including return shipping if it is not right. Avito Delivery (from 2018) added couriers, parcel lockers and pickup points with real time tracking, which is what let strangers in different cities trade at all.
-- The stated purpose was to bring in people who would never do a doorstep handover with a stranger. That population is large everywhere.
-- Now: an AI assistant, Avi, rolling out to every Avito user in 2026, and a "neighbours recommend" mechanic in services that ranks providers already rated well by people in nearby buildings.
+**O9.** Marktplaats publishes rules governing the use of keywords in advertisements [15]. This is indirect evidence that keyword manipulation by sellers is common enough to require a policy.
 
-**Takeaway.** Two things. Escrow plus logistics converts the scared majority, which is the biggest untapped segment in any C2C market. And the incumbents are shipping AI assistants now. Marktplaats will do this. The window to own the association between "AI helps me buy well" and a Dutch brand is measured in quarters, not years.
+### What users complain about
 
-### 5.5 China: take custody of the item, and make the market a place
+All of the following is subject to L1.
 
-- **Xianyu (Idle Fish)**, Alibaba: 600 million registered users, 209 million MAU as of March 2025, and 43% of users born after 1995. Trust comes from Alipay escrow, credit ratings, third party inspection and authentication on high value goods with free mail-in or pickup, and a peer dispute mechanism called the Xianyu Small Court.
-- The engagement engine is not search. It is 1.3 million "fishponds": interest and neighbourhood communities where people trade, talk, and post. Layered on top: hobby circles, hashtag driven event conversations, location based discovery, celebrity closets, livestreams and auctions. Plus a side hustle services marketplace where 9.5 million users earned an average of RMB 3,660 in 2024. Registered to active ratio shows a large population that shows up for the community without transacting.
-- **Zhuanzhuan** (Tencent backed) answered information asymmetry with C2B2C: it takes the phone or laptop into custody, runs a 66 step standardised inspection through three inspection centres and more than 2,000 inspectors, issues a report, and offers a warranty. Xianyu and Zhuanzhuan both opened physical recycle and inspection shops in 2024 and 2025.
-- **Aihuishou** does the other half: instant trade-in and cash for used electronics, with data wiping and warranty attached.
+**O10.** On 15 September 2026, Marktplaats had a Trustpilot score of 1.2 out of 5 across approximately 4,379 reviews, with 78% one-star [9]. Recurring themes, in rough order of frequency:
 
-**Takeaway.** China concluded that in second hand, trust is not a UI problem, it is an operations problem, and the answer is to touch the item. That is capital intensive and not ours to build. The second conclusion is free and we are ignoring it: people come back for a place and a community, not for a search box. Xianyu has 209 million monthly actives on a product where the transaction is almost a side effect.
+1. Fraudulent listings remaining live after being reported, and the perception that the platform does not act.
+2. Buyer protection experienced as a fee rather than a protection. Specific complaints: charged regardless of outcome, return postage not reimbursed including for counterfeit goods, disputes resolved in the seller's favour.
+3. No route to a human in support. A chatbot with no escalation path, and no published address for a formal complaint.
+4. Accounts suspended shortly after registration for "suspicious activity", with several reviewers linking this to not having a Dutch phone number, and no working appeal.
+5. Displacement of private sellers by commercial ones, and difficulty telling the two apart in results.
+
+**O11.** The AVROTROS Radar consumer forum thread on Marktplaats contains repeated reports of advertisements being removed for breaching the price threshold rule when the poster states the item was below it, each removal acknowledged as an error, alongside unanswered appeals and perceived uneven enforcement between private and commercial advertisers [10].
+
+**O12.** App store reviews report the application hanging when publishing a listing, advertisement units intercepting swipe gestures and opening on tap, and no visible distinction between commercial and private listings in results [11].
+
+**O13.** Search quality is close to absent from the complaint corpus. This is an observation about the corpus, not about search quality.
+
+### Structural properties of Marktplaats search
+
+These are properties of the system, established by using it and by the sources noted.
+
+**O14.** Search matches keywords against listing text. It requires the Dutch noun a Dutch seller would have used. There is no semantic interpretation of a described object with constraints.
+
+**O15.** Structured attributes are optional for sellers, so filters cannot express constraints such as dimensions, included accessories, or whether an item is an original or a lookalike.
+
+**O16.** There is no sold-price history exposed to buyers, unlike eBay. A buyer cannot see what comparable items transacted for.
+
+**O17.** Auction listings display an opening bid in the price position, which makes price comparison across listings unreliable. vindje already has a flag to exclude these listings.
+
+**O18.** Sellers insert keywords to appear in unrelated searches, per O9.
+
+### Fraud, from the national statistics office
+
+**O19.** CBS reports that in 2024, 7% of people aged 15 and over were victims of aankoopfraude, defined as paying for an online order that was never delivered, up from 5.6% in 2022. It was the most common form of online fraud, ahead of sales fraud (1.5%), payment fraud (1.2%), phishing (0.7%) and identity fraud (0.6%) [16].
+
+**O20.** Of purchase fraud victims, 22% reported the incident to the police and 47% to another body; 18% filed a formal police report [16]. Goods involved: clothing, sportswear and accessories 48.3%, electronics 15.7%, computers and phones 8.2%, furniture 7.2%, cosmetics 6.5% [16].
+
+**O21.** CBS reports 2.4 million people aged 15 and over were victims of one or more forms of online crime in 2024, and estimates total damage from online crime in 2023 at €707 million, of which €247 million was purchase fraud [17]. Correction to an earlier internal draft: the 2.4 million figure covers all online crime, not purchase fraud specifically.
+
+**O22.** None of these CBS figures are attributed to any platform. They describe the Netherlands, not Marktplaats. Any statement that links them to Marktplaats specifically would be unsupported.
 
 ---
 
-## 6. Key learnings
+## 4. Observations: the Dutch demand side
 
-1. **Supply is settled, affection is not.** Marktplaats holds 73% of Dutch online reuse and a 1.2 Trustpilot score. An unloved monopoly with unmatchable supply is the perfect host for a layer that sits on top of it. Do not build a marketplace.
-2. **Everyone is building for sellers.** eBay's Magical Listing now builds listings autonomously from photos. Vinted, Kleinanzeigen and Marktplaats all monetise sellers and payment rails. Buyers get a keyword box and sponsored slots. The demand side is the underserved side of this entire industry.
-3. **The three winning mechanics elsewhere are custody, logistics and entertainment.** Escrow and inspection (Avito, Xianyu, Zhuanzhuan), delivery for C2C including bulky items (Avito, Vinted Go, Brenger), and discovery as something you enjoy (Xianyu ponds, Whatnot live). Two of the three are capital intensive. The third is software.
-4. **Speed already sells in the Netherlands for €7 to €11 a month.** MarktAlert, MPAlerts and Marktplaats Scanner have validated the price point and the buyer. One of them already claims AI filtering. Our edge is quality and explanation, not novelty.
-5. **Price confidence is an open hole.** No sold price history on Marktplaats, and bidding ads show opening bids as prices. "Is this a good price" is the most common unanswered question in second hand buying, and vindje's deal hunt already contains the valuation machinery to answer it.
-6. **Language is a real wedge, not a nice-to-have.** Search requires the Dutch noun. Expat guides name the language barrier and hard Dutch bargaining as the two main obstacles, and bans hit accounts without a Dutch phone number. vindje works in any language on day one, and internationals cluster in exactly the four cities where supply density is highest.
-7. **Fee incidence and category focus beat brand.** Vinted went from 5% to 60% of UK C2C apparel in four years on free-to-sell plus one category. Horizontal generalists lose to focused experiences.
-8. **Trust is the loudest complaint and the cheapest partial win.** We cannot run escrow. We can flag the payment link scam pattern, stock photos, too-cheap outliers and fresh accounts, in the moment, for free.
-9. **Bulky goods are structurally local, and that is where the money and the pain are.** Furniture (42%) and bicycles (49%) top Dutch second hand purchasing. Brenger already moves Vinted and Whoppah items in the Netherlands, insured to €250 by default and €1,500 on request. Landed cost, not sticker price, is what buyers actually decide on, and nobody shows it.
-10. **The window is 12 to 18 months.** Avito ships an assistant to every user in 2026. Marktplaats will follow. After that the question stops being "who has the better AI" and becomes "who has distribution", which we lose. Build the habit and the brand association now.
+**O23.** A 2025 Dutch consumer study reports: 61% of consumers bought something second hand in the past year, 13% never have. Most purchased categories are bicycles 49%, books 47%, furniture 42%. 39% would buy electronics such as phones, televisions or laptops second hand. Preferred channels are thrift shops (kringloopwinkels) 63% and Marktplaats 60%. Thrift shops score highest on positive purchase experience at 66% [18].
+
+**O24.** 32% of Dutch consumers report buying more second hand than five years ago [19].
+
+**O25.** Second-hand retail revenue in the Netherlands is estimated at €11.2 billion in 2025, growing 0.6% [20].
+
+**O26.** The two largest second-hand categories in the Dutch data, bicycles and furniture, are both size-constrained and awkward to ship. This is an observation about the categories, and the link to search difficulty is an inference (see I3).
 
 ---
 
-## 7. 25 jobs to be done
+## 5. Observations: an existing paid layer on top of Marktplaats
 
-Grouped. Written from the buyer's or seller's side, not ours.
+**O27.** At least three Dutch services sell notifications of new Marktplaats listings.
 
-**Finding**
+- MarktAlert (marktalert.nl): iOS and Android. Monitors Marktplaats, 2dehands and Vinted. Published tiers: free with 2 alerts and 15 minute checks, Plus at €6.95 per month with 5 alerts and 5 minute checks, PRO at €10.95 per month with 10 or more alerts and 3 minute checks. Email, Telegram and push [21].
+- MPAlerts (mpalerts.nl): described as monitoring Marktplaats, 2dehands, Vinted and Facebook Marketplace in one dashboard, with an AI that reads each listing and filters irrelevant results. The site returned HTTP 403 when fetched on 15 September 2026, so this description comes from a competitor's comparison page and search listings, not from the vendor's own page as read by us [21][22].
+- Marktplaats Scanner (mpscanner.nl, marktplaatsscanner.nl): new listing and price drop alerts via push, Telegram, Discord, Slack or email [23].
 
-1. When I need something with physical constraints (fits this alcove, 1.5 to 2 metres, solid oak, with drawers), I want to describe it the way I would to a friend and see only listings that actually meet them, so I stop opening sixty tabs to reject fifty eight.
-2. When I do not know the Dutch word for the thing I want, I want to search in my own language, so 18 million listings are not closed to me.
-3. When I scan results, I want one line per listing telling me why it matches and what is off about it, so I do not have to read every description.
-4. When a listing is vague, I want the missing facts (dimensions, model year, whether the charger is included) pulled out or asked for, so I do not message five sellers to eliminate four.
-5. When I see a price, I want to know whether it is fair against what comparable items actually sold for, so I neither overpay nor scroll past a steal.
-6. When I am not looking for anything specific, I want a feed of genuinely interesting things near me, so I find things I would never have searched for.
-7. When the right listing appears, I want to know within minutes, so I am not the twelfth message.
-8. When I am going to want this thing for weeks, I want the search to keep running without me reopening anything.
-9. When I want a category rather than a listing (a road bike, 56cm frame, under €400), I want the best three live options right now, ranked, not 400 results.
-10. When I have shortlisted four listings, I want them side by side on the attributes that decide it, so I can choose in two minutes.
+**O28.** MarktAlert's own comparison page claims the native Marktplaats saved search notification is at most a once daily summary [21]. This is a competitor's characterisation of a rival's product and should be verified directly before we repeat it.
 
-**Trust and risk**
+**O29.** Brenger transports large second-hand items in the Netherlands and Belgium, and is integrated with Vinted and Whoppah. Stated limits: maximum 400 x 180 x 160 cm per item, insurance to €250 included, extra cover to €1,500 available at booking, typical delivery in 3 to 7 working days [24].
 
-11. When I consider a listing, I want a read on scam risk (stock photos, price far below the market, fresh account, payment link language), so I do not lose money.
-12. When the seller sends me a payment link or asks for one cent to "verify", I want to be warned right then, in the conversation.
-13. When I am about to meet a stranger, I want a safer handover plan: a public place, what to check, what to say, so the meetup is not the risky part.
-14. When I buy electronics, I want a two minute doorstep checklist for that exact model (battery health, IMEI, cycle count, accessories), so I can verify before I pay.
-15. When I buy something branded, I want a replica read from the photos, so I do not pay for a "stijl van" lookalike.
+---
 
-**Doing the deal**
+## 6. Observations: four other markets
 
-16. When I am about to message a seller, I want a first message in natural Dutch that actually gets a reply, so I do not lose the item to a faster or more local buyer.
-17. When I negotiate, I want an opening number and a walk away number grounded in comparables, so I am not guessing against someone who does this weekly.
-18. When the item is 40 kilometres away, I want pickup or transport solved with a real price (van, Brenger, a courier), so distance stops being an automatic no.
-19. When I compare a listing 5 km away with a better one 45 km away, I want the true landed cost including fuel, time and transport, so I compare like with like.
-20. When we agree, I want the agreement recorded (price, time, address, stated condition), so doorstep price hikes and no-shows become rare.
+### United States
+
+**O30.** Facebook Marketplace operates without seller vetting and with low-cost account creation. Security vendors and consumer press document non-delivery, counterfeit goods, overpayment scams and fake payment confirmations as the common patterns, and cite the FTC ranking shopping scams as the most reported category of social media fraud [43]. Vendor blogs are an interested source; the FTC categorisation is the part worth relying on.
+
+**O31.** OfferUp offers identity verification (TruYou), profile ratings, in-app messaging, suggested public meetup locations, and a listing flow described as under a minute. Mercari offers in-app payment, platform shipping labels and visible ratings. A comparison source ranks Mercari first and OfferUp second on buyer protection among US platforms [44]. This source is a commercial blog and the ranking is an opinion.
+
+**O32.** Whatnot, a live auction platform, reports global GMV above $8 billion in 2025, more than doubling year over year, and over 20 million new accounts in the year [33]. A separate analysis gives above $6 billion for the same year [34]. Both figures originate with the company. The discrepancy is unresolved. Whatnot raised $225 million at an $11.5 billion valuation in October 2025 [35].
+
+**O33.** Reported conversion rates for live shopping of 9% to 30%, against 2% to 3% for standard e-commerce, and returns of about 10% against 30% to 35% for standard fashion e-commerce, come from industry and platform sources [34]. No independent verification was found. Treat as claims, not measurements.
+
+**O34.** Craigslist requires no account to browse, has no ranking algorithm and no seller profile system. Reports of large traffic decline exist but the sources located were low quality and are not cited.
+
+### Germany
+
+**O35.** Kleinanzeigen is described by a portal profile as having around 35 million monthly users, more than 55 million live listings, 110 million monthly sessions and over 480,000 registered commercial sellers with at least one active listing as of Q3 2024. The same source estimates annual revenue at approximately €300 million [31]. The revenue figure is an estimate by a third party. Kleinanzeigen won a UX Design Award in 2025 [32].
+
+**O36.** Kleinanzeigen's Trustpilot complaint themes overlap with Marktplaats' and add one distinct theme: users describe being pushed onto the platform's own shipping after alternatives were removed, and describe buyer protection as paying more for little in return. Account blocks shortly after registration, including for accounts without a German phone number, also appear [30]. L1 applies.
+
+### United Kingdom
+
+**O37.** Reporting on the UK Competition and Markets Authority's analysis puts Vinted at an estimated 50% to 60% of UK consumer-to-consumer online apparel GMV in 2025, against 5% to 10% in 2021. Over the same period eBay is put at 30% to 40% falling to 10% to 20%, and Depop at 10% to 20% falling to 0% to 5% [25].
+
+**O38.** In October 2025 Vinted recorded 30.3 million UK monthly visits against Gumtree's 16.9 million, making it the most visited horizontal marketplace in the UK [26].
+
+**O39.** Vinted reports 2025 group GMV of €10.8 billion, up 47%, revenue of €1.1 billion and net profit of €62 million [27]. Company-reported.
+
+**O40.** Vinted charges no seller fees; buyers pay a protection fee. eBay removed private seller fees in the UK in October 2024 [28].
+
+**O41.** Gumtree has no platform-managed postage. Buyers arrange collection or delivery with the seller, which suits large or heavy items [26].
+
+### Russia
+
+**O42.** Avito operates an escrow-like "Safe Deal": the buyer's funds are held until the item is received and confirmed, with free returns including return postage if the item is unsuitable. Avito Delivery, launched 2018, provides couriers, parcel lockers and pickup points with tracking [36]. The stated intent was to bring in users unwilling to do in-person handovers.
+
+**O43.** Trade reporting states an AI assistant named Avi is to be made available to every Avito user in 2026, and that Avito Services is testing a "neighbours recommend" ranking that surfaces providers rated well by residents of nearby buildings [38]. This rests on a single trade source in Russian. Low confidence.
+
+### China
+
+**O44.** Xianyu (Idle Fish), owned by Alibaba, is reported to have over 600 million registered users and 209 million monthly active users as of March 2025 (QuestMobile), with 43% of users born after 1995 [39][40].
+
+**O45.** Xianyu's structure is community-first: interest and location based groups called fishponds, numbering 1.3 million by 2019, with volunteer moderators and a peer dispute process ("Xianyu Small Court"). Additional layers include hobby circles, hashtag-driven event conversations, location based discovery, celebrity listings, livestreams and auctions [39].
+
+**O46.** Xianyu's trust mechanisms are Alipay escrow, credit ratings, and third party inspection and authentication for high value goods with free mail-in or pickup collection [39].
+
+**O47.** Xianyu launched a services and side-hustle marketplace in 2024; reporting states 9.5 million users earned an average of RMB 3,660 in 2024 [39]. Company-derived.
+
+**O48.** Zhuanzhuan operates a C2B2C model: it takes the item into custody and inspects it. Company material describes three inspection centres (Shenzhen, Chengdu, Qingdao), over 2,000 inspectors and a 66 step standardised inspection with a report, plus warranties [42]. Company-sourced, via Baidu Baike. Aihuishou provides trade-in and cash-for-device services with data wiping and warranty [41]. Both Xianyu and Zhuanzhuan opened physical inspection and recycling shops in 2024 and 2025 [41].
+
+### Dutch channel data, for section 10
+
+**O49.** Reported reach among Dutch internet users: WhatsApp 88.8%, Facebook 69.1%, LinkedIn 76.2%, Instagram approximately 45%, TikTok 5.62 million users aged 18 and over in early 2025 [45]. These come from different instruments within the same compilation and the LinkedIn and Instagram figures are not measured the same way.
+
+**O50.** Expat-facing guides to selling in the Netherlands name the Dutch language and hard bargaining as the main obstacles, and note that items often need reposting before they sell [46]. Secondary and anecdotal.
+
+---
+
+## 7. Interpretation
+
+Clearly separated from the observations. Each inference names what it rests on and what would undermine it.
+
+**I1. Supply is not contestable; sentiment is weak.** Marktplaats' own reported 73% share of online reuse (O3) plus 18.7 million live listings (O4) means no new Dutch marketplace can assemble comparable supply. At the same time the complaint corpus (O10 to O12) is unusually hostile. A product that sits on top of the existing supply is therefore a better bet than one that tries to replace it. Undermined if the 73% figure is materially overstated, which is possible because it is self-reported.
+
+**I2. The industry invests in sellers, not buyers.** eBay's Magical Listing now builds listings from images alone [29]. Vinted, Kleinanzeigen and Marktplaats monetise sellers and payment rails (O6 to O8, O36, O40). Buyer-side tooling is limited to keyword search and sponsored placement. The demand side is therefore comparatively under-served. This is the single inference the whole vindje thesis depends on, and it is not directly measured anywhere in this document.
+
+**I3. Buyer-side search failure is structural, not a quality problem.** O14 to O18 describe properties of the system, not defects that a better ranking model inside Marktplaats would fix. The two largest Dutch second-hand categories are size-constrained (O26), which is where the absence of expressible constraints costs the most. Undermined if users mostly search for named products rather than described objects, which we have not measured.
+
+**I4. The absence of search complaints is weak evidence of anything.** O13 is compatible with two explanations: search works well enough, or users abandon the item instead of complaining. Nothing here distinguishes them. This is a question for interviews, not for desk research.
+
+**I5. Willingness to pay for notification speed exists, and the differentiating claim is already taken.** Three services charge for it (O27), one at €6.95 to €10.95 per month. One of them already advertises AI filtering, although we could not read that claim on the vendor's own site (O27). So novelty is not available to us; only measured match quality is.
+
+**I6. Price confidence is an unserved question with a possible data path.** There is no sold-price history (O16) and auction listings corrupt the price signal (O17). Nobody in this market publishes comparables. Our daily job already estimates resale values, and listings that disappear from the index are a weak proxy for sales. The proxy is weak: listings are also removed when they expire, are withdrawn, or are relisted. Any valuation built on it must report its own confidence.
+
+**I7. The language barrier is plausible as a segment, and unquantified.** Search requires Dutch keywords (O14), several reviewers report bans on accounts without a Dutch phone number (O10), and expat guides name language as the main obstacle (O50). We have no population estimate, no conversion data and no evidence this group is willing to pay. Treat as the weakest of the three focus areas and test cheaply.
+
+**I8. The competitive window is finite but its length is a guess.** Avito is reported to be giving every user an assistant in 2026 (O43, low confidence), and it sits in the same industry as Marktplaats. It is reasonable to expect Marktplaats to ship similar features. We have no announcement, no roadmap and no date. Any specific figure such as "12 to 18 months" is invented and is removed from this version.
+
+**I9. Custody and logistics solve trust, and both need capital.** Avito holds funds and moves goods (O42). Xianyu authenticates and Zhuanzhuan inspects with over 2,000 staff (O46, O48). These are operational businesses. A two person team cannot replicate them, so trust work available to us is limited to signalling risk, not underwriting it.
+
+**I10. Community is the mechanism behind the largest engagement numbers.** Xianyu's 209 million monthly actives sit on 1.3 million interest groups rather than on a search box (O44, O45). Whatnot's reported growth comes from live auctions (O32). Both suggest that for one-of-a-kind goods, discovery formats beat query formats. This is suggestive, not transferable: both operate at a scale and in a culture unlike the Dutch market, and their figures are self-reported.
+
+---
+
+## 8. Twenty five jobs to be done
+
+Phrased from the user's side. These are candidate jobs derived from the observations above. None has been validated with users.
+
+**Finding an item**
+
+1. When I need an object with physical constraints (height 1.5 to 2 metres, solid oak, with drawers), I want to state the constraints and see only listings that meet them, so I do not open sixty listings to reject fifty eight.
+2. When I do not know the Dutch word for the object, I want to search in my own language.
+3. When I scan results, I want one line per listing saying why it matches and what does not, so I do not read every description.
+4. When a listing omits facts I need (dimensions, model year, included accessories), I want those extracted or flagged as missing.
+5. When I see an asking price, I want to know how it compares with prices for comparable items.
+6. When I am browsing without a target, I want a feed of relevant items near me.
+7. When a matching listing appears, I want to know within minutes rather than the next day.
+8. When I will want this object for several weeks, I want the search to continue without me repeating it.
+9. When I want a category rather than a specific listing, I want a short ranked shortlist rather than 400 results.
+10. When I have four candidates, I want them compared on the attributes that decide the purchase.
+
+**Assessing risk**
+
+11. When I consider a listing, I want an indication of fraud risk based on observable signals.
+12. When a seller sends a payment link or asks for a one cent verification payment, I want a warning at that moment, because this is the most reported pattern nationally (O19).
+13. When I arrange a handover with a stranger, I want a safer procedure: public location, what to inspect, what to ask.
+14. When I buy electronics, I want a short model-specific inspection checklist I can run at the door.
+15. When I buy branded goods, I want an assessment of whether the photos show an original.
+
+**Completing the transaction**
+
+16. When I contact a seller, I want a first message in natural Dutch, because response rates matter and I may be competing with local buyers.
+17. When I negotiate, I want an opening offer and a walk-away price grounded in comparable listings.
+18. When the item is 40 km away, I want transport options with real prices (O29 shows the options exist).
+19. When I compare a near listing with a better distant one, I want total cost including transport and time.
+20. When we agree terms, I want the agreed price, time, address and stated condition recorded.
 
 **Selling**
 
-21. When I clear out a room, I want to know what is worth listing, what should go to the kringloop and what to throw away, so I do not waste an evening on items worth €4.
-22. When I list, I want a photo to become a Dutch title, description, category, attributes and price, so listing takes one minute instead of fifteen.
-23. When I price, I want two numbers: the one that sells this week, and the one that sells this month.
-24. When buyers message, I want the repetitive part answered for me, so I am not typing "ja, nog beschikbaar" fourteen times.
-25. When my listing has been dead for ten days, I want to know whether to drop the price, reshoot the photos or rewrite the title, and by how much.
+21. When I clear out a room, I want to know which items are worth listing and which are not.
+22. When I list an item, I want a photo turned into a Dutch title, description, category, attributes and price.
+23. When I price an item, I want two numbers: one that sells within a week, one that sells within a month.
+24. When buyers send repetitive questions, I want those answered without me typing.
+25. When my listing has had no contact for ten days, I want to know whether to lower the price, replace the photos or rewrite the title.
 
-**Flipping (adjacent, already half built)**
+**Adjacent, already partly served by `deals.py`**
 
-Bonus, because deals.py already serves it: when I buy to resell, I want a daily list of underpriced live items with an estimated resale value, a margin and a confidence level, so I work from a list instead of scrolling.
-
----
-
-## 8. The three jobs to focus on
-
-### Focus 1. Constraint-true search with a stated reason (jobs 1, 2, 3, 9)
-
-*See only what actually matches, and know why in one line.*
-
-This is the only job where the incumbent is structurally unable to compete without rebuilding its core, it is what vindje already does, and it is the reason anyone tries the product once. The work now is not the feature, it is the quality: a measurable match rate, a reason line people trust, and honest handling of the rejected pile ("we hid 43, here is why") so the filtering reads as competence rather than as a black box.
-
-### Focus 2. The standing hunt (jobs 7, 8)
-
-*Tell me first, and only when it really matches.*
-
-This is the retention and revenue job. A one-off search is a tool, a standing hunt is a habit. The Dutch market has already priced it at €7 to €11 a month, and our version is better on the only axis that matters to a buyer: relevance, so the notification is worth opening. Without this, vindje is a clever demo people visit twice.
-
-### Focus 3. Price confidence (jobs 5, 17)
-
-*Is this a good price, yes or no, and here is what it is based on.*
-
-It makes a match actionable, it turns a match into a decision, it is the most searched unanswered question in second hand, we already have the valuation prompt from the deal hunt, and it produces the content engine for organic acquisition (a price page per model). It also compounds: every day of listings we observe makes the comparable set better, which is the closest thing to a data moat available in this business.
-
-### What we are explicitly not doing this quarter
-
-- Selling tools (photo to listing, auto replies, pricing for sellers). Crowded, eBay and Vinted are ahead, Marktplaats will ship it. Revisit in 2027.
-- Escrow, payments, inspection, authentication. Capital and operations, not our fight.
-- Logistics. Partner with Brenger when it becomes a blocker, do not build it.
-- Live commerce and community feeds. The Xianyu and Whatnot lesson is real and comes after we have a retained audience, not before.
-- Our own marketplace. Ever.
+A daily list of underpriced live listings with estimated resale value, margin and confidence, for users who buy to resell.
 
 ---
 
-## 9. Ten product hypotheses
+## 9. The three jobs proposed for focus
 
-Each with the metric that settles it and the number that kills it. Order is roughly the order to run them.
+### Selection
 
-**H1. Constraint richness predicts value.** Users whose wish contains two or more explicit constraints click through to listings at a materially higher rate than keyword-style users.
-Measure: listing click-through per search, split by constraint count. Target: 35%+ for constraint-rich searches. Kill below 15%.
+**Jobs 1, 2, 3 and 9: constrained search with a stated reason.** Rests on I3. It is the only candidate where the incumbent's limitation is structural rather than a matter of investment, and it is what the product already does. The immediate work is measurement, not features: we do not know our own precision or recall.
 
-**H2. The reason line is the product, not decoration.** Showing the one line "why this matches" increases listing clicks versus hiding it.
-Measure: A/B on results page. Target: +25% clicks. Kill if flat.
+**Jobs 7 and 8: a standing search.** Rests on I5. It is the only candidate with external evidence of willingness to pay in this specific market.
 
-**H3. Showing the rejected pile builds trust rather than doubt.** "We hid 43 listings, here is why" increases repeat use.
-Measure: D7 return rate, A/B. Target: +10 percentage points. Kill if negative, which would mean we are advertising our own uncertainty.
+**Job 5, with 17: price comparison.** Rests on I6. It answers a question nothing in the market answers, it reuses existing valuation code, and it produces a data asset that improves with time. It carries the highest risk of being confidently wrong, so it needs an explicit "insufficient data" state.
 
-**H4. Hunts convert searchers into users.** Offered a saved hunt right after results, a quarter of searchers create one, and hunt creators return within 7 days at three times the rate of one-off searchers.
-Measure: hunt creation rate, D7 return by cohort. Target: 25% creation, 3x return. Kill below 10% creation.
+### Why not the others
 
-**H5. Speed and relevance sell at €7.** At least 5% of active hunt users pay €7 a month for unlimited hunts and faster checks, and alerts get opened and clicked within 15 minutes at least 40% of the time.
-Measure: paid conversion of hunt users, alert click latency. Target: 5% and 40%. Kill below 2% conversion.
+Selling tools (21 to 25) are the most invested-in area of the industry (I2) and eBay already ships the core of it [29]. Custody, escrow, inspection and logistics are operational businesses (I9). Community and live formats are associated with the largest engagement numbers observed (I10) but the evidence does not transfer to a market of this size, and they require an existing audience.
 
-**H6. A price verdict changes decisions.** Adding "good deal / fair / steep, based on N comparables" raises seller-contact intent and users say it changed what they did.
-Measure: contact clicks A/B, plus a one question survey on the verdict. Target: +20% contact clicks, 50%+ say it changed their decision. Kill if contact clicks drop, which would mean we are talking people out of purchases.
+### What would change this selection
 
-**H7. Internationals are the beachhead.** Non-Dutch language searches show higher engagement per session and higher referral than Dutch ones.
-Measure: listings opened per session and referral rate by input language. Target: 1.5x engagement, 2x referral. If false, drop the expat-first marketing thesis immediately and go mainstream Dutch.
-
-**H8. The first message is a real job.** Offering a generated Dutch opening message raises the rate at which users actually contact a seller.
-Measure: contact rate A/B. Target: +30%. Secondary: is this a better paywall trigger than hunt limits.
-
-**H9. Scam flags are worth the false positives.** A rules plus LLM risk badge catches most listings users independently consider suspicious without crying wolf on clean ones.
-Measure: recall against user-reported suspicious listings, false positive rate on a hand labelled clean set. Target: 60% recall, under 10% false positives. Kill above 20% false positives, because a jumpy badge destroys the trust it is meant to build.
-
-**H10. The daily deal hunt is an acquisition engine, not a homepage decoration.** Public per-category daily finds pages bring in new visitors and convert them into hunts.
-Measure: share of new visitors landing on a finds page, and their hunt creation rate. Target: 30% of new visitors within 8 weeks, 15% hunt creation. Kill if hunt creation from that traffic is under 5%, which would mean we are attracting spectators.
+- If interviews show users mostly search for named products rather than described objects, focus 1 weakens and price comparison becomes the lead.
+- If our measured precision on constrained searches is low and cannot be raised quickly, the standing search has nothing worth notifying about and the whole selection is premature.
+- If the comparables proxy (I6) turns out too noisy to produce a defensible verdict, focus 3 should be dropped rather than shipped with a disclaimer.
 
 ---
 
-## 10. Ten marketing hypotheses for the Netherlands
+## 10. Hypotheses
 
-All tied to the three focus jobs. Dutch context: WhatsApp reaches 88.8% of Dutch internet users, Facebook 69.1%, LinkedIn 76.2%, Instagram around 45%, TikTok 5.6 million adults. iDEAL is how the Netherlands pays, so Mollie, not a card-only checkout.
+Each hypothesis states a prediction, the measurement, and the result that would falsify it. Thresholds are set to be decidable within weeks at our traffic, not derived from any benchmark. They are judgement calls and should be read as such.
 
-**M1. Programmatic Dutch long-tail SEO on constraint queries.** Pages like "tweedehands eettafel massief hout 180 cm Amsterdam" built from live listings plus a price range, 200 pages to start.
-Target: 5,000 organic sessions a month within 90 days, 3% to hunt creation. Kill if under 1,000 sessions at day 90.
+### 10.1 Product
 
-**M2. Price pages capture the highest intent query in the category.** "Wat is een [model] waard in 2026", fed by our own observed comparables.
-Target: top 10 Dutch ranking for 25 model queries in 8 weeks, 8% of that traffic creating a hunt.
+**H1. Constraint richness predicts engagement.** Searches containing two or more explicit constraints produce more listing views per search than keyword-style searches.
+Measure: listing click-through per search, split by constraint count parsed. Falsified if the difference is not positive at a reasonable sample.
 
-**M3. Internationals first, in English, in their own rooms.** r/Netherlands, r/Amsterdam, expat Facebook groups, IamExpat, DutchReview, university housing channels. The pitch is "search Marktplaats in English and get only what fits".
-Target: 1,000 signups in 4 weeks at under €2 blended CAC. Paired with H7.
+**H2. The stated reason increases listing views.** Showing the one line explanation of why a listing matches increases click-through relative to hiding it.
+Measure: A/B on the results page. Falsified if the difference is not positive.
 
-**M4. WhatsApp is the notification channel, not email.** Hunt results delivered to WhatsApp beat email badly on a channel where nine in ten Dutch people already live.
-Target: 70%+ open on WhatsApp against 35% or less on email, and higher paid conversion for WhatsApp users.
+**H3. Disclosing the rejected set does not reduce trust.** Showing "43 listings hidden" with grouped reasons does not lower return rate, and may raise it.
+Measure: 7 day return rate by arm. Falsified if the disclosure arm returns less.
 
-**M5. Category-intent Google Ads, never brand-adjacent terms.** Bid on "tweedehands bakfiets kopen", not on "marktplaats". In-house competence exists, so the test is cheap.
-Target: CPC at or under €0.40, cost per registered hunt at or under €3, on a €500 test.
+**H4. A saved search converts one-time users into repeat users.** Users offered a standing search after results create one at a usable rate, and return more often than one-time searchers.
+Measure: creation rate at the offer point; 7 day return by cohort. Falsified if creation is rare, which we set at under 10%.
 
-**M6. Niche forums and hobby communities convert better than broad social.** Tweakers V&A, bakfiets and vintage bicycle forums, HiFi, photography, horse gear, model trains. Offer a free standing hunt for that niche.
-Target: 500 signups across five niches, and higher D30 retention than paid traffic.
+**H5. Some users will pay for a standing search.** A minority of active standing-search users will pay a monthly fee in the range already charged in this market (O27).
+Measure: paid conversion among users with at least one active search. Falsified if conversion is under 2%.
 
-**M7. The deal hunt is short-form video content that writes itself.** A Dutch language series: a €120 find, valued at €600, with the reasoning. We already generate the material every morning at 08:00.
-Target: one clip in twenty over 100k views, CAC under €0.50 at scale, 20 clips in the month.
+**H6. A price comparison changes buyer behaviour.** Showing a verdict with the number of comparables changes the rate at which users contact sellers.
+Measure: contact clicks by arm, plus one direct question to users who saw it. Note the direction is genuinely uncertain: a well calibrated verdict should also stop some purchases. Falsified as useful only if it moves neither contacts nor stated decisions.
 
-**M8. Seasonality is worth planning for.** Near term: Sinterklaas and Christmas second hand gifting, Black Friday counter-positioning ("the anti Black Friday: buy it used"), and the dark months when people buy furniture indoors. April: King's Day, when the country turns into one open air market and "what is this worth" gets asked a million times.
-Target: a built and dated campaign calendar, and a 3x signup week on the Sinterklaas push.
+**H7. Non-Dutch language input identifies a distinct, better-retained segment.** Rests on I7, which is the weakest inference here.
+Measure: listings viewed per session and 30 day retention, split by input language. Falsified if the two groups behave the same, in which case the expat-first marketing plan is dropped.
 
-**M9. The share link is an under-used growth loop.** Every finished search already produces a frozen shareable snapshot at /s/. Today it is a receipt. Make it a landing page with its own hunt call to action.
-Target: 0.3 new visitors per shared search, 10% of them creating a hunt.
+**H8. A generated Dutch opening message increases seller contact.** Measure: contact rate by arm. Falsified if not positive.
 
-**M10. One national press moment, measured honestly.** "The AI that reads all 18.7 million Marktplaats ads for you" to Tweakers, Bright, Emerce, NU.nl tech, De Ondernemer, plus Dutch startup podcasts.
-Target: one national pickup, 20,000 sessions in 48 hours, and the real test: D30 retention of that cohort at 8% or better. If retention is 2%, we learned that PR is vanity here and we stop spending time on it.
+**H9. Risk signalling can be made accurate enough to show.** A combination of rules and model inspection can flag listings users independently judge suspicious, without flagging clean listings often.
+Measure: recall against a user-reported suspicious set, false positive rate against a hand-labelled clean set. Falsified if false positives exceed 20%, at which point the badge should not ship.
+
+**H10. The daily deal list attracts new users who then use the product.** Measure: share of new visitors landing on a finds page, and their standing-search creation rate. Falsified if arriving visitors do not create searches, at which point the page is content, not acquisition.
+
+### 10.2 Marketing in the Netherlands
+
+Context: channel reach in O49, category data in O23, the existing paid competitors in O27, and payment method conventions which are not verified in this document and should be checked before build (iDEAL and Mollie are the assumption, not a finding).
+
+**M1. Dutch long-tail pages built from live listings attract search traffic.** Pages of the form "tweedehands [object] [constraint] in [city]".
+Measure: organic sessions and search-to-standing-search conversion from 200 pages at day 90. Falsified below roughly 1,000 sessions per month.
+
+**M2. Valuation queries are a high-intent entry point.** Pages of the form "wat is een [model] waard".
+Measure: ranking and conversion for 25 model pages. Falsified if conversion is below the site average, which would mean the traffic is curiosity, not intent.
+
+**M3. International residents are reachable at low cost in English-language communities.** Expat forums, subreddits, community groups and expat media (O50).
+Measure: signups and cost per signup. Paired with H7: if H7 is falsified, M3 stops regardless of its own cost per signup.
+
+**M4. WhatsApp outperforms email for delivery of standing search results.** Grounded in reach (O49).
+Measure: open and click rate by channel. Falsified if WhatsApp does not exceed email materially. Note WhatsApp Business API template approval takes time and has cost per message, which changes the economics of frequent alerts.
+
+**M5. Category-intent paid search can acquire users below our target cost.** Bidding on category and object queries, not on the incumbent's brand.
+Measure: cost per created standing search on a fixed €500 budget. Falsified above €3 per created search.
+
+**M6. Hobby communities convert better than broad social channels.** Cycling, audio, photography, and similar forums and marketplaces.
+Measure: signups and 30 day retention by source. Falsified if retention is no better than paid traffic.
+
+**M7. Short video built from the daily finds is a viable acquisition channel.** The material is produced daily already.
+Measure: cost per signup at 20 clips. Falsified if no clip in 20 exceeds a modest view threshold, which would indicate the format does not work for us rather than that the content is wrong.
+
+**M8. Second-hand demand is seasonal in ways we can plan for.** Near term candidates are the December gifting period and the winter months for indoor goods; April brings King's Day, which the sources describe as a nationwide open-air market [46].
+Measure: signups in campaign weeks against baseline. This is the weakest hypothesis in the set: we have no seasonal data of our own, and the claim rests on one secondary source.
+
+**M9. Shared search snapshots produce new visitors.** The share link already exists.
+Measure: new visitors per shared search, and their conversion. Falsified if shares bring under 0.1 new visitors each.
+
+**M10. Trade press coverage produces retained users, not just traffic.** Measure: 30 day retention of the cohort arriving from any press pickup, compared with organic. Falsified if retention is at or near zero, which would tell us to stop spending time on press.
 
 ---
 
-## 11. One month plan
+## 11. Four week plan
 
-**Team.** One designer, one engineer, one marketer, Pavel on product and priority calls.
+**Team:** one designer, one engineer, one marketer, plus Pavel on prioritisation.
 
-**Month goal.** Prove the habit, not the revenue. North star: weekly retained hunters, defined as users with at least one active hunt who opened a hunt result in the last 7 days.
+**Primary metric:** weekly retained users with a standing search, defined as users with at least one active standing search who opened a result in the last 7 days.
 
-| End of month target | Number |
+**Targets.** These are planning numbers chosen to be large enough to distinguish a signal from noise and small enough to be reachable. They are not forecasts.
+
+| Quantity | Target at day 30 |
 |---|---|
-| Weekly retained hunters | 250 |
-| Hunts created | 1,000 |
-| Paying subscribers at €7 | 40 |
-| Match quality on the golden set | 85% precision, 80% recall |
-| Median alert latency | under 8 minutes |
+| Weekly retained users with a standing search | 250 |
+| Standing searches created | 1,000 |
+| Paying users | 40 |
+| Precision on the internal evaluation set | 85% |
+| Recall on the internal evaluation set | 80% |
+| Median delay from listing publication to alert | under 8 minutes |
 
-Forty paying subscribers is €280 a month, which is not a business. It is the only honest proof that the standing hunt is worth money, and it is enough to decide whether month two is growth or a rethink.
+Forty paying users at a €7 monthly price is €280 per month. That is not a business result. It is the smallest sample that makes H5 decidable.
 
-**Non-negotiables all month.** Friday demo with real data on screen, not slides. Every feature ships instrumented in PostHog or it does not ship. Five user interviews a week, every week, everyone watches at least one.
+**Standing rules.** Every feature ships with instrumentation or it does not ship. Five user interviews per week, recorded, at least one watched by everyone. One demo per week using real data.
 
----
+### Week 1. Measurement before building
 
-### Week 1. Measure the core, then sharpen it
+The plan's premise is that match quality is adequate. That has never been measured (L4), so it is measured first.
 
-The premise of the whole plan is that vindje's match quality is good. Nobody has measured it. That happens first.
+*Engineer.* Define and implement the event schema in PostHog: search started, wish parsed (with constraint count and input language), results rendered (matched and hidden counts), listing opened, reason expanded, share copied, standing search created. Build an evaluation set: 50 wishes across bicycles, furniture, electronics, baby goods and clothing, each with hand-labelled expected matches against a frozen listing snapshot, and a command that reports precision, recall and cost per search. Then fix what the evaluation exposes, starting with constraints dropped during parsing and listings rejected for missing data rather than for failing a constraint.
 
-**Engineer**
-- PostHog event schema and implementation: search started, wish parsed (with constraint count and input language), results rendered (matched and rejected counts), listing opened, listing rejected-reason expanded, share link copied, hunt created. This is the backbone for H1, H2, H3.
-- Build the evaluation harness: 50 golden wishes covering bicycles, furniture, electronics, baby gear and clothing, each with hand-labelled expected matches from a frozen listing snapshot. One command prints precision, recall and cost per search. Nothing else built this month matters as much.
-- Fix whatever the harness exposes, in this order: constraints silently dropped in parsing, listings rejected for missing data rather than for failing a constraint, radius and postcode handling.
+*Designer.* Five buyer interviews, at least two with non-Dutch speakers, testing I3 and I4 directly. Rebuild the result row so the reason line is the primary element, mobile first. Design the hidden-listings disclosure for H3, and the empty state for a search with no genuine matches.
 
-**Designer**
-- Interview five buyers who used Marktplaats in the last month, at least two non-Dutch speakers. Recorded, watched by everyone.
-- Redesign the results row as a typographic row system in the house style: image, price with tabular numerals, title, distance, and the reason line as the thing the eye lands on. Mobile first, because this gets used standing in a kitchen.
-- Design the rejected pile: "43 hidden" expanding to grouped reasons, and the empty state for a search that legitimately has nothing.
+*Marketer.* Build the Dutch keyword map for the three focus jobs with volumes, producing a ranked list of 200 page targets for M1 and 25 for M2. Set up analytics and Search Console. Recruit interview participants. Open the expat and hobby community conversations by hand for M3 and M6.
 
-**Marketer**
-- Dutch keyword map for the three focus jobs, with volumes: constraint queries, "wat is X waard" valuation queries, and city plus category queries. Output a ranked list of 200 page targets for M1 and 25 model targets for M2.
-- Set up analytics, Search Console, and one page of positioning copy in the house voice that we can actually test.
-- Recruit for interviews, and open the five niche forum and expat community conversations for M3 and M6 by hand, no automation.
+*Gate.* Baseline precision and recall known. If precision is below 70%, week 2 becomes quality work and the standing search moves to week 3. That trade-off is stated openly rather than absorbed.
 
-**Gate.** Harness runs, baseline numbers known. If precision is below 70%, week 2 is quality work and hunts slip. State that trade-off out loud on Friday.
+### Week 2. Standing searches
 
----
+*Engineer.* Storage for a standing search: wish, parsed query, constraints, radius, postcode, channel, cadence, seen listing ids, reusing the existing de-duplication for relisted items. A runner at 5 to 15 minute intervals with caching, jitter, rate limiting and back-off, applying the model filter only to new listings so cost per search stays near zero. Web push and email delivery. WhatsApp behind a flag, with the Business API approval started on day one because of the lead time noted in M4. A per-search cost and latency dashboard.
 
-### Week 2. Ship the standing hunt
+*Designer.* Creation in one step from a finished search. The notification itself, which is the product surface for this job and has to be readable at a glance. A management list with last result, hidden count, pause and delete.
 
-**Engineer**
-- Hunt storage in Upstash: wish, parsed search, constraints, radius, postcode, delivery channel, cadence, last-seen listing ids (reuse the existing dedupe logic, which already handles relisted items).
-- Hunt runner cron at 5 to 15 minutes depending on tier. Be gentle with the Marktplaats endpoint: caching, jitter, rate limiting, back off on errors. Run the LLM filter only on genuinely new listings, which keeps cost per hunt near zero.
-- Delivery: web push and email in week 2, WhatsApp behind a flag for M4 (WhatsApp Business API, template approval takes days, so start the paperwork on Monday).
-- Cost and latency dashboard per hunt.
+*Marketer.* First 60 pages for M1 and 10 for M2. First 10 short videos for M7. Community posts for M3 and M6.
 
-**Designer**
-- Hunt creation flow: one tap from a finished search, with cadence and channel chosen without a settings page.
-- The notification itself, which is the actual product surface for this job: one listing, the price, the reason it matches, one tap to the listing. It has to be legible in a lock screen glance.
-- Hunt management: a row per hunt, last found, how many hidden, pause and delete.
+*Gate.* 100 standing searches created by real users, median delay under 15 minutes, H4 measurable.
 
-**Marketer**
-- Ship the first 60 programmatic SEO pages (M1) and the first 10 price pages (M2).
-- Start the video series (M7): 10 clips from the daily finds, Dutch, shot on a phone, no production values.
-- Post in the five niches and the expat channels with a real offer, not a link drop.
+### Week 3. Price comparison and payment
 
-**Gate.** 100 hunts created by real users, median latency under 15 minutes, and at least one hunt result that a user tells us they bought.
+*Engineer.* Persist observed listings from the daily job with price, category, attributes, first seen and last seen dates, which starts the comparables corpus described in I6. A valuation endpoint reusing the `deals.py` prompt, returning a verdict, a range, a comparable count and a confidence level, and refusing to answer when the comparable set is thin. Payment for a paid tier, with free limited to 2 standing searches at 15 minutes.
+
+*Designer.* The price verdict component in the result row and the detail view, with comparables visible on demand. The paywall, stating the price plainly. One pass over the shared snapshot page for M9.
+
+*Marketer.* 25 valuation pages live for M2. First organic reading for M1. The €500 paid test for M5, measured on created searches. Draft the seasonal campaign for M8 and the press list for M10 without sending.
+
+*Gate.* H6 running. First paying user. Valuation returns "insufficient data" on a known-thin category, verified by hand.
+
+### Week 4. Reliability, risk signalling, and a second source
+
+*Engineer.* Alerting on failed runs, model fallbacks and empty result streaks, because a standing search that silently stops is worse than none. Risk signalling for H9, shipped quietly and measured for false positives before it becomes visible. 2dehands as a second source behind a flag, to test whether coverage changes perceived usefulness, since all three competitors are multi-source (O27).
+
+*Designer.* Fix the two largest drop-offs the funnel shows. Landing page using a real search as the main image. Record the design tokens in the repository.
+
+*Marketer.* Press outreach for M10, measured on 30 day retention. Referral on the shared snapshot for M9. One page month review: cost per signup and retention by channel, with a recommendation.
+
+*Gate.* The six numbers in the target table, reported as measured, including misses.
 
 ---
 
-### Week 3. Price confidence, and ask for money
+## 12. Risks and open questions
 
-**Engineer**
-- Start the comparables corpus. We already pull listings daily for the deal hunt. Persist observed listings with price, category, attributes and first and last seen dates. Disappearance is a weak but real signal of a sale, and it is the only sold-price data available in this market.
-- Valuation endpoint reusing and hardening the deals.py prompt: a verdict (good deal, fair, steep), a range, the number of comparables, and a confidence level. Refuse to guess when the comparable set is thin. A wrong confident number here costs more trust than a missing one.
-- Mollie with iDEAL for the €7 tier. Free: 2 hunts at 15 minutes. Paid: 10 hunts at 5 minutes, WhatsApp delivery, price verdicts.
+**R1. Platform dependency.** vindje reads an undocumented Marktplaats search endpoint, and standing searches multiply request volume. Mitigation: conservative polling, caching, jitter, a non-abusive request profile, the existing degradation to plain search, and a second source so a single block is not fatal. Open question: what request rate is acceptable. We have no answer and no way to get one except by being conservative.
 
-**Designer**
-- The price verdict component, in both the results row and the listing detail, with the comparables visible on tap. Restraint matters: this is a number and a word, not a chart.
-- The paywall, which states the price in the button and what the free tier keeps. Dutch and English.
-- One pass over the share page (/s/) to turn it from a receipt into a landing page for M9.
+**R2. Terms of service.** Whether our use is compatible with Marktplaats' terms has not been assessed in this document. It should be, by someone qualified, before the standing search runs at scale.
 
-**Marketer**
-- Price pages live at 25 models (M2), first SEO traffic read.
-- Launch the €500 Google Ads test (M5) against hunt creation, not clicks.
-- Write and schedule the Sinterklaas and Black Friday counter-positioning campaign (M8). Prepare the press angle and the target list for M10 but do not send yet.
+**R3. Incumbent feature risk.** I8, with the explicit note that we have no date.
 
-**Gate.** First paying subscriber, price verdict live on every result, and an A/B running on H6.
+**R4. Unit economics.** Frequent checks on many searches are a recurring model cost. Filter only new listings, cache, and keep cost per search per month visible from week 2.
 
----
+**R5. Confidently wrong output.** A miscalibrated price verdict or a jumpy risk badge costs more than silence, because both claim authority. Both need an explicit refusal state, and H9's falsification threshold exists for this reason.
 
-### Week 4. Make it hold, then push
+**R6. Data protection.** Stored searches, notifications and any WhatsApp messaging require a lawful basis, consent where applicable, and retention limits under the AVG. Not analysed here.
 
-**Engineer**
-- Reliability: hunt runs must not silently die. Alerting on failed runs, on LLM fallbacks, and on empty result streaks. A hunt that stops firing is worse than no hunt.
-- Scam risk badge (H9) as rules plus LLM: stock photo detection, price far below the comparable range, fresh account, payment-link language in the description. Ship it quiet and measure the false positive rate before making it loud.
-- Second source behind a flag: 2dehands, since it is the same operator and the same listing shapes, to test whether multi-source changes perceived coverage (the alert tools all do this already).
-
-**Designer**
-- Close the loop on the month's data: fix the two worst drop-offs the funnel shows, whatever they are.
-- The house-style landing page, with a real screenshot of a real search as the hero. Not an illustration of AI.
-- A design.md in the repo recording the accent, type scale and row system, so this does not drift.
-
-**Marketer**
-- Press push (M10) with the landing page live, and measure the cohort's D30, not the session count.
-- Referral on the share link (M9).
-- Month review: CAC and retention by channel, on one page, with a clear recommendation of the two channels to kill and the one to double.
-
-**Gate.** The five month-goal numbers in the table, honestly reported, including the ones we miss.
-
----
-
-## 12. Risks worth naming now
-
-1. **Platform dependency.** vindje reads Marktplaats' own website search endpoint. It is undocumented and can be rate limited, changed or blocked at any time, and hunts multiply the request volume. Mitigations: conservative polling, caching, jitter, a clearly non-abusive profile, and a second source (2dehands, Vinted, Facebook Marketplace) so a single block is not fatal. Keep a plain-search fallback that degrades instead of failing, which the app already does for LLM outages.
-2. **The incumbent ships the feature.** Avito gives every user an AI assistant in 2026 and Marktplaats will do the same. Our defence is not the model, it is being multi-source, buyer-aligned, and habit-forming before they arrive.
-3. **The AI filtering wedge is already claimed.** MPAlerts advertises it today. Differentiate on measured match quality and the explanation, and say the number out loud once we have it.
-4. **Unit economics.** Every hunt that runs every five minutes is LLM spend. Filter only new listings, cache aggressively, and keep cost per hunt per month visible from week 2 so the €7 price does not quietly go underwater.
-5. **Trust runs the other way too.** A confident wrong price verdict or a jumpy scam badge damages us more than silence would. Ship both with an explicit "not enough data" state.
-6. **AVG and consent.** Notifications, WhatsApp and stored searches all need proper consent and retention rules. Cheap to do now, expensive to retrofit.
+**R7. Unverified figures carried into decisions.** Specifically O8 (buyer protection cost, primary page unavailable), O28 (competitor's claim about a rival's notification speed), O43 (single-source assistant claim), and the iDEAL and Mollie assumption in section 10.2. Each should be checked before it appears in anything external.
 
 ---
 
 ## 13. Sources
 
-Marktplaats and the Netherlands
-- [Marktplaats.nl, Wikipedia](https://en.wikipedia.org/wiki/Marktplaats.nl)
-- [Marktplaats reviews, Trustpilot](https://www.trustpilot.com/review/www.marktplaats.nl)
-- [Problemen met marktplaats.nl, Radar forum, AVROTROS](https://radar-forum.avrotros.nl/webwinkels-f69/problemen-met-marktplaats-nl-t17863.html)
-- [Kosten Kopersbescherming, Marktplaats help](https://help.marktplaats.nl/s/article/kosten-kopersbescherming)
-- [Marktplaats kopersbescherming, hoe werkt het en wat kost het, MarktAlert](https://marktalert.nl/blog/marktplaats-kopersbescherming-hoe-werkt-het)
-- [Marktplaats.nl verhoogt prijzen in zakelijke rubrieken, Emerce](https://www.emerce.nl/nieuws/marktplaats-nl-verhoogt-prijzen-zakelijke-rubrieken)
-- [Marktplaats, Adevinta](https://adevinta.com/brand/marktplaats/)
-- [marktplaats.nl traffic analytics, Similarweb](https://www.similarweb.com/website/marktplaats.nl/)
-- [Netherlands leading online marketplaces by visit share, Statista](https://www.statista.com/statistics/1256594/netherlands-leading-online-marketplaces-visits/)
-- [Wat vinden consumenten van tweedehands spullen, Circulair Ambachtscentrum](https://circulairambachtscentrum.nl/nieuws/2025/vinden-consumenten-tweedehands-spullen/)
-- [32% van de Nederlandse consumenten koopt nu meer tweedehands, Duurzaam Ondernemen](https://www.duurzaam-ondernemen.nl/32-van-de-nederlandse-consumenten-koopt-nu-meer-tweedehands-producten-dan-5-jaar-geleden/)
-- [Second-hand goods retailing in the Netherlands, IBISWorld](https://www.ibisworld.com/netherlands/industry/second-hand-goods-retailing/200596/)
-- [Aankoop via een online platform, Consumentenbond](https://www.consumentenbond.nl/online-kopen/opgelicht-marktplaats)
-- [Opgelicht via Marktplaats, Slachtofferwijzer](https://slachtofferwijzer.nl/artikelen/opgelicht-marktplaats-fraude-melden)
-- [Where to sell your stuff in the Netherlands, DutchReview](https://dutchreview.com/expat/selling-your-stuff-in-the-netherlands/)
-- [Digital 2025 Netherlands, DataReportal](https://datareportal.com/reports/digital-2025-netherlands)
+Numbering is stable across drafts, so 37 is unused. Quality labels: **[company]** self-published by the subject, **[official]** government or regulator, **[press]** trade or general press, **[secondary]** aggregator, blog or vendor comparison, **[review]** self-selected user reviews.
 
-The existing alert layer
-- [MarktAlert](https://marktalert.nl/) and [its tool comparison](https://marktalert.nl/vergelijking)
-- [MPAlerts](https://mpalerts.nl/)
-- [Marktplaats Scanner](https://www.marktplaatsscanner.com/)
-- [Delivery service for large Vinted purchases, Brenger](https://www.brenger.nl/en-nl/vinted/)
-
-Global
-- [CMA puts Vinted at 50 to 60% of UK C2C apparel GMV, Value Added Resource](https://www.valueaddedresource.net/cma-vinted-leads-uk-apparel-gmv/)
-- [Vinted overtakes Gumtree as the UK's most visited secondhand marketplace, AIM Group](https://aimgroup.com/2025/11/26/vinted-overtakes-gumtree-to-become-the-u-k-s-largest-secondhand-marketplace/)
-- [Vinted 2025 financial results](https://company.vinted.com/newsroom/financial-results-2025)
-- [eBay removes UK seller fees, TechCrunch](https://techcrunch.com/2024/10/01/ebay-removes-uk-seller-fees-to-counter-new-wave-of-marketplace-startups)
-- [Magical Listing revisited, has eBay closed the AI gap, Value Added Resource](https://www.valueaddedresource.net/ebay-ai-magical-listing-revisited/)
-- [Kleinanzeigen reviews, Trustpilot](https://www.trustpilot.com/review/kleinanzeigen.de)
-- [Kleinanzeigen, UX Design Awards 2025](https://ux-design-awards.com/winners/2025-2-kleinanzeigen)
-- [Whatnot global GMV doubles to $8 billion in 2025, Ebrun](https://english.ebrun.com/20260211/640428.shtml)
-- [Whatnot, live shopping finally works, Ringing the Bell](https://ringingthebell.substack.com/p/whatnot-live-shopping-finally-works)
-- [Mercari vs OfferUp, which marketplace model is better, IdeaUsher](https://ideausher.com/blog/mercari-vs-offerup-which-marketplace-model-is-better/)
-- [Top Facebook Marketplace scams, NordPass](https://nordpass.com/blog/facebook-marketplace-scams/)
-- [Avito delivery and order tracking, Ship24](https://www.ship24.com/shops/avito-tracking)
-- [Avito.ru overview](https://grokipedia.com/page/Avito.ru)
-- [Avito Services, neighbours recommend](https://www1.ru/en/news/2026/06/22/sarafannoe-radio-vyxodit-v-onlain-avito-uslugi-nasli-novyi-sposob-iskat-masterov.html)
-- [Alibaba's Xianyu, more than just a second-hand marketplace, ChinaTalk](https://www.chinatalk.nl/alibabas-xianyu-more-than-just-a-second-hand-marketplace/)
-- [Alibaba's Xianyu swims a different course, TechBuzz China](https://techbuzzchina.substack.com/p/alibabas-xianyu-idle-fsh-swims-a)
-- [Young consumers drive second-hand e-commerce in China, Daxue Consulting](https://daxueconsulting.com/secondhand-market-in-china/)
-- [Why Craigslist still looks the same after 25 years, Slashdot](https://tech.slashdot.org/story/22/09/16/2123239/why-craigslist-still-looks-the-same-after-25-years)
+1. Marktplaats.nl, Wikipedia. [secondary] https://en.wikipedia.org/wiki/Marktplaats.nl
+2. Permira and Blackstone announce voluntary offer for Adevinta shares, Adevinta press release. [company] https://adevinta.com/press-releases/permira-and-blackstone-announce-voluntary-offer-for-all-outstanding-ordinary-class-a-shares-in-adevinta-at-nok-115-per-share/
+3. Blackstone and Permira lead $13 billion bid for Adevinta, Reuters via Yahoo Finance. [press] https://ca.finance.yahoo.com/news/blackstone-permira-buy-adevinta-13-165440995.html
+4. Adevinta takeover to complete by June 2024, Online Marketplaces. [press] https://www.onlinemarketplaces.com/articles/adevinta-takeover-to-complete-by-june-2024/
+5. The Marktplaats Effect, Marktplaats with Vaayu, 2023 data. [company] https://www.marktplaats.nl/m/the-marktplaats-effect/
+6. marktplaats.nl traffic analytics, Similarweb. [secondary] https://www.similarweb.com/website/marktplaats.nl/
+7. Top online marketplaces in the Netherlands 2026, WMTips. [secondary] https://www.wmtips.com/technologies/marketplaces/country/nl/
+8. Netherlands leading online marketplaces by visit share 2023, Statista. [secondary] https://www.statista.com/statistics/1256594/netherlands-leading-online-marketplaces-visits/
+9. Marktplaats reviews, Trustpilot, accessed 15 September 2026. [review] https://www.trustpilot.com/review/www.marktplaats.nl
+10. Problemen met marktplaats.nl, AVROTROS Radar forum. [review] https://radar-forum.avrotros.nl/webwinkels-f69/problemen-met-marktplaats-nl-t17863.html
+11. Marktplaats app listings and reviews, Google Play and App Store. [review] https://play.google.com/store/apps/details?id=nl.marktplaats.android
+12. Marktplaats.nl verhoogt prijzen in zakelijke rubrieken, Emerce. [press] https://www.emerce.nl/nieuws/marktplaats-nl-verhoogt-prijzen-zakelijke-rubrieken
+13. Marktplaats kopersbescherming, hoe werkt het en wat kost het, MarktAlert blog. [secondary, and a competitor] https://marktalert.nl/blog/marktplaats-kopersbescherming-hoe-werkt-het
+14. Kosten kopersbescherming, Marktplaats help. [company] Did not load on 15 September 2026. https://help.marktplaats.nl/s/article/kosten-kopersbescherming
+15. Regels over het gebruik van zoekwoorden in advertenties, Marktplaats help. [company] https://help.marktplaats.nl/s/article/regels-over-het-gebruik-van-zoekwoorden-in-advertenties
+16. Online oplichting en fraude, in Online veiligheid en criminaliteit 2024, CBS. [official] https://www.cbs.nl/nl-nl/longread/rapportages/2025/online-veiligheid-en-criminaliteit-2024/4-online-oplichting-en-fraude
+17. Meer mensen slachtoffer van online criminaliteit in 2024, CBS. [official] https://www.cbs.nl/nl-nl/nieuws/2025/16/meer-mensen-slachtoffer-van-online-criminaliteit-in-2024
+18. Wat vinden consumenten van tweedehands spullen, Circulair Ambachtscentrum, reporting Consumentenonderzoek Potentie Tweedehands Spullen 2025. [secondary] https://circulairambachtscentrum.nl/nieuws/2025/vinden-consumenten-tweedehands-spullen/
+19. 32% van de Nederlandse consumenten koopt nu meer tweedehands producten, Duurzaam Ondernemen. [secondary] https://www.duurzaam-ondernemen.nl/32-van-de-nederlandse-consumenten-koopt-nu-meer-tweedehands-producten-dan-5-jaar-geleden/
+20. Second-hand goods retailing in the Netherlands, IBISWorld 2025. [secondary] https://www.ibisworld.com/netherlands/industry/second-hand-goods-retailing/200596/
+21. MarktAlert, pricing and tool comparison. [company, and a competitor] https://marktalert.nl/ and https://marktalert.nl/vergelijking
+22. MPAlerts. [company] Returned HTTP 403 on 15 September 2026. https://mpalerts.nl/
+23. Marktplaats Scanner. [company] https://www.marktplaatsscanner.com/
+24. Delivery service for large Vinted purchases, and support articles, Brenger. [company] https://www.brenger.nl/en-nl/vinted/
+25. CMA puts Vinted at 50 to 60% of UK C2C apparel GMV, Value Added Resource. [press, reporting a regulator] https://www.valueaddedresource.net/cma-vinted-leads-uk-apparel-gmv/
+26. Vinted overtakes Gumtree to become the UK's most visited secondhand marketplace, AIM Group. [press] https://aimgroup.com/2025/11/26/vinted-overtakes-gumtree-to-become-the-u-k-s-largest-secondhand-marketplace/
+27. Financial results 2025, Vinted. [company] https://company.vinted.com/newsroom/financial-results-2025
+28. eBay removes UK seller fees, TechCrunch. [press] https://techcrunch.com/2024/10/01/ebay-removes-uk-seller-fees-to-counter-new-wave-of-marketplace-startups
+29. Magical Listing revisited, has eBay closed the AI gap, Value Added Resource. [press] https://www.valueaddedresource.net/ebay-ai-magical-listing-revisited/
+30. Kleinanzeigen reviews, Trustpilot. [review] https://www.trustpilot.com/review/kleinanzeigen.de
+31. Kleinanzeigen portal profile, Coraly GPPI 2026. [secondary, revenue is an estimate] https://coraly.ai/gppi/portals/kleinanzeigen-de
+32. Kleinanzeigen, UX Design Awards 2025. [secondary] https://ux-design-awards.com/winners/2025-2-kleinanzeigen
+33. Whatnot's global GMV doubles year over year to reach $8 billion in 2025, Ebrun. [press, reporting company figures] https://english.ebrun.com/20260211/640428.shtml
+34. Whatnot, live shopping finally works, Ringing the Bell. [secondary, gives $6bn and the conversion figures] https://ringingthebell.substack.com/p/whatnot-live-shopping-finally-works
+35. Whatnot secures $11.5 billion valuation, Business of Fashion. [press] https://www.businessoffashion.com/news/retail/whatnot-secures-115-billion-valuation/
+36. Avito delivery and order tracking, Ship24, and Avito Delivery product page, TAdviser. [secondary] https://www.ship24.com/shops/avito-tracking and https://tadviser.com/index.php/Product:Avito_Delivery
+38. Avito Services introduces neighbour recommendations, www1.ru. [press, single source, low confidence] https://www1.ru/en/news/2026/06/22/sarafannoe-radio-vyxodit-v-onlain-avito-uslugi-nasli-novyi-sposob-iskat-masterov.html
+39. Alibaba's Xianyu, more than just a second-hand marketplace, ChinaTalk. [secondary] https://www.chinatalk.nl/alibabas-xianyu-more-than-just-a-second-hand-marketplace/
+40. Alibaba's Xianyu swims a different course, TechBuzz China. [secondary] https://techbuzzchina.substack.com/p/alibabas-xianyu-idle-fsh-swims-a
+41. Young consumers drive second-hand e-commerce in China, Daxue Consulting. [secondary] https://daxueconsulting.com/secondhand-market-in-china/
+42. Zhuanzhuan, Baidu Baike. [company-derived] https://baike.baidu.com/en/item/Zhuanzhuan/60216
+43. Facebook Marketplace scams, NordPass, citing FTC data on social media fraud reports. [secondary, vendor] https://nordpass.com/blog/facebook-marketplace-scams/
+44. Mercari vs OfferUp, IdeaUsher. [secondary, vendor blog] https://ideausher.com/blog/mercari-vs-offerup-which-marketplace-model-is-better/
+45. Digital 2025 Netherlands, DataReportal. [secondary] https://datareportal.com/reports/digital-2025-netherlands
+46. Where to sell your stuff in the Netherlands, DutchReview. [secondary] https://dutchreview.com/expat/selling-your-stuff-in-the-netherlands/
