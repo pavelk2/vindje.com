@@ -10,7 +10,7 @@ This document does four things.
 
 1. It records what can be observed about Marktplaats and its users from public sources.
 2. It compares the Dutch market with the United States, Germany, the United Kingdom, Russia and China.
-3. It separates those observations from our inferences, and states both as such.
+3. It separates those observations from the inferences drawn from them, and labels both.
 4. It proposes 25 jobs to be done, a selection of three, twenty hypotheses, and a four week plan to test the first few.
 
 The document does not claim to establish user needs. Desk research cannot do that. It can narrow the set of questions worth asking, which is what section 8 onward attempts.
@@ -27,13 +27,13 @@ Sources used: company help pages and self-published reports, Wikipedia, Statisti
 
 Four limits apply throughout and are not repeated at every claim.
 
-**L1. Review sites are self-selected samples.** People who write reviews of a platform they use for free are disproportionately people with an unresolved complaint. A low score tells us which failure modes provoke the most complaint. It does not measure satisfaction in the user population. Every Trustpilot number below should be read this way.
+**L1. Review sites are self-selected samples.** People who write reviews of a platform they use for free are disproportionately people with an unresolved complaint. A low score indicates which failure modes provoke the most complaint. It does not measure satisfaction in the user population. Every Trustpilot number below should be read this way.
 
 **L2. Several key figures are self-reported by the companies they describe.** Marktplaats' market share, Whatnot's transaction volume and Xianyu's user counts all originate with the platform. They are reported here as claims, labelled.
 
 **L3. Traffic and user numbers from different providers do not reconcile.** Similarweb visits, Statista survey panels and company statements measure different things. Ranges are given where they conflict.
 
-**L4. No primary research was done.** No interviews, no survey, no instrumented measurement of our own product. Section 11 puts that first in the plan.
+**L4. No primary research was done.** No interviews, no survey, no instrumented measurement of vindje itself. Section 11 puts that first in the plan.
 
 Where a source could not be verified, it says so.
 
@@ -124,10 +124,10 @@ These are properties of the system, established by using it and by the sources n
 **O27.** At least three Dutch services sell notifications of new Marktplaats listings.
 
 - MarktAlert (marktalert.nl): iOS and Android. Monitors Marktplaats, 2dehands and Vinted. Published tiers: free with 2 alerts and 15 minute checks, Plus at €6.95 per month with 5 alerts and 5 minute checks, PRO at €10.95 per month with 10 or more alerts and 3 minute checks. Email, Telegram and push [21].
-- MPAlerts (mpalerts.nl): described as monitoring Marktplaats, 2dehands, Vinted and Facebook Marketplace in one dashboard, with an AI that reads each listing and filters irrelevant results. The site returned HTTP 403 when fetched on 15 September 2026, so this description comes from a competitor's comparison page and search listings, not from the vendor's own page as read by us [21][22].
+- MPAlerts (mpalerts.nl): described as monitoring Marktplaats, 2dehands, Vinted and Facebook Marketplace in one dashboard, with an AI that reads each listing and filters irrelevant results. The site returned HTTP 403 when fetched on 15 September 2026, so this description comes from a competitor's comparison page and search listings, not from the vendor's own page [21][22].
 - Marktplaats Scanner (mpscanner.nl, marktplaatsscanner.nl): new listing and price drop alerts via push, Telegram, Discord, Slack or email [23].
 
-**O28.** MarktAlert's own comparison page claims the native Marktplaats saved search notification is at most a once daily summary [21]. This is a competitor's characterisation of a rival's product and should be verified directly before we repeat it.
+**O28.** MarktAlert's own comparison page claims the native Marktplaats saved search notification is at most a once daily summary [21]. This is a competitor's characterisation of a rival's product and should be verified directly before it is repeated.
 
 **O29.** Brenger transports large second-hand items in the Netherlands and Belgium, and is integrated with Vinted and Whoppah. Stated limits: maximum 400 x 180 x 160 cm per item, insurance to €250 included, extra cover to €1,500 available at booking, typical delivery in 3 to 7 working days [24].
 
@@ -199,19 +199,19 @@ Clearly separated from the observations. Each inference names what it rests on a
 
 **I2. The industry invests in sellers, not buyers.** eBay's Magical Listing now builds listings from images alone [29]. Vinted, Kleinanzeigen and Marktplaats monetise sellers and payment rails (O6 to O8, O36, O40). Buyer-side tooling is limited to keyword search and sponsored placement. The demand side is therefore comparatively under-served. This is the single inference the whole vindje thesis depends on, and it is not directly measured anywhere in this document.
 
-**I3. Buyer-side search failure is structural, not a quality problem.** O14 to O18 describe properties of the system, not defects that a better ranking model inside Marktplaats would fix. The two largest Dutch second-hand categories are size-constrained (O26), which is where the absence of expressible constraints costs the most. Undermined if users mostly search for named products rather than described objects, which we have not measured.
+**I3. Buyer-side search failure is structural, not a quality problem.** O14 to O18 describe properties of the system, not defects that a better ranking model inside Marktplaats would fix. The two largest Dutch second-hand categories are size-constrained (O26), which is where the absence of expressible constraints costs the most. Undermined if buyers mostly search for named products rather than described objects, which has not been measured.
 
 **I4. The absence of search complaints is weak evidence of anything.** O13 is compatible with two explanations: search works well enough, or users abandon the item instead of complaining. Nothing here distinguishes them. This is a question for interviews, not for desk research.
 
-**I5. Willingness to pay for notification speed exists, and the differentiating claim is already taken.** Three services charge for it (O27), one at €6.95 to €10.95 per month. One of them already advertises AI filtering, although we could not read that claim on the vendor's own site (O27). So novelty is not available to us; only measured match quality is.
+**I5. Willingness to pay for notification speed exists, and the differentiating claim is already taken.** Three services charge for it (O27), one at €6.95 to €10.95 per month. One of them already advertises AI filtering, although that claim could not be read on the vendor's own site (O27). Novelty is therefore unavailable as a differentiator, and measured match quality is what remains.
 
-**I6. Price confidence is an unserved question with a possible data path.** There is no sold-price history (O16) and auction listings corrupt the price signal (O17). Nobody in this market publishes comparables. Our daily job already estimates resale values, and listings that disappear from the index are a weak proxy for sales. The proxy is weak: listings are also removed when they expire, are withdrawn, or are relisted. Any valuation built on it must report its own confidence.
+**I6. Price confidence is an unserved question with a possible data path.** There is no sold-price history (O16) and auction listings corrupt the price signal (O17). Nobody in this market publishes comparables. vindje's daily job already estimates resale values, and listings that disappear from the index are a weak proxy for sales. The proxy is weak: listings are also removed when they expire, are withdrawn, or are relisted. Any valuation built on it must report its own confidence.
 
-**I7. The language barrier is plausible as a segment, and unquantified.** Search requires Dutch keywords (O14), several reviewers report bans on accounts without a Dutch phone number (O10), and expat guides name language as the main obstacle (O50). We have no population estimate, no conversion data and no evidence this group is willing to pay. Treat as the weakest of the three focus areas and test cheaply.
+**I7. The language barrier is plausible as a segment, and unquantified.** Search requires Dutch keywords (O14), several reviewers report bans on accounts without a Dutch phone number (O10), and expat guides name language as the main obstacle (O50). There is no population estimate, no conversion data, and no evidence that this group will pay. Treat as the weakest of the three focus areas and test cheaply.
 
-**I8. The competitive window is finite but its length is a guess.** Avito is reported to be giving every user an assistant in 2026 (O43, low confidence), and it sits in the same industry as Marktplaats. It is reasonable to expect Marktplaats to ship similar features. We have no announcement, no roadmap and no date. Any specific figure such as "12 to 18 months" is invented and is removed from this version.
+**I8. The competitive window is finite but its length is a guess.** Avito is reported to be giving every user an assistant in 2026 (O43, low confidence), and it sits in the same industry as Marktplaats. It is reasonable to expect Marktplaats to ship similar features. No announcement, roadmap or date is available. Any specific figure such as "12 to 18 months" is invented and is removed from this version.
 
-**I9. Custody and logistics solve trust, and both need capital.** Avito holds funds and moves goods (O42). Xianyu authenticates and Zhuanzhuan inspects with over 2,000 staff (O46, O48). These are operational businesses. A two person team cannot replicate them, so trust work available to us is limited to signalling risk, not underwriting it.
+**I9. Custody and logistics solve trust, and both need capital.** Avito holds funds and moves goods (O42). Xianyu authenticates and Zhuanzhuan inspects with over 2,000 staff (O46, O48). These are operational businesses. A team of three cannot replicate them, so the trust work available to vindje is limited to signalling risk, not underwriting it.
 
 **I10. Community is the mechanism behind the largest engagement numbers.** Xianyu's 209 million monthly actives sit on 1.3 million interest groups rather than on a search box (O44, O45). Whatnot's reported growth comes from live auctions (O32). Both suggest that for one-of-a-kind goods, discovery formats beat query formats. This is suggestive, not transferable: both operate at a scale and in a culture unlike the Dutch market, and their figures are self-reported.
 
@@ -219,48 +219,48 @@ Clearly separated from the observations. Each inference names what it rests on a
 
 ## 8. Twenty five jobs to be done
 
-Phrased from the user's side. These are candidate jobs derived from the observations above. None has been validated with users.
+Stated from the buyer's or seller's position, in the third person. These are candidate jobs derived from the observations above. None has been validated with users.
 
 **Finding an item**
 
-1. When I need an object with physical constraints (height 1.5 to 2 metres, solid oak, with drawers), I want to state the constraints and see only listings that meet them, so I do not open sixty listings to reject fifty eight.
-2. When I do not know the Dutch word for the object, I want to search in my own language.
-3. When I scan results, I want one line per listing saying why it matches and what does not, so I do not read every description.
-4. When a listing omits facts I need (dimensions, model year, included accessories), I want those extracted or flagged as missing.
-5. When I see an asking price, I want to know how it compares with prices for comparable items.
-6. When I am browsing without a target, I want a feed of relevant items near me.
-7. When a matching listing appears, I want to know within minutes rather than the next day.
-8. When I will want this object for several weeks, I want the search to continue without me repeating it.
-9. When I want a category rather than a specific listing, I want a short ranked shortlist rather than 400 results.
-10. When I have four candidates, I want them compared on the attributes that decide the purchase.
+1. A buyer who needs an object with physical constraints (height 1.5 to 2 metres, solid oak, with drawers) wants to state those constraints and see only listings that meet them, instead of opening sixty listings to reject fifty eight.
+2. A buyer who does not know the Dutch word for the object wants to search in their own language.
+3. A buyer scanning results wants one line per listing stating why it matches and what does not, instead of reading every description.
+4. A buyer looking at a listing that omits relevant facts (dimensions, model year, included accessories) wants those facts extracted, or flagged as missing.
+5. A buyer looking at an asking price wants to know how it compares with prices for comparable items.
+6. A buyer browsing without a specific target wants a feed of relevant items nearby.
+7. A buyer waiting for a particular kind of item wants to hear about a match within minutes rather than the next day.
+8. A buyer who will want an object for several weeks wants the search to continue without repeating it.
+9. A buyer who wants a category rather than a specific listing wants a short ranked shortlist instead of 400 results.
+10. A buyer holding four candidates wants them compared on the attributes that decide the purchase.
 
 **Assessing risk**
 
-11. When I consider a listing, I want an indication of fraud risk based on observable signals.
-12. When a seller sends a payment link or asks for a one cent verification payment, I want a warning at that moment, because this is the most reported pattern nationally (O19).
-13. When I arrange a handover with a stranger, I want a safer procedure: public location, what to inspect, what to ask.
-14. When I buy electronics, I want a short model-specific inspection checklist I can run at the door.
-15. When I buy branded goods, I want an assessment of whether the photos show an original.
+11. A buyer considering a listing wants an indication of fraud risk based on observable signals.
+12. A buyer who receives a payment link, or a request for a one cent verification payment, wants a warning at that moment, since this is the most reported fraud pattern nationally (O19).
+13. A buyer arranging a handover with a stranger wants a safer procedure: a public location, what to inspect, what to ask.
+14. A buyer of used electronics wants a short model-specific inspection checklist that can be run at the door.
+15. A buyer of branded goods wants an assessment of whether the photographs show an original.
 
 **Completing the transaction**
 
-16. When I contact a seller, I want a first message in natural Dutch, because response rates matter and I may be competing with local buyers.
-17. When I negotiate, I want an opening offer and a walk-away price grounded in comparable listings.
-18. When the item is 40 km away, I want transport options with real prices (O29 shows the options exist).
-19. When I compare a near listing with a better distant one, I want total cost including transport and time.
-20. When we agree terms, I want the agreed price, time, address and stated condition recorded.
+16. A buyer contacting a seller wants a first message in natural Dutch, since response rates matter and the buyer may be competing with local buyers.
+17. A buyer negotiating wants an opening offer and a walk-away price grounded in comparable listings.
+18. A buyer whose item is 40 km away wants transport options with real prices (O29 shows the options exist).
+19. A buyer comparing a near listing with a better distant one wants total cost including transport and time.
+20. A buyer who has agreed terms wants the agreed price, time, address and stated condition recorded.
 
 **Selling**
 
-21. When I clear out a room, I want to know which items are worth listing and which are not.
-22. When I list an item, I want a photo turned into a Dutch title, description, category, attributes and price.
-23. When I price an item, I want two numbers: one that sells within a week, one that sells within a month.
-24. When buyers send repetitive questions, I want those answered without me typing.
-25. When my listing has had no contact for ten days, I want to know whether to lower the price, replace the photos or rewrite the title.
+21. A seller clearing out a room wants to know which items are worth listing and which are not.
+22. A seller listing an item wants a photograph turned into a Dutch title, description, category, attributes and price.
+23. A seller pricing an item wants two numbers: one that sells within a week, one that sells within a month.
+24. A seller receiving repetitive questions wants those answered without typing.
+25. A seller whose listing has had no contact for ten days wants to know whether to lower the price, replace the photographs or rewrite the title.
 
 **Adjacent, already partly served by `deals.py`**
 
-A daily list of underpriced live listings with estimated resale value, margin and confidence, for users who buy to resell.
+A resale buyer wants a daily list of underpriced live listings with estimated resale value, margin and confidence.
 
 ---
 
@@ -268,7 +268,7 @@ A daily list of underpriced live listings with estimated resale value, margin an
 
 ### Selection
 
-**Jobs 1, 2, 3 and 9: constrained search with a stated reason.** Rests on I3. It is the only candidate where the incumbent's limitation is structural rather than a matter of investment, and it is what the product already does. The immediate work is measurement, not features: we do not know our own precision or recall.
+**Jobs 1, 2, 3 and 9: constrained search with a stated reason.** Rests on I3. It is the only candidate where the incumbent's limitation is structural rather than a matter of investment, and it is what the product already does. The immediate work is measurement, not features, because vindje's precision and recall are unknown.
 
 **Jobs 7 and 8: a standing search.** Rests on I5. It is the only candidate with external evidence of willingness to pay in this specific market.
 
@@ -281,14 +281,14 @@ Selling tools (21 to 25) are the most invested-in area of the industry (I2) and 
 ### What would change this selection
 
 - If interviews show users mostly search for named products rather than described objects, focus 1 weakens and price comparison becomes the lead.
-- If our measured precision on constrained searches is low and cannot be raised quickly, the standing search has nothing worth notifying about and the whole selection is premature.
+- If measured precision on constrained searches is low and cannot be raised quickly, the standing search has nothing worth notifying about and the whole selection is premature.
 - If the comparables proxy (I6) turns out too noisy to produce a defensible verdict, focus 3 should be dropped rather than shipped with a disclaimer.
 
 ---
 
 ## 10. Hypotheses
 
-Each hypothesis states a prediction, the measurement, and the result that would falsify it. Thresholds are set to be decidable within weeks at our traffic, not derived from any benchmark. They are judgement calls and should be read as such.
+Each hypothesis states a prediction, the measurement, and the result that would falsify it. Thresholds are set to be decidable within weeks at vindje's current traffic, not derived from any benchmark. They are judgement calls and should be read as such.
 
 ### 10.1 Product
 
@@ -302,7 +302,7 @@ Measure: A/B on the results page. Falsified if the difference is not positive.
 Measure: 7 day return rate by arm. Falsified if the disclosure arm returns less.
 
 **H4. A saved search converts one-time users into repeat users.** Users offered a standing search after results create one at a usable rate, and return more often than one-time searchers.
-Measure: creation rate at the offer point; 7 day return by cohort. Falsified if creation is rare, which we set at under 10%.
+Measure: creation rate at the offer point; 7 day return by cohort. Falsified if creation is rare, set here at under 10%.
 
 **H5. Some users will pay for a standing search.** A minority of active standing-search users will pay a monthly fee in the range already charged in this market (O27).
 Measure: paid conversion among users with at least one active search. Falsified if conversion is under 2%.
@@ -336,22 +336,22 @@ Measure: signups and cost per signup. Paired with H7: if H7 is falsified, M3 sto
 **M4. WhatsApp outperforms email for delivery of standing search results.** Grounded in reach (O49).
 Measure: open and click rate by channel. Falsified if WhatsApp does not exceed email materially. Note WhatsApp Business API template approval takes time and has cost per message, which changes the economics of frequent alerts.
 
-**M5. Category-intent paid search can acquire users below our target cost.** Bidding on category and object queries, not on the incumbent's brand.
+**M5. Category-intent paid search can acquire users below the target cost.** Bidding on category and object queries, not on the incumbent's brand.
 Measure: cost per created standing search on a fixed €500 budget. Falsified above €3 per created search.
 
 **M6. Hobby communities convert better than broad social channels.** Cycling, audio, photography, and similar forums and marketplaces.
 Measure: signups and 30 day retention by source. Falsified if retention is no better than paid traffic.
 
 **M7. Short video built from the daily finds is a viable acquisition channel.** The material is produced daily already.
-Measure: cost per signup at 20 clips. Falsified if no clip in 20 exceeds a modest view threshold, which would indicate the format does not work for us rather than that the content is wrong.
+Measure: cost per signup at 20 clips. Falsified if no clip in 20 exceeds a modest view threshold, which would indicate the format does not work for this product rather than that the content is wrong.
 
-**M8. Second-hand demand is seasonal in ways we can plan for.** Near term candidates are the December gifting period and the winter months for indoor goods; April brings King's Day, which the sources describe as a nationwide open-air market [46].
-Measure: signups in campaign weeks against baseline. This is the weakest hypothesis in the set: we have no seasonal data of our own, and the claim rests on one secondary source.
+**M8. Second-hand demand is seasonal in ways that can be planned for.** Near term candidates are the December gifting period and the winter months for indoor goods; April brings King's Day, which the sources describe as a nationwide open-air market [46].
+Measure: signups in campaign weeks against baseline. This is the weakest hypothesis in the set, because vindje has no seasonal data of its own and the claim rests on one secondary source.
 
 **M9. Shared search snapshots produce new visitors.** The share link already exists.
 Measure: new visitors per shared search, and their conversion. Falsified if shares bring under 0.1 new visitors each.
 
-**M10. Trade press coverage produces retained users, not just traffic.** Measure: 30 day retention of the cohort arriving from any press pickup, compared with organic. Falsified if retention is at or near zero, which would tell us to stop spending time on press.
+**M10. Trade press coverage produces retained users, not just traffic.** Measure: 30 day retention of the cohort arriving from any press pickup, compared with organic. Falsified if retention is at or near zero, which would indicate that press outreach is not worth further time.
 
 ---
 
@@ -422,11 +422,11 @@ The plan's premise is that match quality is adequate. That has never been measur
 
 ## 12. Risks and open questions
 
-**R1. Platform dependency.** vindje reads an undocumented Marktplaats search endpoint, and standing searches multiply request volume. Mitigation: conservative polling, caching, jitter, a non-abusive request profile, the existing degradation to plain search, and a second source so a single block is not fatal. Open question: what request rate is acceptable. We have no answer and no way to get one except by being conservative.
+**R1. Platform dependency.** vindje reads an undocumented Marktplaats search endpoint, and standing searches multiply request volume. Mitigation: conservative polling, caching, jitter, a non-abusive request profile, the existing degradation to plain search, and a second source so a single block is not fatal. Open question: what request rate is acceptable. Public sources do not answer this, so the only available course is to stay conservative.
 
-**R2. Terms of service.** Whether our use is compatible with Marktplaats' terms has not been assessed in this document. It should be, by someone qualified, before the standing search runs at scale.
+**R2. Terms of service.** Whether vindje's use is compatible with Marktplaats' terms has not been assessed in this document. It should be, by someone qualified, before the standing search runs at scale.
 
-**R3. Incumbent feature risk.** I8, with the explicit note that we have no date.
+**R3. Incumbent feature risk.** I8, with the explicit note that no date is known.
 
 **R4. Unit economics.** Frequent checks on many searches are a recurring model cost. Filter only new listings, cache, and keep cost per search per month visible from week 2.
 
