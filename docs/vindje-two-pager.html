@@ -76,7 +76,7 @@ h2 .cont{color:var(--ink-3);}
   border-top:1px solid var(--ink);
   border-bottom:1px solid var(--hairline);
 }
-.fig{padding:3.4mm 4mm 3.4mm 0;}
+.fig{padding:3.1mm 4mm 3.1mm 0;}
 .fig-n{font-size:16pt;font-weight:600;letter-spacing:-.03em;line-height:1;}
 .fig-n.hot{color:var(--accent);}
 .fig-l{margin-top:1.8mm;font-size:7.1pt;color:var(--ink-2);line-height:1.3;}
@@ -88,7 +88,7 @@ h2 .cont{color:var(--ink-3);}
   column-gap:10mm;
   list-style:none;
 }
-.findings li{padding:2.3mm 0;border-top:1px solid var(--hairline);}
+.findings li{padding:2.1mm 0;border-top:1px solid var(--hairline);}
 .findings .k{display:block;font-size:9.2pt;font-weight:600;letter-spacing:-.01em;}
 .findings .v{display:block;margin-top:.8mm;font-size:8.5pt;color:var(--ink-2);line-height:1.4;}
 
@@ -109,7 +109,7 @@ th{
 }
 th:last-child,td:last-child{padding-right:0;}
 td{
-  padding:2.1mm 5mm 2.1mm 0;
+  padding:1.9mm 5mm 1.9mm 0;
   border-bottom:1px solid var(--hairline);
   font-size:8.5pt;
   color:var(--ink-2);
@@ -121,14 +121,23 @@ td.lead{color:var(--ink);font-weight:600;font-size:8.8pt;}
 .plan td.lead{white-space:nowrap;line-height:1.25;}
 
 .sources{
-  margin-top:5mm;
-  padding-top:3mm;
+  margin-top:4mm;
+  padding-top:2.6mm;
   border-top:1px solid var(--hairline);
-  font-size:6.6pt;
-  line-height:1.5;
+  font-size:6.5pt;
+  line-height:1.45;
   color:var(--ink-2);
 }
-.sources b{color:var(--ink);font-weight:600;}
+.sources .head{color:var(--ink);font-weight:600;}
+.sources ul{
+  margin-top:1.6mm;
+  list-style:none;
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  column-gap:7mm;
+}
+.sources a{color:var(--ink-2);text-decoration:none;}
+.sources .n{color:var(--ink-3);font-weight:500;}
 
 footer{
   margin-top:auto;
@@ -185,7 +194,7 @@ footer .sig{color:var(--ink);font-weight:500;white-space:nowrap;}
       <li><span class="k">Complaints cluster on trust and support</span><span class="v">Fraudulent listings staying live after reports, protection charged either way, no route to a human, bans shortly after registration. Self-selected sample. <span class="r">[9][10][11]</span></span></li>
       <li><span class="k">Russia: funds held, goods moved</span><span class="v">Avito holds the buyer's money until the item is confirmed and refunds return postage. One trade source reports an assistant for all users in 2026, which could not be corroborated. <span class="r">[36][38]</span></span></li>
       <li><span class="k">Purchase fraud is the most common online fraud</span><span class="v">CBS: 7% of people 15+ in 2024, up from 5.6% in 2022, ahead of sales fraud at 1.5%. Not attributed to any platform. <span class="r">[16]</span></span></li>
-      <li><span class="k">China: trust is operational, engagement is social</span><span class="v">Zhuanzhuan inspects items in custody with over 2,000 staff. Xianyu reports 209M monthly actives organised around 1.3M interest groups. Both company-derived. <span class="r">[39][42]</span></span></li>
+      <li><span class="k">China: trust is operational, engagement is social</span><span class="v">Zhuanzhuan ended unmediated C2C trade in 2025, citing disputes and margins. Xianyu reports 209M actives in 1.3M groups. <span class="r">[47][39]</span></span></li>
       <li><span class="k">Three Dutch services already sell alert speed</span><span class="v">MarktAlert publishes &euro;6.95 and &euro;10.95 tiers. MPAlerts is described as filtering listings with a model, though its site refused the request. <span class="r">[21][22][23]</span></span></li>
       <li><span class="k">USA: live auctions grew, on company numbers</span><span class="v">Whatnot reports over $8B volume in 2025, doubling. A second source says $6B for the same year. Conversion claims come from the industry, not from an independent test. <span class="r">[33][34]</span></span></li>
     </ul>
@@ -279,26 +288,34 @@ footer .sig{color:var(--ink);font-weight:500;white-space:nowrap;}
   </div>
 
   <div class="sources">
-    <b>Sources.</b>
-    [1] Marktplaats.nl, Wikipedia.
-    [5] The Marktplaats Effect, Marktplaats with Vaayu, 2023 data, company-reported.
-    [9] Trustpilot, accessed 15 Sep 2026, self-selected sample.
-    [10] AVROTROS Radar forum.
-    [11] Google Play and App Store reviews.
-    [15] Marktplaats help, rules on keywords in advertisements.
-    [16] CBS, Online veiligheid en criminaliteit 2024.
-    [18] Consumentenonderzoek Potentie Tweedehands Spullen 2025, via Circulair Ambachtscentrum.
-    [21][22][23] MarktAlert, a competitor; MPAlerts, which returned HTTP 403; Marktplaats Scanner.
-    [25] CMA analysis of UK C2C apparel, via Value Added Resource.
-    [30][31] Kleinanzeigen on Trustpilot; Coraly GPPI, where revenue is a third party estimate.
-    [33][34] Whatnot via Ebrun and Ringing the Bell, whose figures conflict.
-    [36][38] Ship24 and TAdviser; www1.ru, a single source.
-    [39][42] ChinaTalk; Baidu Baike, company-derived.
-    The full source list, with quality labels, is in the long version.
+    <span class="head">Sources, live links.</span> Requested 15 Sep 2026: 40 of 47 returned HTTP 200, six answer a bot challenge and open in a browser, one host was unreachable. All 47 with access notes in the long version.
+    <ul>
+      <li><a href="https://en.wikipedia.org/wiki/Marktplaats.nl"><span class="n">[1]</span> Wikipedia, Marktplaats.nl</a></li>
+      <li><a href="https://www.marktplaats.nl/m/the-marktplaats-effect/"><span class="n">[5]</span> Marktplaats Effect, company</a></li>
+      <li><a href="https://www.trustpilot.com/review/www.marktplaats.nl"><span class="n">[9]</span> Trustpilot, self-selected</a></li>
+      <li><a href="https://radar-forum.avrotros.nl/webwinkels-f69/problemen-met-marktplaats-nl-t17863.html"><span class="n">[10]</span> Radar forum, avrotros.nl</a></li>
+      <li><a href="https://play.google.com/store/apps/details?id=nl.marktplaats.android"><span class="n">[11]</span> App reviews, play.google.com</a></li>
+      <li><a href="https://help.marktplaats.nl/s/article/regels-over-het-gebruik-van-zoekwoorden-in-advertenties"><span class="n">[15]</span> Keyword rules, Marktplaats help</a></li>
+      <li><a href="https://www.cbs.nl/nl-nl/longread/rapportages/2025/online-veiligheid-en-criminaliteit-2024/4-online-oplichting-en-fraude"><span class="n">[16]</span> CBS online fraud 2024</a></li>
+      <li><a href="https://circulairambachtscentrum.nl/nieuws/2025/vinden-consumenten-tweedehands-spullen/"><span class="n">[18]</span> Tweedehands study 2025</a></li>
+      <li><a href="https://marktalert.nl/vergelijking"><span class="n">[21]</span> MarktAlert, a competitor</a></li>
+      <li><a href="https://mpalerts.nl/"><span class="n">[22]</span> MPAlerts, returned 403</a></li>
+      <li><a href="https://www.marktplaatsscanner.com/"><span class="n">[23]</span> Marktplaats Scanner</a></li>
+      <li><a href="https://www.valueaddedresource.net/cma-vinted-leads-uk-apparel-gmv/"><span class="n">[25]</span> CMA via Value Added Resource</a></li>
+      <li><a href="https://company.vinted.com/newsroom/financial-results-2025"><span class="n">[27]</span> Vinted 2025 results, company</a></li>
+      <li><a href="https://www.trustpilot.com/review/kleinanzeigen.de"><span class="n">[30]</span> Kleinanzeigen, Trustpilot</a></li>
+      <li><a href="https://coraly.ai/gppi/portals/kleinanzeigen-de"><span class="n">[31]</span> Kleinanzeigen profile, coraly.ai</a></li>
+      <li><a href="https://english.ebrun.com/20260211/640428.shtml"><span class="n">[33]</span> Whatnot GMV, ebrun.com</a></li>
+      <li><a href="https://ringingthebell.substack.com/p/whatnot-live-shopping-finally-works"><span class="n">[34]</span> Whatnot, lower figure</a></li>
+      <li><a href="https://www.ship24.com/shops/avito-tracking"><span class="n">[36]</span> Avito delivery, ship24.com</a></li>
+      <li><a href="https://www.chinatalk.nl/alibabas-xianyu-more-than-just-a-second-hand-marketplace/"><span class="n">[39]</span> Xianyu, chinatalk.nl</a></li>
+      <li><a href="https://baike.baidu.com/en/item/Zhuanzhuan/60216"><span class="n">[42]</span> Zhuanzhuan, unreachable host</a></li>
+      <li><a href="https://www.yicaiglobal.com/news/chinese-used-goods-site-zhuanzhuan-to-close-c2c-market-due-to-disputes-profit-margin"><span class="n">[47]</span> Zhuanzhuan closes C2C, Yicai</a></li>
+    </ul>
   </div>
 
   <footer>
-    <span>Unverified and carried as open items: the buyer protection cost figures, since the official page did not load; the claim about native alert frequency, which comes from a competitor; and the payment method assumption.</span>
+    <span>Open items: buyer protection costs, a competitor's claim about alert frequency, the payment assumption.</span>
     <span class="sig">Amsterdam &middot; 2 of 2</span>
   </footer>
 </section>

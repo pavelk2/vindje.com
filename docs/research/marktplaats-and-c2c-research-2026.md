@@ -1,6 +1,6 @@
 # Second-hand trade in the Netherlands: observations, comparison with four other markets, and a research plan for vindje
 
-Desk research. Compiled 15 September 2026. All sources are listed in section 13 and cited inline as [n].
+Desk research. Compiled 15 September 2026. All sources are listed in section 13 with their URLs and cited inline as [n]. Every URL was requested on 15 September 2026 and the result is recorded there.
 
 ---
 
@@ -181,13 +181,17 @@ These are properties of the system, established by using it and by the sources n
 
 **O47.** Xianyu launched a services and side-hustle marketplace in 2024; reporting states 9.5 million users earned an average of RMB 3,660 in 2024 [39]. Company-derived.
 
-**O48.** Zhuanzhuan operates a C2B2C model: it takes the item into custody and inspects it. Company material describes three inspection centres (Shenzhen, Chengdu, Qingdao), over 2,000 inspectors and a 66 step standardised inspection with a report, plus warranties [42]. Company-sourced, via Baidu Baike. Aihuishou provides trade-in and cash-for-device services with data wiping and warranty [41]. Both Xianyu and Zhuanzhuan opened physical inspection and recycling shops in 2024 and 2025 [41].
+**O48.** Zhuanzhuan operates a C2B2C model: it takes the item into custody and inspects it. Company material describes three inspection centres (Shenzhen, Chengdu, Qingdao), over 2,000 inspectors and a 66 step standardised inspection with a report, plus warranties [42]. That entry is company-derived and its host was unreachable when checked, so the specific counts are unconfirmed. The model itself is corroborated by trade reporting [37].
+
+**O49.** Zhuanzhuan ended its consumer-to-consumer trading service on 29 September 2025, announced in an open letter dated 22 September 2025. The stated reasons were difficulty resolving transaction disputes and thin margins. C2C was less than 3% of its gross merchandise volume, and the company first reached profitability in 2022 on the inspected C2B2C model [47]. This is a dated, verifiable data point on the cost of running unmediated C2C trade at scale.
+
+**O50.** Aihuishou provides trade-in and cash-for-device services with data wiping and warranty [41]. Both Xianyu and Zhuanzhuan opened physical inspection and recycling shops in 2024 and 2025 [41].
 
 ### Dutch channel data, for section 10
 
-**O49.** Reported reach among Dutch internet users: WhatsApp 88.8%, Facebook 69.1%, LinkedIn 76.2%, Instagram approximately 45%, TikTok 5.62 million users aged 18 and over in early 2025 [45]. These come from different instruments within the same compilation and the LinkedIn and Instagram figures are not measured the same way.
+**O51.** Reported reach among Dutch internet users: WhatsApp 88.8%, Facebook 69.1%, LinkedIn 76.2%, Instagram approximately 45%, TikTok 5.62 million users aged 18 and over in early 2025 [45]. These come from different instruments within the same compilation and the LinkedIn and Instagram figures are not measured the same way.
 
-**O50.** Expat-facing guides to selling in the Netherlands name the Dutch language and hard bargaining as the main obstacles, and note that items often need reposting before they sell [46]. Secondary and anecdotal.
+**O52.** Expat-facing guides to selling in the Netherlands name the Dutch language and hard bargaining as the main obstacles, and note that items often need reposting before they sell [46]. Secondary and anecdotal.
 
 ---
 
@@ -207,11 +211,11 @@ Clearly separated from the observations. Each inference names what it rests on a
 
 **I6. Price confidence is an unserved question with a possible data path.** There is no sold-price history (O16) and auction listings corrupt the price signal (O17). Nobody in this market publishes comparables. vindje's daily job already estimates resale values, and listings that disappear from the index are a weak proxy for sales. The proxy is weak: listings are also removed when they expire, are withdrawn, or are relisted. Any valuation built on it must report its own confidence.
 
-**I7. The language barrier is plausible as a segment, and unquantified.** Search requires Dutch keywords (O14), several reviewers report bans on accounts without a Dutch phone number (O10), and expat guides name language as the main obstacle (O50). There is no population estimate, no conversion data, and no evidence that this group will pay. Treat as the weakest of the three focus areas and test cheaply.
+**I7. The language barrier is plausible as a segment, and unquantified.** Search requires Dutch keywords (O14), several reviewers report bans on accounts without a Dutch phone number (O10), and expat guides name language as the main obstacle (O52). There is no population estimate, no conversion data, and no evidence that this group will pay. Treat as the weakest of the three focus areas and test cheaply.
 
 **I8. The competitive window is finite but its length is a guess.** Avito is reported to be giving every user an assistant in 2026 (O43, low confidence), and it sits in the same industry as Marktplaats. It is reasonable to expect Marktplaats to ship similar features. No announcement, roadmap or date is available. Any specific figure such as "12 to 18 months" is invented and is removed from this version.
 
-**I9. Custody and logistics solve trust, and both need capital.** Avito holds funds and moves goods (O42). Xianyu authenticates and Zhuanzhuan inspects with over 2,000 staff (O46, O48). These are operational businesses. A team of three cannot replicate them, so the trust work available to vindje is limited to signalling risk, not underwriting it.
+**I9. Custody and logistics solve trust, and both need capital.** Avito holds funds and moves goods (O42). Xianyu authenticates and Zhuanzhuan inspects (O46, O48). These are operational businesses. Zhuanzhuan's decision to close unmediated C2C trade entirely, citing disputes and margins (O49), is the clearest available evidence that the mediated model is what pays. A team of three cannot replicate it, so the trust work available to vindje is limited to signalling risk, not underwriting it.
 
 **I10. Community is the mechanism behind the largest engagement numbers.** Xianyu's 209 million monthly actives sit on 1.3 million interest groups rather than on a search box (O44, O45). Whatnot's reported growth comes from live auctions (O32). Both suggest that for one-of-a-kind goods, discovery formats beat query formats. This is suggestive, not transferable: both operate at a scale and in a culture unlike the Dutch market, and their figures are self-reported.
 
@@ -333,7 +337,7 @@ Measure: ranking and conversion for 25 model pages. Falsified if conversion is b
 **M3. International residents are reachable at low cost in English-language communities.** Expat forums, subreddits, community groups and expat media (O50).
 Measure: signups and cost per signup. Paired with H7: if H7 is falsified, M3 stops regardless of its own cost per signup.
 
-**M4. WhatsApp outperforms email for delivery of standing search results.** Grounded in reach (O49).
+**M4. WhatsApp outperforms email for delivery of standing search results.** Grounded in reach (O51).
 Measure: open and click rate by channel. Falsified if WhatsApp does not exceed email materially. Note WhatsApp Business API template approval takes time and has cost per message, which changes the economics of frequent alerts.
 
 **M5. Category-intent paid search can acquire users below the target cost.** Bidding on category and object queries, not on the incumbent's brand.
@@ -440,22 +444,22 @@ The plan's premise is that match quality is adequate. That has never been measur
 
 ## 13. Sources
 
-Numbering is stable across drafts, so 37 is unused. Quality labels: **[company]** self-published by the subject, **[official]** government or regulator, **[press]** trade or general press, **[secondary]** aggregator, blog or vendor comparison, **[review]** self-selected user reviews.
+Every URL below was requested on 15 September 2026. Of 47 URLs, 40 returned HTTP 200. Six return a bot challenge or 403 to an automated request and open normally in a browser, and one host was unreachable from this network. Each is annotated. Quality labels: **[company]** self-published by the subject, **[official]** government or regulator, **[press]** trade or general press, **[secondary]** aggregator, blog or vendor comparison, **[review]** self-selected user reviews.
 
 1. Marktplaats.nl, Wikipedia. [secondary] https://en.wikipedia.org/wiki/Marktplaats.nl
 2. Permira and Blackstone announce voluntary offer for Adevinta shares, Adevinta press release. [company] https://adevinta.com/press-releases/permira-and-blackstone-announce-voluntary-offer-for-all-outstanding-ordinary-class-a-shares-in-adevinta-at-nok-115-per-share/
 3. Blackstone and Permira lead $13 billion bid for Adevinta, Reuters via Yahoo Finance. [press] https://ca.finance.yahoo.com/news/blackstone-permira-buy-adevinta-13-165440995.html
 4. Adevinta takeover to complete by June 2024, Online Marketplaces. [press] https://www.onlinemarketplaces.com/articles/adevinta-takeover-to-complete-by-june-2024/
 5. The Marktplaats Effect, Marktplaats with Vaayu, 2023 data. [company] https://www.marktplaats.nl/m/the-marktplaats-effect/
-6. marktplaats.nl traffic analytics, Similarweb. [secondary] https://www.similarweb.com/website/marktplaats.nl/
-7. Top online marketplaces in the Netherlands 2026, WMTips. [secondary] https://www.wmtips.com/technologies/marketplaces/country/nl/
+6. marktplaats.nl traffic analytics, Similarweb. [secondary] Bot challenge on automated request; opens in a browser. https://www.similarweb.com/website/marktplaats.nl/
+7. Top online marketplaces in the Netherlands 2026, WMTips. [secondary] Returns 403 to automated requests; opens in a browser. https://www.wmtips.com/technologies/marketplaces/country/nl/
 8. Netherlands leading online marketplaces by visit share 2023, Statista. [secondary] https://www.statista.com/statistics/1256594/netherlands-leading-online-marketplaces-visits/
-9. Marktplaats reviews, Trustpilot, accessed 15 September 2026. [review] https://www.trustpilot.com/review/www.marktplaats.nl
+9. Marktplaats reviews, Trustpilot, accessed 15 September 2026. [review] Returns 403 to automated requests; opens in a browser. https://www.trustpilot.com/review/www.marktplaats.nl
 10. Problemen met marktplaats.nl, AVROTROS Radar forum. [review] https://radar-forum.avrotros.nl/webwinkels-f69/problemen-met-marktplaats-nl-t17863.html
 11. Marktplaats app listings and reviews, Google Play and App Store. [review] https://play.google.com/store/apps/details?id=nl.marktplaats.android
 12. Marktplaats.nl verhoogt prijzen in zakelijke rubrieken, Emerce. [press] https://www.emerce.nl/nieuws/marktplaats-nl-verhoogt-prijzen-zakelijke-rubrieken
 13. Marktplaats kopersbescherming, hoe werkt het en wat kost het, MarktAlert blog. [secondary, and a competitor] https://marktalert.nl/blog/marktplaats-kopersbescherming-hoe-werkt-het
-14. Kosten kopersbescherming, Marktplaats help. [company] Did not load on 15 September 2026. https://help.marktplaats.nl/s/article/kosten-kopersbescherming
+14. Kosten kopersbescherming, Marktplaats help. [company] The URL responds, but the page content did not render when fetched on 15 September 2026, which is why O8 is marked unverified. https://help.marktplaats.nl/s/article/kosten-kopersbescherming
 15. Regels over het gebruik van zoekwoorden in advertenties, Marktplaats help. [company] https://help.marktplaats.nl/s/article/regels-over-het-gebruik-van-zoekwoorden-in-advertenties
 16. Online oplichting en fraude, in Online veiligheid en criminaliteit 2024, CBS. [official] https://www.cbs.nl/nl-nl/longread/rapportages/2025/online-veiligheid-en-criminaliteit-2024/4-online-oplichting-en-fraude
 17. Meer mensen slachtoffer van online criminaliteit in 2024, CBS. [official] https://www.cbs.nl/nl-nl/nieuws/2025/16/meer-mensen-slachtoffer-van-online-criminaliteit-in-2024
@@ -467,23 +471,25 @@ Numbering is stable across drafts, so 37 is unused. Quality labels: **[company]*
 23. Marktplaats Scanner. [company] https://www.marktplaatsscanner.com/
 24. Delivery service for large Vinted purchases, and support articles, Brenger. [company] https://www.brenger.nl/en-nl/vinted/
 25. CMA puts Vinted at 50 to 60% of UK C2C apparel GMV, Value Added Resource. [press, reporting a regulator] https://www.valueaddedresource.net/cma-vinted-leads-uk-apparel-gmv/
-26. Vinted overtakes Gumtree to become the UK's most visited secondhand marketplace, AIM Group. [press] https://aimgroup.com/2025/11/26/vinted-overtakes-gumtree-to-become-the-u-k-s-largest-secondhand-marketplace/
+26. Vinted overtakes Gumtree to become the UK's most visited secondhand marketplace, AIM Group. [press] Bot challenge on automated request; opens in a browser. https://aimgroup.com/2025/11/26/vinted-overtakes-gumtree-to-become-the-u-k-s-largest-secondhand-marketplace/
 27. Financial results 2025, Vinted. [company] https://company.vinted.com/newsroom/financial-results-2025
 28. eBay removes UK seller fees, TechCrunch. [press] https://techcrunch.com/2024/10/01/ebay-removes-uk-seller-fees-to-counter-new-wave-of-marketplace-startups
 29. Magical Listing revisited, has eBay closed the AI gap, Value Added Resource. [press] https://www.valueaddedresource.net/ebay-ai-magical-listing-revisited/
-30. Kleinanzeigen reviews, Trustpilot. [review] https://www.trustpilot.com/review/kleinanzeigen.de
+30. Kleinanzeigen reviews, Trustpilot. [review] Returns 403 to automated requests; opens in a browser. https://www.trustpilot.com/review/kleinanzeigen.de
 31. Kleinanzeigen portal profile, Coraly GPPI 2026. [secondary, revenue is an estimate] https://coraly.ai/gppi/portals/kleinanzeigen-de
 32. Kleinanzeigen, UX Design Awards 2025. [secondary] https://ux-design-awards.com/winners/2025-2-kleinanzeigen
 33. Whatnot's global GMV doubles year over year to reach $8 billion in 2025, Ebrun. [press, reporting company figures] https://english.ebrun.com/20260211/640428.shtml
 34. Whatnot, live shopping finally works, Ringing the Bell. [secondary, gives $6bn and the conversion figures] https://ringingthebell.substack.com/p/whatnot-live-shopping-finally-works
-35. Whatnot secures $11.5 billion valuation, Business of Fashion. [press] https://www.businessoffashion.com/news/retail/whatnot-secures-115-billion-valuation/
+35. Whatnot secures $11.5 billion valuation, Business of Fashion. [press] Returns 403 to automated requests; opens in a browser. https://www.businessoffashion.com/news/retail/whatnot-secures-115-billion-valuation/
 36. Avito delivery and order tracking, Ship24, and Avito Delivery product page, TAdviser. [secondary] https://www.ship24.com/shops/avito-tracking and https://tadviser.com/index.php/Product:Avito_Delivery
+37. Second time a charm for used gadgets, China Daily. [press] https://www.chinadaily.com.cn/a/202210/13/WS63474d16a310fd2b29e7c1f3.html
 38. Avito Services introduces neighbour recommendations, www1.ru. [press, single source, low confidence] https://www1.ru/en/news/2026/06/22/sarafannoe-radio-vyxodit-v-onlain-avito-uslugi-nasli-novyi-sposob-iskat-masterov.html
 39. Alibaba's Xianyu, more than just a second-hand marketplace, ChinaTalk. [secondary] https://www.chinatalk.nl/alibabas-xianyu-more-than-just-a-second-hand-marketplace/
 40. Alibaba's Xianyu swims a different course, TechBuzz China. [secondary] https://techbuzzchina.substack.com/p/alibabas-xianyu-idle-fsh-swims-a
 41. Young consumers drive second-hand e-commerce in China, Daxue Consulting. [secondary] https://daxueconsulting.com/secondhand-market-in-china/
-42. Zhuanzhuan, Baidu Baike. [company-derived] https://baike.baidu.com/en/item/Zhuanzhuan/60216
+42. Zhuanzhuan, Baidu Baike. [company-derived] Host unreachable from this network on 15 September 2026, so the inspection counts in O48 are unconfirmed. https://baike.baidu.com/en/item/Zhuanzhuan/60216
 43. Facebook Marketplace scams, NordPass, citing FTC data on social media fraud reports. [secondary, vendor] https://nordpass.com/blog/facebook-marketplace-scams/
 44. Mercari vs OfferUp, IdeaUsher. [secondary, vendor blog] https://ideausher.com/blog/mercari-vs-offerup-which-marketplace-model-is-better/
 45. Digital 2025 Netherlands, DataReportal. [secondary] https://datareportal.com/reports/digital-2025-netherlands
 46. Where to sell your stuff in the Netherlands, DutchReview. [secondary] https://dutchreview.com/expat/selling-your-stuff-in-the-netherlands/
+47. Chinese used goods site Zhuanzhuan to close C2C market due to disputes, profit margin, Yicai Global. [press] https://www.yicaiglobal.com/news/chinese-used-goods-site-zhuanzhuan-to-close-c2c-market-due-to-disputes-profit-margin
