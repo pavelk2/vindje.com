@@ -2219,6 +2219,41 @@ def render_ideas(ideas, origin=""):
                        .replace("__ORIGIN__", origin))
 
 
+# ---------------------------------------------------------------- analytics
+# Google Tag Manager. One container, injected into every page below so the
+# snippet lives in a single place instead of being copy-pasted five times.
+# GA4 and any other tags are configured inside GTM, not in this file.
+
+GTM_ID = "GTM-N3P8QL6S"
+
+_GTM_HEAD = """<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','__GTM_ID__');</script>
+<!-- End Google Tag Manager -->""".replace("__GTM_ID__", GTM_ID)
+
+_GTM_BODY = """<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=__GTM_ID__"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->""".replace("__GTM_ID__", GTM_ID)
+
+
+def _with_gtm(doc: str) -> str:
+    """Insert the GTM snippets into one HTML document."""
+    return (doc.replace('<meta charset="utf-8">',
+                        '<meta charset="utf-8">\n' + _GTM_HEAD, 1)
+               .replace("<body>", "<body>\n" + _GTM_BODY, 1))
+
+
+HTML = _with_gtm(HTML)
+HOW_IT_WORKS_HTML = _with_gtm(HOW_IT_WORKS_HTML)
+CREDITS_HTML = _with_gtm(CREDITS_HTML)
+HISTORY_HTML = _with_gtm(HISTORY_HTML)
+IDEAS_HTML = _with_gtm(IDEAS_HTML)
+
+
 ROBOTS_TXT = """User-agent: *
 Allow: /
 
