@@ -115,6 +115,10 @@ through the model list (ending with OpenRouter's free-model router as a
 last resort), and if all AI calls fail it degrades to a plain search and
 tells you so.
 
+## Roadmap
+
+What we're working on and why lives in [`roadmap.md`](roadmap.md), rewritten every four weeks.
+
 ## Notes
 
 - Everything lives in a single file, `app.py` (stdlib only: `http.server` +
