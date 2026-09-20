@@ -1370,7 +1370,7 @@ if (SHARED) {
   document.getElementById('nobids').checked = !!localStorage.getItem('nobids');
 }
 
-document.querySelectorAll('.ex').forEach(b => b.addEventListener('click', () => {
+document.querySelectorAll('.examples .ex').forEach(b => b.addEventListener('click', () => {
   const q = document.getElementById('q');
   q.value = b.dataset.q || b.textContent.trim();
   q.focus();
