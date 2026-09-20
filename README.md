@@ -42,6 +42,23 @@ Search.
 Without an API key the app still works as a plain Marktplaats search — just
 without the smart parsing and filtering.
 
+### Alternative: `.env` file + `run-local.sh`
+
+Typing keys inline on the command line every time gets old, and leaves them
+sitting in your shell history. `run-local.sh` loads them from a `.env` file
+instead:
+
+```bash
+./run-local.sh
+```
+
+The first run creates `.env` for you from `.env.example` (no manual copying
+needed) and starts the app with whatever's in it. Open `.env` afterward,
+fill in your real keys, and run `./run-local.sh` again to pick them up.
+
+`.env` is listed in `.gitignore` — it holds real secrets and must never be
+committed or made public (this repo is public, see `AGENTS.md`).
+
 ## Sharing a search
 
 Every completed search is automatically saved (a frozen snapshot of the
