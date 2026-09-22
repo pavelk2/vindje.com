@@ -116,6 +116,37 @@ The workflow needs `OPENROUTER_API_KEY`, `UPSTASH_REDIS_REST_URL` and
 `UPSTASH_REDIS_REST_TOKEN` as repository secrets (Settings → Secrets and
 variables → Actions) — the same values the Vercel deployment uses.
 
+## Notify me (nightly saved-search digest)
+
+Under any search's results, "Notify me about new matches" saves that
+search, including the AI-parsed filters, not just the raw text, and
+emails you once a day with only the listings that are genuinely new
+*and* still pass the same AI filter as a live search. No account or
+password: just an email address, and an unsubscribe link in every
+email.
+
+A GitHub Actions cron (`.github/workflows/nightly-digest.yml`) runs
+`digest.py` every night at 03:00 UTC. It re-runs each saved search once,
+sequentially — never in parallel, to stay gentle on Marktplaats — and
+skips listings it already emailed for that search.
+
+v1 is daily-only: a saved search that's genuinely time-sensitive (a rare
+item that can sell within hours) isn't well served by a once-a-day email
+yet. That's a known, deliberate limitation, not an oversight.
+
+Try it by hand:
+
+```bash
+OPENROUTER_API_KEY=sk-or-... UPSTASH_REDIS_REST_URL=... \
+  UPSTASH_REDIS_REST_TOKEN=... python3 digest.py --dry-run   # print only
+RESEND_API_KEY=... python3 digest.py                         # send too
+```
+
+Needs an [Upstash Redis](https://upstash.com) database (same one as
+sharing, above) and a [Resend](https://resend.com) account with a
+verified sending domain. The workflow needs `RESEND_API_KEY` as a fourth
+repository secret alongside the three deal-hunt ones.
+
 ## Configuration (all optional, via environment variables)
 
 | Variable | Default | Purpose |
@@ -126,6 +157,9 @@ variables → Actions) — the same values the Vercel deployment uses.
 | `UPSTASH_REDIS_REST_URL` | — | Your Upstash Redis REST URL, for saving/sharing searches |
 | `UPSTASH_REDIS_REST_TOKEN` | — | Upstash Redis REST token (secret, server-side only) |
 | `PORT` | `8000` | HTTP port |
+| `RESEND_API_KEY` | — | Resend API key, for outgoing email: subscribe confirmations and `digest.py`'s nightly digest (secret) |
+| `RESEND_FROM_EMAIL` | `vindje.com <alerts@vindje.com>` | Verified Resend sender address |
+| `SITE_ORIGIN` | `https://vindje.com` | Origin used for links in digest emails |
 
 If the primary model errors or rate-limits, the app automatically falls
 through the model list (ending with OpenRouter's free-model router as a

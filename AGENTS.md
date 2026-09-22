@@ -12,8 +12,9 @@ line, not a paragraph.
 Smart search for Marktplaats: you describe what you want in any language, an
 LLM turns it into a real Dutch search, and a second LLM pass keeps only the
 listings that actually match. Plus a daily hunt for undervalued items
-(`deals.py`), a shared-search page, a public ideas board, and an MCP server
-that hands raw listings to Claude.
+(`deals.py`), a nightly saved-search email digest (`digest.py`, issue #28),
+a shared-search page, a public ideas board, and an MCP server that hands
+raw listings to Claude.
 
 The project is deliberately open: code, roadmap, analytics and finances are
 public. Two consequences for you:
@@ -39,6 +40,12 @@ python3 deals.py --dry-run                      # print, save nothing
 python3 deals.py --dry-run --category bikes     # one category
 ```
 
+Saved-search digest:
+
+```bash
+python3 digest.py --dry-run                     # print, send nothing
+```
+
 MCP server (needs `pip install mcp uvicorn`):
 
 ```bash
@@ -58,15 +65,20 @@ All optional. Missing ones degrade gracefully, never crash.
 | `UPSTASH_REDIS_REST_TOKEN` | Upstash REST token. Server-side only, never sent to the browser. |
 | `IDEA_VOTE_THRESHOLD` | Votes before an idea is highlighted. Default 3. |
 | `PORT` | HTTP port. Default 8000. |
+| `RESEND_API_KEY` | Resend API key for outgoing email: the subscribe-confirmation sent from `app.py` and `digest.py`'s nightly digest (both call the same `send_email` in `app.py`). Absent: the confirmation/digest send attempt fails and is logged, everything else (saving the subscription, matching-and-filtering) still runs, nothing crashes. |
+| `RESEND_FROM_EMAIL` | Verified Resend sender, e.g. `vindje.com <alerts@vindje.com>`. |
+| `SITE_ORIGIN` | Origin used to build links in digest emails (`digest.py` has no request to derive one from). Default `https://vindje.com`. |
 
 Add a variable → add a row here and in `README.md`, and set it in Vercel.
 
 ## Hard limits
 
-1. **`app.py`, `deals.py` and `listing_cards_ui.py` are standard library
-   only.** No requests, no flask, no jinja. `requirements.txt` exists for
-   Vercel detection and carries `mcp` for `mcp_server.py` alone. Adding any
-   other dependency is a PR conversation, not a drive-by commit.
+1. **`app.py`, `deals.py`, `digest.py` and `listing_cards_ui.py` are standard
+   library only.** No requests, no flask, no jinja. `requirements.txt` exists
+   for Vercel detection and carries `mcp` for `mcp_server.py` alone. Adding
+   any other dependency is a PR conversation, not a drive-by commit.
+   `digest.py` sends email over Resend's HTTP API via bare `urllib`, the same
+   pattern `upstash_command` already uses — not a client library.
 2. **Don't split `app.py` "for cleanliness".** One file is a choice, not an
    accident. Restructuring is its own PR with its own reason.
 3. **Anything Upstash-backed must degrade to a no-op.** No Redis configured
@@ -84,11 +96,12 @@ Add a variable → add a row here and in `README.md`, and set it in Vercel.
 |---|---|
 | `app.py` | Everything for the web app: LLM calls, Marktplaats search, filtering, Upstash storage, ideas board, HTML templates, WSGI router. ~2500 lines, sectioned by `# ---- name` comment banners. |
 | `deals.py` | Daily deal hunt. Imports from `app.py`. Run by GitHub Actions. |
+| `digest.py` | Nightly saved-search email digest (issue #28). Imports from `app.py`. Run by GitHub Actions. |
 | `mcp_server.py` | MCP server. Raw listings only, no AI on our side. |
 | `listing_cards_ui.py` | MCP Apps widget HTML for listing cards. |
 | `api/index.py`, `api/mcp.py` | Vercel serverless entry points. Thin shims. |
 | `vercel.json` | Route rewrites. Every public path needs an entry. |
-| `.github/workflows/` | CI and the daily deal cron. |
+| `.github/workflows/` | CI, the daily deal cron, and the nightly digest cron. |
 
 ## Conventions
 
@@ -102,11 +115,13 @@ name isn't enough. Section banners stay in the
 and what it returned in outline. That's how we debug production from Vercel
 logs. Never log an API key or a full prompt payload.
 
-**HTML templates.** Five page templates live as module-level strings in
+**HTML templates.** Six page templates live as module-level strings in
 `app.py` (`HTML`, `HOW_IT_WORKS_HTML`, `CREDITS_HTML`, `HISTORY_HTML`,
-`IDEAS_HTML`), each wrapped once by `_with_gtm`. The CSS custom properties
-(`--ink`, `--body`, `--muted`, `--line`, `--line2`, `--field`) are duplicated
-in all five. Change the palette in one, change it in all five.
+`IDEAS_HTML`, `UNSUBSCRIBE_HTML`), each wrapped once by `_with_gtm`. The CSS
+custom properties (`--ink`, `--body`, `--muted`, `--line`, `--line2`,
+`--field`) are duplicated in all six. Change the palette in one, change it
+in all six. `digest.py`'s email HTML is separate: inline styles, not custom
+properties — most mail clients strip `<style>`/don't support `var()`.
 
 **Escaping.** Anything user-supplied that reaches HTML goes through
 `html.escape`. Ideas, comments and search wishes are attacker-controlled
@@ -160,11 +175,12 @@ There is no linter or test suite in CI yet (it's on the backlog). Until there
 is, the floor is:
 
 ```bash
-python3 -m py_compile app.py deals.py mcp_server.py listing_cards_ui.py api/*.py
+python3 -m py_compile app.py deals.py digest.py mcp_server.py listing_cards_ui.py api/*.py
 python3 app.py            # open localhost:8000, run a real search
 ```
 
-Touched `deals.py`? Run `--dry-run` on at least one category. Touched a
+Touched `deals.py`? Run `--dry-run` on at least one category. Touched
+`digest.py`? Run `--dry-run` against a real saved search. Touched a
 template? Load that page. Touched the MCP server? Start it and call the tool.
 "It looks right" is not a check.
 
@@ -180,3 +196,7 @@ Append here when an agent gets something wrong. One line each.
   `req_id`.
 - Don't let a broken Upstash call render an error page; fall back to empty.
 - Don't put em dashes in generated user-facing text.
+- Never read or edit `.env` directly, even to change one line. It holds real
+  secrets and a Read/Edit tool call puts the whole file, keys included, in
+  the session transcript. Ask the person running the agent to make the
+  change, or point them to the exact line/value to set.

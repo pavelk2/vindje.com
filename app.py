@@ -22,6 +22,7 @@ Without a key the app still works as a plain Marktplaats search,
 just without the smart parsing/filtering.
 """
 
+import hashlib
 import html
 import json
 import logging
@@ -514,6 +515,149 @@ def get_search(share_id):
     return json.loads(raw) if raw else None
 
 
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+SAVED_SEARCH_INDEX_KEY = "search:saved:index"
+SAVED_SEARCH_TTL_SECONDS = 30 * 24 * 60 * 60  # 30 days
+
+
+def _user_hash(email):
+    """Non-reversible id for an email, used only in key names so a raw
+    address never sits in a Redis key name or a log line (repo is public)."""
+    return hashlib.sha256(email.encode()).hexdigest()[:16]
+
+
+def save_subscription(record):
+    """Save a search for the nightly digest (issue #28). The row's id is a
+    hash of (email, wish, postcode, exclude_bids), not random, so
+    re-subscribing to the exact same search renews the existing row —
+    same token, fresh 30-day TTL — instead of adding a duplicate. Returns
+    (saved_id, unsubscribe_token, is_new)."""
+    email = str(record.get("email") or "").strip().lower()
+    if not EMAIL_RE.match(email):
+        raise ValueError("Enter a valid email address")
+    wish = str(record.get("wish") or "").strip()[:500]
+    if not wish:
+        raise ValueError("Empty search")
+    postcode = str(record["postcode"])[:20] if record.get("postcode") else None
+    exclude_bids = bool(record.get("exclude_bids"))
+
+    fingerprint = "|".join([wish, postcode or "", str(exclude_bids)])
+    saved_id = hashlib.sha256(fingerprint.encode()).hexdigest()[:16]
+    key = f"search:saved:{_user_hash(email)}:{saved_id}"
+
+    existing_raw = upstash_command("GET", key)
+    existing = json.loads(existing_raw) if existing_raw else None
+    is_new = existing is None
+    token = existing["token"] if existing else secrets.token_urlsafe(9)
+
+    row = {
+        "id": saved_id,
+        "email": email,
+        "wish": wish,
+        "postcode": postcode,
+        "exclude_bids": exclude_bids,
+        "parsed": record.get("parsed"),
+        "frequency": "daily",
+        "created_ts": existing.get("created_ts") if existing else time.time(),
+        "token": token,
+    }
+    upstash_command("SET", key, json.dumps(row), "EX", str(SAVED_SEARCH_TTL_SECONDS))
+    upstash_command("SADD", SAVED_SEARCH_INDEX_KEY, key)
+    upstash_command("SET", f"search:token:{token}", key, "EX", str(SAVED_SEARCH_TTL_SECONDS))
+    return saved_id, token, is_new
+
+
+def unsubscribe_search(token):
+    """Remove a saved search by its unsubscribe token. Returns True if
+    something was removed, False if the token is unknown or already used."""
+    token = str(token or "").strip()
+    if not token:
+        return False
+    key = upstash_command("GET", f"search:token:{token}")
+    if not key:
+        return False
+    upstash_command("DEL", key)
+    upstash_command("SREM", SAVED_SEARCH_INDEX_KEY, key)
+    upstash_command("DEL", f"search:token:{token}")
+    upstash_command("DEL", key.replace("search:saved:", "search:sent:", 1))
+    return True
+
+
+# ---------------------------------------------------------------- email (Resend)
+
+# Two things send mail: the confirmation below, right after a new
+# subscription, and digest.py's nightly new-matches email (which imports
+# send_email from here). Both go out over Resend's HTTP API via bare
+# urllib — no dependency (hard limit 1).
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+RESEND_FROM_EMAIL = os.environ.get("RESEND_FROM_EMAIL", "vindje.com <alerts@vindje.com>")
+
+
+RESEND_RETRYABLE_CODES = {403, 429, 500, 502, 503, 504}
+RESEND_RETRY_PAUSE_SECONDS = 4
+
+
+def send_email(to_email, subject, html_body):
+    """POSTs to Resend. One retry after a short pause for status codes that
+    look transient (edge rate-limiting/bot-scoring, 5xx) — codes like 401/422
+    are structural and would just fail the same way again, so those raise
+    immediately instead of wasting the pause."""
+    if not RESEND_API_KEY:
+        raise RuntimeError("RESEND_API_KEY is not configured")
+    body = json.dumps({"from": RESEND_FROM_EMAIL, "to": [to_email],
+                       "subject": subject, "html": html_body}).encode()
+    headers = {"Authorization": "Bearer " + RESEND_API_KEY,
+               "Content-Type": "application/json",
+               # Python's default "Python-urllib/x.y" User-Agent trips
+               # Cloudflare's bot protection in front of api.resend.com
+               # (403, "error code: 1010") — identify as ourselves instead.
+               "User-Agent": "vindje.com (+https://vindje.com)"}
+    for attempt in (1, 2):
+        req = urllib.request.Request("https://api.resend.com/emails", data=body,
+                                     headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                if attempt == 2:
+                    log.info("send_email: succeeded on retry")
+                return json.loads(resp.read().decode())
+        except urllib.error.HTTPError as e:
+            # cf-ray identifies this exact request in Cloudflare's logs —
+            # include it so a failure that never reaches Resend's own
+            # dashboard (blocked at their edge) is still traceable in a
+            # support ticket.
+            ray = e.headers.get("CF-RAY", "-")
+            err = RuntimeError(
+                f"Resend error {e.code} (cf-ray={ray}): "
+                f"{e.read().decode(errors='replace')[:300]}"
+            )
+            if attempt == 2 or e.code not in RESEND_RETRYABLE_CODES:
+                raise err
+            time.sleep(RESEND_RETRY_PAUSE_SECONDS)
+
+
+def render_subscribe_confirmation_html(wish, unsubscribe_url, origin):
+    """Sent once, right after a brand-new subscription is saved — so
+    subscribing has a receipt beyond the on-page message, which disappears
+    the moment the tab closes."""
+    wish_html = html.escape(str(wish))
+    return f"""<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',
+     Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:26px 6px">
+  <p style="font-size:13px;font-weight:700;letter-spacing:-.01em;color:#86868b;
+     margin:0 0 22px">vindje.com</p>
+  <h1 style="font-size:19px;font-weight:700;letter-spacing:-.02em;margin:0 0 6px;
+     color:#1d1d1f">You&rsquo;re subscribed</h1>
+  <p style="font-size:13.5px;color:#48484a;margin:0 0 22px;line-height:1.5">
+     We&rsquo;ll watch &ldquo;{wish_html}&rdquo; and email you new matches once a day.</p>
+  <a href="{origin}/" style="display:block;text-align:center;margin:0 0 4px;
+     padding:12px;background:#1d1d1f;color:#fff;font-size:13.5px;font-weight:600;
+     border-radius:980px;text-decoration:none">See it on vindje.com</a>
+  <p style="margin-top:26px;padding-top:18px;border-top:1px solid #e8e8ed;
+     font-size:11.5px;color:#86868b;line-height:1.7">
+     Sent because you subscribed to this search on vindje.com.<br>
+     <a href="{unsubscribe_url}" style="color:#86868b">Unsubscribe</a></p>
+</div>"""
+
+
 DEALS_KEY = "deals:latest"
 
 
@@ -833,12 +977,64 @@ HTML = """<!doctype html>
   }
   textarea::placeholder, input::placeholder { color: var(--muted); }
   .boxrow { display: flex; align-items: center; gap: 8px; padding: 6px; }
-  input[type=text] {
+  input[type=text], input[type=email] {
     padding: 10px 16px; font: inherit; font-size: 15px; border: 0;
     border-radius: 980px; width: 132px; background: #fff; color: var(--ink);
     outline: none; transition: box-shadow .15s ease;
   }
-  input[type=text]:focus { box-shadow: 0 0 0 1.5px var(--ink); }
+  input[type=text]:focus, input[type=email]:focus { box-shadow: 0 0 0 1.5px var(--ink); }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
+  #subscribeRow {
+    background: var(--field); border-radius: 20px; padding: 18px 22px;
+    transition: box-shadow .18s ease;
+  }
+  #subscribeRow:focus-within { box-shadow: 0 0 0 1.5px var(--ink); }
+  .notify-row { display: flex; align-items: center; gap: 18px; }
+  .notify-icon {
+    flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .notify-copy { flex: 1; min-width: 0; }
+  .notify-copy b { display: block; font-size: 15px; font-weight: 700; letter-spacing: -.005em; }
+  .notify-copy span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .notify-form { flex: none; display: flex; gap: 8px; }
+  /* 31ch fits 95% of real addresses (avg 21.9 chars, AtData 2024 sample of
+     ~90M addresses); +32px covers the field's own left/right padding. */
+  .notify-form input[type=email] { width: calc(31ch + 32px); background: #fff; }
+  #subBtn {
+    white-space: nowrap; border: 0; border-radius: 980px; padding: 10px 18px;
+    font: inherit; font-size: 13.5px; font-weight: 600; color: #fff; background: var(--ink);
+    cursor: pointer; transition: opacity .15s ease;
+  }
+  #subBtn:hover { opacity: .85; }
+  #subBtn:disabled { opacity: .5; cursor: default; }
+  #subMsg {
+    display: none; align-items: center; gap: 10px; margin: 12px 0 0;
+    padding: 11px 16px; background: #fff; border-radius: 12px;
+    font-size: 13.5px; font-weight: 600; color: var(--ink);
+    line-height: 1.4; animation: rise .3s ease both;
+  }
+  #subMsg::before {
+    content: ""; flex: none; width: 20px; height: 20px; border-radius: 50%;
+    background-color: var(--ink);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+    background-size: 11px 11px; background-position: center; background-repeat: no-repeat;
+  }
+  #subMsg.err { color: #c0392b; }
+  #subMsg.err::before {
+    background-color: #c0392b;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='12' y1='8' x2='12' y2='13'/%3E%3Ccircle cx='12' cy='16.5' r='.5' fill='%23ffffff'/%3E%3C/svg%3E");
+  }
+  @media (max-width: 640px) {
+    .notify-row { flex-direction: column; align-items: flex-start; }
+    .notify-form { width: 100%; flex-direction: column; }
+    .notify-form input[type=email] { width: 100%; }
+    #subBtn { width: 100%; }
+    #shareBtn { width: 100%; }
+  }
   .toggle { display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
             font-size: 13.5px; color: var(--body); white-space: nowrap;
             user-select: none; }
@@ -1038,6 +1234,23 @@ HTML = """<!doctype html>
   <section class="results-sec">
     <div class="bar" id="bar"><i></i></div>
     <div class="count" id="count"></div>
+    <div id="subscribeRow" style="display:none;margin:0 2px 16px">
+      <div class="notify-row">
+        <div class="notify-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        </div>
+        <div class="notify-copy">
+          <b>Let us do the watching</b>
+          <span>We&rsquo;ll watch this search for you and email you once a day when something new shows up.</span>
+        </div>
+        <div class="notify-form">
+          <label for="subEmail" class="sr-only">Email address</label>
+          <input type="email" id="subEmail" placeholder="you@example.com" autocomplete="email">
+          <button type="button" id="subBtn">Notify me</button>
+        </div>
+      </div>
+      <div id="subMsg" style="display:none"></div>
+    </div>
     <div id="shareRow" style="display:none;margin:0 2px 16px">
       <button type="button" id="shareBtn" class="ex">Copy share link</button>
     </div>
@@ -1091,6 +1304,7 @@ function post(body) {
 
 let baseNotes = [];
 let shareUrl = null;
+let lastSearch = null;
 let state = {listings: [], total: 0, matched: 0, rejected: 0, failed: 0, checked: 0};
 
 function orderResults(listings, checking) {
@@ -1108,6 +1322,10 @@ async function saveSearch(payload) {
       // becomes the shareable link — not just the copy button below.
       history.pushState({shareId: r.id}, '', r.url);
       document.getElementById('shareRow').style.display = 'block';
+      // Subscribing is only offered once a search has auto-saved, i.e.
+      // exactly when Upstash is confirmed reachable (no separate no-op
+      // branch needed on the frontend, it inherits this gate).
+      if (lastSearch) document.getElementById('subscribeRow').style.display = 'block';
     }
   } catch (err) { /* sharing is best-effort, never blocks a search */ }
 }
@@ -1122,6 +1340,39 @@ document.getElementById('shareBtn').addEventListener('click', async () => {
     setTimeout(() => { btn.textContent = orig; }, 1500);
   } catch (err) {
     prompt('Copy this link:', shareUrl);
+  }
+});
+
+document.getElementById('subBtn').addEventListener('click', async () => {
+  if (!lastSearch) return;
+  const emailInput = document.getElementById('subEmail');
+  const btn = document.getElementById('subBtn');
+  const msg = document.getElementById('subMsg');
+  const email = emailInput.value.trim();
+  msg.style.display = 'none';
+  msg.classList.remove('err');
+  // Disabled before the request goes out, not after it resolves, so a
+  // second fast click can't fire a second subscribe while the first is
+  // still in flight (two in-flight subscribes each see "no existing row"
+  // and each mint their own token, so the user got two confirmation
+  // emails for one click).
+  btn.disabled = true;
+  try {
+    const r = await post({action: 'subscribe', email: email, ...lastSearch});
+    if (r.error) throw new Error(r.error);
+    emailInput.disabled = true;
+    btn.textContent = 'Subscribed';
+    msg.textContent = r.already_subscribed
+      ? "You're already watching this search."
+      : (r.email_sent
+          ? "We'll email new matches once a day. Check your inbox for a confirmation."
+          : "We'll email new matches once a day.");
+    msg.style.display = 'flex';
+  } catch (err) {
+    btn.disabled = false;
+    msg.textContent = err.message;
+    msg.classList.add('err');
+    msg.style.display = 'flex';
   }
 });
 
@@ -1144,8 +1395,17 @@ f.addEventListener('submit', async e => {
   document.getElementById('interp').style.display = 'none';
   document.getElementById('interpNote').style.display = 'none';
   document.getElementById('shareRow').style.display = 'none';
+  document.getElementById('subscribeRow').style.display = 'none';
+  const subEmail = document.getElementById('subEmail');
+  subEmail.value = ''; subEmail.disabled = false;
+  const subBtn = document.getElementById('subBtn');
+  subBtn.disabled = false; subBtn.textContent = 'Notify me';
+  const subMsg = document.getElementById('subMsg');
+  subMsg.style.display = 'none';
+  subMsg.classList.remove('err');
   document.getElementById('dealsSec').style.display = 'none';
   shareUrl = null;
+  lastSearch = null;
   hideNoMatchesModal();
   const bar0 = document.getElementById('bar');
   bar0.style.opacity = 0;
@@ -1163,6 +1423,7 @@ f.addEventListener('submit', async e => {
     const p = await post({action: 'parse', wish: q});
     if (p.error) throw new Error(p.error);
     baseNotes = p.notes || [];
+    lastSearch = {wish: q, postcode: pc, exclude_bids: noBids, parsed: p.parsed};
     showInterp(p.parsed, p.ai);
     showNotes([]);
     stage = 'Searching Marktplaats&hellip;';
@@ -1364,6 +1625,18 @@ if (SHARED) {
     document.getElementById('notes').innerHTML = '<div class="note">' + esc(SHARED.error) + '</div>';
   } else {
     renderSharedResults(SHARED);
+    // A reload only gets the frozen __SHARED_DATA__, not the live search
+    // state a fresh run builds up — restore lastSearch from it so the
+    // share and notify banners come back too, not just the results.
+    if (SHARED.wish) {
+      lastSearch = {
+        wish: SHARED.wish, postcode: SHARED.postcode,
+        exclude_bids: SHARED.exclude_bids, parsed: SHARED.interpreted,
+      };
+      shareUrl = location.href;
+      document.getElementById('shareRow').style.display = 'block';
+      document.getElementById('subscribeRow').style.display = 'block';
+    }
   }
 } else {
   document.getElementById('pc').value = localStorage.getItem('pc') || '';
@@ -1778,6 +2051,76 @@ CREDITS_HTML = """<!doctype html>
   }).observe(foot);
 })();
 </script>
+</body>
+</html>"""
+
+
+UNSUBSCRIBE_HTML = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unsubscribe &middot; vindje.com</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="canonical" href="__ORIGIN__/unsubscribe">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
+<style>
+  :root {
+    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
+    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
+  }
+  * { box-sizing: border-box; }
+  ::selection { background: var(--ink); color: #fff; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: #fff; color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
+                 system-ui, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
+          flex: 1 0 auto; }
+  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  .top a { color: inherit; text-decoration: none; }
+  .hero { max-width: 480px; margin: 0 auto; text-align: center; }
+  h1 {
+    font-size: clamp(28px, 5.5vw, 38px); font-weight: 700; letter-spacing: -.03em;
+    line-height: 1.1; margin: clamp(48px, 10vh, 96px) 0 12px;
+  }
+  .sub { font-size: 15.5px; color: var(--body); line-height: 1.55; margin: 0; }
+  .sub a { color: inherit; }
+  .footer { flex-shrink: 0; margin-top: 70px; border-top: 1px solid var(--line); }
+  .footer-inner { max-width: 1040px; margin: 0 auto; padding: 22px 20px 30px;
+                  display: flex; align-items: center; justify-content: space-between;
+                  flex-wrap: wrap; gap: 12px; }
+  .footer-brand { font-size: 13px; color: var(--muted); }
+  .footer-links { display: flex; gap: 22px; }
+  .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; }
+  .footer-links a:hover { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="/">vindje.com</a></div>
+  <div class="hero">
+    <h1>__STATUS__</h1>
+    <p class="sub">Head back to <a href="/">vindje.com</a> to start a new search.</p>
+  </div>
+</div>
+<footer class="footer">
+  <div class="footer-inner">
+    <span class="footer-brand">vindje.com</span>
+    <nav class="footer-links">
+      <a href="/how-it-works">How it works</a>
+      <a href="/ideas">Ideas</a>
+      <a href="/history">History</a>
+      <a href="/credits">Credits</a>
+      <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
+    </nav>
+  </div>
+</footer>
 </body>
 </html>"""
 
@@ -2252,6 +2595,7 @@ HOW_IT_WORKS_HTML = _with_gtm(HOW_IT_WORKS_HTML)
 CREDITS_HTML = _with_gtm(CREDITS_HTML)
 HISTORY_HTML = _with_gtm(HISTORY_HTML)
 IDEAS_HTML = _with_gtm(IDEAS_HTML)
+UNSUBSCRIBE_HTML = _with_gtm(UNSUBSCRIBE_HTML)
 
 
 ROBOTS_TXT = """User-agent: *
@@ -2399,6 +2743,30 @@ def app(environ, start_response):
             elif action == "results":
                 result = smart_search(wish, postcode, parsed=payload.get("parsed"),
                                       exclude_bids=exclude_bids, req_id=req_id)
+            elif action == "subscribe":
+                # save this search for the nightly email digest (issue #28)
+                email = (payload.get("email") or "").strip()
+                saved_id, token, is_new = save_subscription({
+                    "email": email, "wish": wish, "postcode": postcode,
+                    "exclude_bids": exclude_bids, "parsed": payload.get("parsed"),
+                })
+                email_sent = False
+                if is_new:
+                    # Confirm once, by email — the on-page message alone
+                    # disappears the moment the tab closes, so there'd be
+                    # no way to tell later whether it actually worked.
+                    host = environ.get("HTTP_HOST") or environ.get("SERVER_NAME") or "localhost"
+                    origin_ = f"{scheme}://{host}"
+                    unsubscribe_url = f"{origin_}/unsubscribe?token={token}"
+                    subject = f'You\'re subscribed to "{wish[:60]}"'
+                    try:
+                        send_email(email, subject, render_subscribe_confirmation_html(
+                            wish, unsubscribe_url, origin_))
+                        email_sent = True
+                    except Exception as e:
+                        log.warning("[%s] confirmation email failed: %s", req_id, e)
+                result = {"id": saved_id, "already_subscribed": not is_new,
+                          "email_sent": email_sent}
             else:  # single-call pipeline (curl-friendly)
                 result = smart_search(wish, postcode, exclude_bids=exclude_bids,
                                       req_id=req_id)
@@ -2435,6 +2803,18 @@ def app(environ, start_response):
             except Exception:
                 entries = []
             body = render_history(entries, origin=origin).encode()
+            headers = [("Content-Type", "text/html; charset=utf-8")]
+        elif path == "/unsubscribe":
+            qs = urllib.parse.parse_qs(environ.get("QUERY_STRING", ""))
+            token = (qs.get("token") or [""])[0].strip()
+            try:
+                removed = unsubscribe_search(token) if token else False
+            except Exception:
+                removed = False
+            status_text = ("You've been unsubscribed. No more emails for this search."
+                           if removed else "That link has already been used or has expired.")
+            body = (UNSUBSCRIBE_HTML.replace("__STATUS__", html.escape(status_text))
+                                    .replace("__ORIGIN__", origin)).encode()
             headers = [("Content-Type", "text/html; charset=utf-8")]
         elif path == "/ideas":
             headers = [("Content-Type", "text/html; charset=utf-8")]
