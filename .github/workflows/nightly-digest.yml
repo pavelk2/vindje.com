@@ -1,0 +1,34 @@
+# Runs the saved-search digest (digest.py) every night and emails each
+# subscriber their new matches (issue #28).
+#
+# Needs four repository secrets (Settings → Secrets and variables →
+# Actions): OPENROUTER_API_KEY, UPSTASH_REDIS_REST_URL,
+# UPSTASH_REDIS_REST_TOKEN (same values as the Vercel deployment and the
+# daily deal hunt), plus RESEND_API_KEY for outgoing email.
+name: Nightly saved-search digest
+
+on:
+  schedule:
+    # 03:00 UTC — offset from daily-deals.yml's 06:00 UTC so the two
+    # scripts never hit Marktplaats in the same window, and still lands
+    # well before a typical CET/CEST wake-up.
+    - cron: "0 3 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # digest.py is stdlib-only, nothing to install
+      - name: Send saved-search digests
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: python3 digest.py
