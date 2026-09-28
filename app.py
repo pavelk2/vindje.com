@@ -381,7 +381,9 @@ and shops still sell that exact product new. A model the maker has replaced
 still counts while retailers have new stock; refurbished or used offers do
 not count. Give a conservative estimate of what it costs new in a Dutch shop
 today in euros (not the original launch price), and a search query of at
-most 8 words that finds that product new in a shop. Use null for both when
+most 8 words that finds that product new in a shop. If the listing sells
+several units (2x, a set of 4, a pair), the new price is for all of them
+together, so it compares with the asking price. Use null for both when
 the item is generic, unbranded, handmade, a vintage design that is no longer
 made, no longer sold new anywhere, or when the text and photo don't pin down
 the model. Null is always better than a guess.

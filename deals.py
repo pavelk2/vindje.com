@@ -103,9 +103,10 @@ product (brand + model) and shops still sell that exact product new. A model the
 has replaced still counts while retailers have new stock; refurbished or used offers
 do not. Give a conservative estimate of what it costs new in a Dutch shop today in
 euros (not the original launch price), and a search query of at most 8 words that
-finds it new in a shop. Use null for both for handmade or unidentified items, vintage
-designs that are no longer made, and anything no longer sold new anywhere. Null is
-always better than a guess.
+finds it new in a shop. If the listing sells several units (2x, a set of 4, a pair),
+the new price is for all of them together. Use null for both for handmade or
+unidentified items, vintage designs that are no longer made, and anything no longer
+sold new anywhere. Null is always better than a guess.
 
 Reply with ONLY JSON:
 {"finds": [{"n": <listing number>, "resale_low": <euro>, "resale_high": <euro>,
