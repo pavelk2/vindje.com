@@ -103,8 +103,9 @@ MODELS = [
 log.info("vindje.com module loaded: models=%s api_key_set=%s", MODELS, bool(OPENROUTER_API_KEY))
 
 
-def llm(messages, max_tokens=2000, req_id="-"):
-    """Call the first model that answers. Returns text or raises."""
+def llm(messages, max_tokens=2000, req_id="-", with_model=False):
+    """Call the first model that answers. Returns text, or (text, model) with
+    with_model=True, or raises."""
     if not OPENROUTER_API_KEY:
         raise RuntimeError("OPENROUTER_API_KEY is not set")
     shape = _summarize_messages(messages)
@@ -136,7 +137,7 @@ def llm(messages, max_tokens=2000, req_id="-"):
                 if text and text.strip():
                     log.info("[%s] llm: <- model=%s OK in %.2fs, %d chars: %s",
                              req_id, model, elapsed, len(text), _preview(text))
-                    return text
+                    return (text, model) if with_model else text
                 last_err = RuntimeError(f"{model}: empty response")
                 log.warning("[%s] llm: <- model=%s EMPTY response in %.2fs",
                             req_id, model, elapsed)
@@ -162,9 +163,10 @@ def llm(messages, max_tokens=2000, req_id="-"):
     raise RuntimeError(f"All models failed, last error: {last_err}")
 
 
-def llm_json(messages, max_tokens=2000, req_id="-"):
-    """llm() + tolerant JSON extraction (models love code fences)."""
-    text = llm(messages, max_tokens=max_tokens, req_id=req_id)
+def llm_json(messages, max_tokens=2000, req_id="-", with_model=False):
+    """llm() + tolerant JSON extraction (models love code fences). With
+    with_model=True returns (parsed, model)."""
+    text, model = llm(messages, max_tokens=max_tokens, req_id=req_id, with_model=True)
     text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip(), flags=re.MULTILINE)
     start = text.find("{")
     end = text.rfind("}")
@@ -172,7 +174,8 @@ def llm_json(messages, max_tokens=2000, req_id="-"):
         log.warning("[%s] llm_json: no JSON braces in response: %s", req_id, _preview(text))
         raise ValueError("No JSON in model response: " + text[:200])
     try:
-        return json.loads(text[start : end + 1])
+        parsed = json.loads(text[start : end + 1])
+        return (parsed, model) if with_model else parsed
     except ValueError:
         log.warning("[%s] llm_json: JSON parse failed on: %s", req_id, _preview(text))
         raise
@@ -287,6 +290,7 @@ def search_marktplaats(terms, postcode=None, distance_meters=None,
                 "description": (raw.get("categorySpecificDescription")
                                 or raw.get("description") or ""),
                 "price": price,
+                "asking_euro": asking_euro(price_info),
                 "bid": is_bid(price_info),
                 "city": loc.get("cityName", ""),
                 "distance_km": round(dist / 1000, 1) if dist and dist > 0 else None,
@@ -316,6 +320,15 @@ def format_price(price_info):
         "NOTK": "Negotiable", "ON_REQUEST": "On request", "RESERVED": "Reserved",
         "SEE_DESCRIPTION": "See description", "EXCHANGE": "Exchange",
     }.get(ptype, ptype or "?")
+
+
+def asking_euro(price_info):
+    """The fixed asking price in whole euros, or None when there is no number
+    you could simply pay (bidding, bid floor, on request, free, ...)."""
+    cents = price_info.get("priceCents") or 0
+    if cents <= 0 or is_bid(price_info):
+        return None
+    return round(cents / 100)
 
 
 def is_bid(price_info):
@@ -362,7 +375,20 @@ check, not an appraisal. Say so implicitly by keeping "why" honest (e.g.
 "looks like a genuine Artemide ITIS, plausible resale value" rather than
 asserting a precise price).
 
-Reply with ONLY JSON: {"matches": [{"n": <listing number>, "why": "<max 12 words, English, no em dashes>"}]}"""
+For each listing you keep, also say what it costs NEW, but only when you can
+name the specific product (brand + model + key specs such as storage or size)
+and shops still sell that exact product new. A model the maker has replaced
+still counts while retailers have new stock; refurbished or used offers do
+not count. Give a conservative estimate of what it costs new in a Dutch shop
+today in euros (not the original launch price), and a search query of at
+most 8 words that finds that product new in a shop. Use null for both when
+the item is generic, unbranded, handmade, a vintage design that is no longer
+made, no longer sold new anywhere, or when the text and photo don't pin down
+the model. Null is always better than a guess.
+
+Reply with ONLY JSON:
+{"matches": [{"n": <listing number>, "why": "<max 12 words, English, no em dashes>",
+              "new_price": <euro or null>, "new_query": "<max 8 words>" or null}]}"""
 
 
 FILTER_CHUNK = 8  # listings per LLM call; smaller than before since each one
@@ -383,15 +409,18 @@ def _filter_chunk(requirements, listings, base, req_id="-"):
             content.append({"type": "image_url", "image_url": {"url": image}})
             n_images += 1
     log.info("[%s] filter_chunk base=%d: %d listings, %d with image", req_id, base, len(listings), n_images)
-    result = llm_json(
+    result, model = llm_json(
         [
             {"role": "system", "content": FILTER_PROMPT % "\n".join("- " + r for r in requirements)},
             {"role": "user", "content": content},
         ],
         max_tokens=4000,
         req_id=req_id,
+        with_model=True,
     )
+    trust_new = trusts_new_prices(model, req_id)
     matches = {}
+    n_new = 0
     for m in result.get("matches", []):
         try:
             n = int(m["n"])
@@ -399,10 +428,37 @@ def _filter_chunk(requirements, listings, base, req_id="-"):
             continue
         if base <= n < base + len(listings):
             matches[n] = str(m.get("why", ""))
-    log.info("[%s] filter_chunk base=%d: %d/%d matched: %s",
-             req_id, base, len(matches), len(listings),
+            new = parse_new_price(m) if trust_new else None
+            if new:
+                listings[n - base]["new_price"], listings[n - base]["new_query"] = new
+                n_new += 1
+    log.info("[%s] filter_chunk base=%d: %d/%d matched, %d with new price: %s",
+             req_id, base, len(matches), len(listings), n_new,
              {k: v for k, v in matches.items()})
     return matches
+
+
+def trusts_new_prices(model, req_id="-"):
+    """Only the primary model's new-price estimates are shown. The free
+    fallback is fine for keep/drop but guesses prices badly (it once put a
+    ~€1,000 Louis Poulsen PH 5 at €350), and a wrong number is worse than none."""
+    if model == MODELS[0]:
+        return True
+    log.info("[%s] new prices dropped: answered by fallback model %s", req_id, model)
+    return False
+
+
+def parse_new_price(item):
+    """(new_price, new_query) from one LLM verdict, or None if either is
+    missing or implausible."""
+    try:
+        price = int(round(float(item.get("new_price"))))
+    except (TypeError, ValueError, OverflowError):
+        return None
+    query = " ".join(str(item.get("new_query") or "").split())[:80]
+    if not (1 <= price <= 100000) or not query:
+        return None
+    return price, query
 
 
 def filter_listings(requirements, listings, req_id="-"):
@@ -1142,6 +1198,13 @@ HTML = """<!doctype html>
   }
   .why.warn { border: 1px dashed var(--line2); border-radius: 980px;
               padding: 3px 11px; }
+  .save { margin-top: 8px; display: flex; width: max-content; max-width: 100%;
+          align-items: baseline; gap: 6px; background: var(--ink); color: #fff;
+          border-radius: 980px; padding: 3px 11px; font-size: 12.5px; font-weight: 700; }
+  .save span { font-weight: 500; color: var(--line2); }
+  .newline { display: block; margin-top: 6px; font-size: 12px; color: var(--body); }
+  .newline u { color: var(--ink); font-weight: 600; cursor: pointer; }
+  .newline u:hover { text-decoration-thickness: 2px; }
   .card.pending { opacity: .5; }
   .card.matched { border-color: var(--ink); box-shadow: 0 0 0 1.5px var(--ink); }
   .card.matched:hover { box-shadow: 0 0 0 1.5px var(--ink), 0 10px 34px rgba(0,0,0,.08); }
@@ -1477,7 +1540,11 @@ async function checkAll(listings, reqs) {
           listings: batch.map(l => ({id: l.id, title: l.title,
             description: l.description, attributes: l.attributes}))});
         if (r.error) throw new Error(r.error);
-        for (const l of batch) applyVerdict(l, r.matches ? r.matches[l.id] : undefined, false);
+        for (const l of batch) {
+          const nw = r.new && r.new[l.id];
+          if (nw) { l.new_price = nw.price; l.new_query = nw.query; }
+          applyVerdict(l, r.matches ? r.matches[l.id] : undefined, false);
+        }
       } catch (err) {
         for (const l of batch) applyVerdict(l, undefined, true);
       }
@@ -1502,6 +1569,7 @@ function applyVerdict(l, why, failed) {
     card.classList.add('matched');
     badge.className = 'why';
     badge.innerHTML = '<b>&#10003;</b> ' + (why ? esc(why) : 'Matches');
+    badge.insertAdjacentHTML('afterend', newPriceHtml(l));
   } else {
     state.rejected++; l._r = 1;
     card.classList.add('rejected');
@@ -1553,9 +1621,34 @@ function cardShell(l, extraClass, badgeHtml) {
           &middot; ${esc(l.city)}${l.distance_km != null ? ' &middot; ' + l.distance_km + ' km' : ''}</div>
         <div class="desc">${esc(l.description)}</div>
         ${badgeHtml || ''}
+        ${newPriceHtml(l)}
       </div>
     </a>`;
 }
+
+function newPriceHtml(l) {
+  const np = Math.round(+l.new_price), ask = +l.asking_euro;
+  if (!(np > 0) || !l.new_query) return '';
+  const eur = n => '&euro;' + n.toLocaleString('en-GB');
+  const pct = ask > 0 ? Math.round((np - ask) / np * 100) : 0;
+  const save = pct >= 1
+    ? '<span class="save">Save ' + eur(np - ask) + ' <span>' + pct + '% below new</span></span>'
+    : '';
+  return save + '<span class="newline">New costs about ' + eur(np) +
+    ' &middot; <u data-new-q="' + esc(String(l.new_query)) + '">See it new &#8599;</u></span>';
+}
+
+// The card itself is a link to Marktplaats, so "See it new" can't be a nested
+// <a>. The URL is built here from the query alone, never taken from stored
+// data, so a tampered shared search can't smuggle in a javascript: link.
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-new-q]');
+  if (!t) return;
+  e.preventDefault();
+  e.stopPropagation();
+  window.open('https://www.google.com/search?tbm=shop&hl=nl&gl=nl&q=' +
+              encodeURIComponent(t.dataset.newQ), '_blank', 'noopener');
+});
 
 function renderCards(listings, checking) {
   document.getElementById('results').innerHTML = listings.map(l => cardShell(
@@ -2700,8 +2793,13 @@ def app(environ, start_response):
                 if not items:
                     raise ValueError("No listings to check")
                 matches = _filter_chunk(requirements, items, 0, req_id=req_id)
-                result = {"matches": {str(items[n].get("id")): why
-                                      for n, why in matches.items()}}
+                result = {
+                    "matches": {str(items[n].get("id")): why
+                                for n, why in matches.items()},
+                    "new": {str(items[n].get("id")): {"price": items[n]["new_price"],
+                                                      "query": items[n]["new_query"]}
+                            for n in matches if "new_query" in items[n]},
+                }
             elif action == "save":
                 share_id = save_search(payload)
                 result = {"id": share_id, "url": "/s/" + share_id}
