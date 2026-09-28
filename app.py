@@ -271,6 +271,7 @@ def search_marktplaats(terms, postcode=None, distance_meters=None,
     for raw in data.get("listings", []):
         price_info = raw.get("priceInfo") or {}
         price = format_price(price_info)
+        euros, bid = whole_euros(price_info), is_bid(price_info)
         loc = raw.get("location") or {}
         attrs = []
         for a in (raw.get("extendedAttributes") or raw.get("attributes") or []):
@@ -290,8 +291,10 @@ def search_marktplaats(terms, postcode=None, distance_meters=None,
                 "description": (raw.get("categorySpecificDescription")
                                 or raw.get("description") or ""),
                 "price": price,
-                "asking_euro": asking_euro(price_info),
-                "bid": is_bid(price_info),
+                # a fixed price you can simply pay vs. the floor of an auction
+                "asking_euro": None if bid else euros,
+                "bid_from_euro": euros if bid else None,
+                "bid": bid,
                 "city": loc.get("cityName", ""),
                 "distance_km": round(dist / 1000, 1) if dist and dist > 0 else None,
                 "attributes": attrs,
@@ -322,13 +325,10 @@ def format_price(price_info):
     }.get(ptype, ptype or "?")
 
 
-def asking_euro(price_info):
-    """The fixed asking price in whole euros, or None when there is no number
-    you could simply pay (bidding, bid floor, on request, free, ...)."""
+def whole_euros(price_info):
+    """The number on the ad in whole euros, or None when it shows none."""
     cents = price_info.get("priceCents") or 0
-    if cents <= 0 or is_bid(price_info):
-        return None
-    return round(cents / 100)
+    return round(cents / 100) if cents > 0 else None
 
 
 def is_bid(price_info):
@@ -1629,13 +1629,16 @@ function cardShell(l, extraClass, badgeHtml) {
 }
 
 function newPriceHtml(l) {
-  const np = Math.round(+l.new_price), ask = +l.asking_euro;
+  const np = Math.round(+l.new_price), ask = +l.asking_euro, bid = +l.bid_from_euro;
   if (!(np > 0) || !l.new_query) return '';
   const eur = n => '&euro;' + n.toLocaleString('en-GB');
-  const pct = ask > 0 ? Math.round((np - ask) / np * 100) : 0;
-  const save = pct >= 1
+  // A bid floor is not what you pay, so its savings are only an upper bound.
+  const base = ask > 0 ? ask : bid;
+  const pct = base > 0 ? Math.round((np - base) / np * 100) : 0;
+  const save = pct < 1 ? '' : ask > 0
     ? '<span class="save">Save ' + eur(np - ask) + ' <span>' + pct + '% below new</span></span>'
-    : '';
+    : '<span class="save">Save up to ' + eur(np - bid) +
+      ' <span>bids start ' + pct + '% below new</span></span>';
   return save + '<span class="newline">New costs about ' + eur(np) +
     ' &middot; <u data-new-q="' + esc(String(l.new_query)) + '">See it new &#8599;</u></span>';
 }
