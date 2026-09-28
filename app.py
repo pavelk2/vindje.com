@@ -1200,12 +1200,15 @@ HTML = """<!doctype html>
   }
   .why.warn { border: 1px dashed var(--line2); border-radius: 980px;
               padding: 3px 11px; }
-  .save { margin-top: 8px; display: flex; width: max-content; max-width: 100%;
-          align-items: baseline; gap: 6px; background: var(--ink); color: #fff;
-          border-radius: 980px; padding: 3px 11px; font-size: 12.5px; font-weight: 700; }
-  .save span { font-weight: 500; color: var(--line2); }
-  .newline { display: block; margin-top: 6px; font-size: 12px; color: var(--body); }
-  .newline u { color: var(--ink); font-weight: 600; cursor: pointer; }
+  .save { margin-top: 8px; display: flex; flex-wrap: wrap; width: fit-content;
+          align-items: baseline; column-gap: 7px; background: #eef4ef;
+          color: #3d6b4f; border-radius: 14px; padding: 4px 11px; font-size: 13.5px;
+          font-weight: 700; line-height: 1.35; }
+  .save span { font-weight: 500; }
+  .newline { display: block; margin-top: 6px; font-size: 13px; color: var(--body); }
+  .newline b { color: var(--ink); font-weight: 600; }
+  .newline u { color: var(--ink); font-weight: 600; cursor: pointer;
+               text-underline-offset: 2px; white-space: nowrap; }
   .newline u:hover { text-decoration-thickness: 2px; }
   .card.pending { opacity: .5; }
   .card.matched { border-color: var(--ink); box-shadow: 0 0 0 1.5px var(--ink); }
@@ -1636,11 +1639,12 @@ function newPriceHtml(l) {
   const base = ask > 0 ? ask : bid;
   const pct = base > 0 ? Math.round((np - base) / np * 100) : 0;
   const save = pct < 1 ? '' : ask > 0
-    ? '<span class="save">Save ' + eur(np - ask) + ' <span>' + pct + '% below new</span></span>'
+    ? '<span class="save">Save ' + eur(np - ask) +
+      ' <span>' + pct + '% below new</span></span>'
     : '<span class="save">Save up to ' + eur(np - bid) +
       ' <span>bids start ' + pct + '% below new</span></span>';
-  return save + '<span class="newline">New costs about ' + eur(np) +
-    ' &middot; <u data-new-q="' + esc(String(l.new_query)) + '">See it new &#8599;</u></span>';
+  return save + '<span class="newline">New costs about <b>' + eur(np) + '</b>' +
+    ' &middot; <u data-new-q="' + esc(String(l.new_query)) + '">See it new</u></span>';
 }
 
 // The card itself is a link to Marktplaats, so "See it new" can't be a nested
