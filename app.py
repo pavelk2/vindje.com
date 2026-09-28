@@ -375,7 +375,11 @@ check, not an appraisal. Say so implicitly by keeping "why" honest (e.g.
 "looks like a genuine Artemide ITIS, plausible resale value" rather than
 asserting a precise price).
 
-For each listing you keep, also say what it costs NEW, but only when you can
+"""
+
+FILTER_REPLY = """Reply with ONLY JSON: {"matches": [{"n": <listing number>, "why": "<max 12 words, English, no em dashes>"}]}"""
+
+FILTER_REPLY_WITH_NEW_PRICE = """For each listing you keep, also say what it costs NEW, but only when you can
 name the specific product (brand + model + key specs such as storage or size)
 and shops still sell that exact product new. A model the maker has replaced
 still counts while retailers have new stock; refurbished or used offers do
@@ -398,7 +402,8 @@ FILTER_CHUNK = 8  # listings per LLM call; smaller than before since each one
                   # than its text. Chunks are checked concurrently.
 
 
-def _filter_chunk(requirements, listings, base, req_id="-"):
+def _filter_chunk(requirements, listings, base, req_id="-", new_prices=True):
+    """Returns ({n: why}, {n: (new_price, new_query)}) for the listings kept."""
     content = []
     n_images = 0
     for i, l in enumerate(listings):
@@ -411,18 +416,19 @@ def _filter_chunk(requirements, listings, base, req_id="-"):
             content.append({"type": "image_url", "image_url": {"url": image}})
             n_images += 1
     log.info("[%s] filter_chunk base=%d: %d listings, %d with image", req_id, base, len(listings), n_images)
+    system = (FILTER_PROMPT % "\n".join("- " + r for r in requirements)
+              + (FILTER_REPLY_WITH_NEW_PRICE if new_prices else FILTER_REPLY))
     result, model = llm_json(
         [
-            {"role": "system", "content": FILTER_PROMPT % "\n".join("- " + r for r in requirements)},
+            {"role": "system", "content": system},
             {"role": "user", "content": content},
         ],
         max_tokens=4000,
         req_id=req_id,
         with_model=True,
     )
-    trust_new = trusts_new_prices(model, req_id)
-    matches = {}
-    n_new = 0
+    trust_new = new_prices and trusts_new_prices(model, req_id)
+    matches, new = {}, {}
     for m in result.get("matches", []):
         try:
             n = int(m["n"])
@@ -430,14 +436,13 @@ def _filter_chunk(requirements, listings, base, req_id="-"):
             continue
         if base <= n < base + len(listings):
             matches[n] = str(m.get("why", ""))
-            new = parse_new_price(m) if trust_new else None
-            if new:
-                listings[n - base]["new_price"], listings[n - base]["new_query"] = new
-                n_new += 1
+            priced = parse_new_price(m) if trust_new else None
+            if priced:
+                new[n] = priced
     log.info("[%s] filter_chunk base=%d: %d/%d matched, %d with new price: %s",
-             req_id, base, len(matches), len(listings), n_new,
+             req_id, base, len(matches), len(listings), len(new),
              {k: v for k, v in matches.items()})
-    return matches
+    return matches, new
 
 
 def trusts_new_prices(model, req_id="-"):
@@ -463,8 +468,9 @@ def parse_new_price(item):
     return price, query
 
 
-def filter_listings(requirements, listings, req_id="-"):
-    """Returns (matches dict, note or None). Raises only if every chunk fails."""
+def filter_listings(requirements, listings, req_id="-", new_prices=True):
+    """Returns (matches dict, note or None) and sets new_price/new_query on
+    the kept listings that got one. Raises only if every chunk fails."""
     if not requirements or not listings:
         return None, None
     chunks = [(i, listings[i : i + FILTER_CHUNK])
@@ -474,12 +480,16 @@ def filter_listings(requirements, listings, req_id="-"):
     t0 = time.time()
     matches, failed = {}, []
     with ThreadPoolExecutor(max_workers=min(4, len(chunks))) as ex:
-        futures = {ex.submit(_filter_chunk, requirements, chunk, base, req_id): (base, chunk)
+        futures = {ex.submit(_filter_chunk, requirements, chunk, base, req_id,
+                             new_prices): (base, chunk)
                    for base, chunk in chunks}
         for fut in as_completed(futures):
             base, chunk = futures[fut]
             try:
-                matches.update(fut.result())
+                chunk_matches, chunk_new = fut.result()
+                matches.update(chunk_matches)
+                for n, (price, query) in chunk_new.items():
+                    listings[n]["new_price"], listings[n]["new_query"] = price, query
             except Exception as e:
                 log.warning("[%s] filter_listings: chunk base=%d FAILED: %s", req_id, base, e)
                 failed.append((base, chunk))
@@ -910,7 +920,7 @@ def bid_note(hidden):
 
 
 def smart_search(wish, postcode, parsed=_UNSET, notes=None, exclude_bids=False,
-                 req_id="-"):
+                 req_id="-", new_prices=True):
     """Phase 2: search Marktplaats and AI-filter. Runs phase 1 first unless a
     pre-parsed result (possibly None) is handed in."""
     t0 = time.time()
@@ -940,7 +950,8 @@ def smart_search(wish, postcode, parsed=_UNSET, notes=None, exclude_bids=False,
     kept = listings
     if parsed and requirements and listings:
         try:
-            matches, fnote = filter_listings(requirements, listings, req_id=req_id)
+            matches, fnote = filter_listings(requirements, listings, req_id=req_id,
+                                             new_prices=new_prices)
             if fnote:
                 notes.append(fnote)
             if matches is not None:
@@ -1167,11 +1178,16 @@ HTML = """<!doctype html>
   @media (min-width: 860px) { #results { grid-template-columns: 1fr 1fr; } }
 
   .card {
+    position: relative;
     display: flex; gap: 15px; background: #fff; border-radius: 20px; padding: 13px;
     text-decoration: none; color: inherit; border: 1px solid var(--line);
     animation: rise .3s ease backwards;
     transition: box-shadow .18s ease, border-color .18s ease, opacity .3s ease;
   }
+  /* The whole card opens the listing via this overlay, which leaves room for
+     real links inside the card (a nested <a> is invalid HTML). */
+  .card-link { position: absolute; inset: 0; border-radius: inherit; z-index: 1; }
+  .card-link:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
   .card:hover { border-color: var(--line2); box-shadow: 0 10px 34px rgba(0,0,0,.08); }
   .card img, .noimg { width: 104px; height: 104px; object-fit: cover;
                       border-radius: 13px; background: var(--field); flex: none; }
@@ -1207,9 +1223,9 @@ HTML = """<!doctype html>
   .save span { font-weight: 500; }
   .newline { display: block; margin-top: 6px; font-size: 13px; color: var(--body); }
   .newline b { color: var(--ink); font-weight: 600; }
-  .newline u { color: var(--ink); font-weight: 600; cursor: pointer;
+  .newline a { position: relative; z-index: 2; color: var(--ink); font-weight: 600;
                text-underline-offset: 2px; white-space: nowrap; }
-  .newline u:hover { text-decoration-thickness: 2px; }
+  .newline a:hover { text-decoration-thickness: 2px; }
   .card.pending { opacity: .5; }
   .card.matched { border-color: var(--ink); box-shadow: 0 0 0 1.5px var(--ink); }
   .card.matched:hover { box-shadow: 0 0 0 1.5px var(--ink), 0 10px 34px rgba(0,0,0,.08); }
@@ -1618,7 +1634,8 @@ function updateCount(checking) {
 
 function cardShell(l, extraClass, badgeHtml) {
   return `
-    <a class="card${extraClass ? ' ' + extraClass : ''}" id="c-${esc(l.id)}" href="${esc(l.url)}" target="_blank" rel="noopener">
+    <div class="card${extraClass ? ' ' + extraClass : ''}" id="c-${esc(l.id)}">
+      <a class="card-link" href="${esc(l.url)}" target="_blank" rel="noopener" aria-label="${esc(l.title)}"></a>
       ${l.image ? `<img src="${esc(l.image)}" alt="${esc(l.title)}" loading="lazy">` : '<div class="noimg">no photo</div>'}
       <div>
         <h3>${esc(l.title)}</h3>
@@ -1628,7 +1645,7 @@ function cardShell(l, extraClass, badgeHtml) {
         ${badgeHtml || ''}
         ${newPriceHtml(l)}
       </div>
-    </a>`;
+    </div>`;
 }
 
 function newPriceHtml(l) {
@@ -1643,21 +1660,13 @@ function newPriceHtml(l) {
       ' <span>' + pct + '% below new</span></span>'
     : '<span class="save">Save up to ' + eur(np - bid) +
       ' <span>bids start ' + pct + '% below new</span></span>';
+  // Built from the query alone, never taken from stored data, so a tampered
+  // shared search can't smuggle in a javascript: link.
+  const href = 'https://www.google.com/search?tbm=shop&hl=nl&gl=nl&q=' +
+               encodeURIComponent(String(l.new_query));
   return save + '<span class="newline">New costs about <b>' + eur(np) + '</b>' +
-    ' &middot; <u data-new-q="' + esc(String(l.new_query)) + '">See it new</u></span>';
+    ' &middot; <a href="' + esc(href) + '" target="_blank" rel="noopener">See it new</a></span>';
 }
-
-// The card itself is a link to Marktplaats, so "See it new" can't be a nested
-// <a>. The URL is built here from the query alone, never taken from stored
-// data, so a tampered shared search can't smuggle in a javascript: link.
-document.addEventListener('click', e => {
-  const t = e.target.closest('[data-new-q]');
-  if (!t) return;
-  e.preventDefault();
-  e.stopPropagation();
-  window.open('https://www.google.com/search?tbm=shop&hl=nl&gl=nl&q=' +
-              encodeURIComponent(t.dataset.newQ), '_blank', 'noopener');
-});
 
 function renderCards(listings, checking) {
   document.getElementById('results').innerHTML = listings.map(l => cardShell(
@@ -2801,13 +2810,12 @@ def app(environ, start_response):
                          if isinstance(i, dict)]
                 if not items:
                     raise ValueError("No listings to check")
-                matches = _filter_chunk(requirements, items, 0, req_id=req_id)
+                matches, new = _filter_chunk(requirements, items, 0, req_id=req_id)
                 result = {
                     "matches": {str(items[n].get("id")): why
                                 for n, why in matches.items()},
-                    "new": {str(items[n].get("id")): {"price": items[n]["new_price"],
-                                                      "query": items[n]["new_query"]}
-                            for n in matches if "new_query" in items[n]},
+                    "new": {str(items[n].get("id")): {"price": price, "query": query}
+                            for n, (price, query) in new.items()},
                 }
             elif action == "save":
                 share_id = save_search(payload)

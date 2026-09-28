@@ -117,20 +117,6 @@ If nothing qualifies, reply {"finds": []}."""
 VALUE_CHUNK = 12  # listings per LLM call; chunks are valued concurrently
 
 
-def parse_asking_price(price_str):
-    """€-string from app.format_price -> euros (int), or None if there is no
-    fixed number (on request / see description / bidding). Auction listings
-    never get this far — the search drops them — so any number seen here is a
-    real asking price, not a bid floor."""
-    m = re.match(r"€([\d.]+)", str(price_str or ""))
-    if not m:
-        return None
-    try:
-        return int(m.group(1).replace(".", ""))
-    except ValueError:
-        return None
-
-
 def _value_chunk(target, listings, base):
     lines = []
     for i, l in enumerate(listings):
@@ -223,14 +209,13 @@ def hunt_category(cat):
             print(f"  ! search '{q}' failed: {e}", file=sys.stderr)
             continue
         for l in found:
-            asking = parse_asking_price(l.get("price"))
+            asking = l["asking_euro"]
             # no fixed price -> no way to establish the upside; skip
-            if asking is None or asking == 0 or asking > PRICE_MAX_EURO:
+            if asking is None or asking > PRICE_MAX_EURO:
                 continue
             if l["id"] in seen:
                 continue
             seen.add(l["id"])
-            l["asking_euro"] = asking
             listings.append(l)
     before = len(listings)
     listings = dedupe_relistings(listings)

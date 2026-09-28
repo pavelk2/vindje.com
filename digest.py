@@ -139,7 +139,8 @@ def run(dry_run=False):
             result = smart_search(row["wish"], row.get("postcode"),
                                   parsed=row.get("parsed"),
                                   exclude_bids=bool(row.get("exclude_bids")),
-                                  req_id=f"digest:{row['id']}")
+                                  req_id=f"digest:{row['id']}",
+                                  new_prices=False)  # the email doesn't show them
         except Exception as e:
             print(f"  ! search failed: {e}", file=sys.stderr)
             time.sleep(PAUSE_BETWEEN_SEARCHES_SECONDS)
