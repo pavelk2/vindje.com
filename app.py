@@ -103,14 +103,14 @@ MODELS = [
 log.info("vindje.com module loaded: models=%s api_key_set=%s", MODELS, bool(OPENROUTER_API_KEY))
 
 
-def llm(messages, max_tokens=2000, req_id="-", with_model=False):
-    """Call the first model that answers. Returns text, or (text, model) with
-    with_model=True, or raises."""
+def llm(messages, max_tokens=2000, req_id="-", models=None):
+    """Call the first model (of `models`, default MODELS) that answers.
+    Returns text or raises."""
     if not OPENROUTER_API_KEY:
         raise RuntimeError("OPENROUTER_API_KEY is not set")
     shape = _summarize_messages(messages)
     last_err = None
-    for model in MODELS:
+    for model in models or MODELS:
         # Ask for low reasoning effort to keep searches snappy. If a model
         # rejects that parameter, retry without it.
         for extra in ({"reasoning": {"effort": "low"}}, {}):
@@ -137,7 +137,7 @@ def llm(messages, max_tokens=2000, req_id="-", with_model=False):
                 if text and text.strip():
                     log.info("[%s] llm: <- model=%s OK in %.2fs, %d chars: %s",
                              req_id, model, elapsed, len(text), _preview(text))
-                    return (text, model) if with_model else text
+                    return text
                 last_err = RuntimeError(f"{model}: empty response")
                 log.warning("[%s] llm: <- model=%s EMPTY response in %.2fs",
                             req_id, model, elapsed)
@@ -163,10 +163,9 @@ def llm(messages, max_tokens=2000, req_id="-", with_model=False):
     raise RuntimeError(f"All models failed, last error: {last_err}")
 
 
-def llm_json(messages, max_tokens=2000, req_id="-", with_model=False):
-    """llm() + tolerant JSON extraction (models love code fences). With
-    with_model=True returns (parsed, model)."""
-    text, model = llm(messages, max_tokens=max_tokens, req_id=req_id, with_model=True)
+def llm_json(messages, max_tokens=2000, req_id="-", models=None):
+    """llm() + tolerant JSON extraction (models love code fences)."""
+    text = llm(messages, max_tokens=max_tokens, req_id=req_id, models=models)
     text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip(), flags=re.MULTILINE)
     start = text.find("{")
     end = text.rfind("}")
@@ -174,8 +173,7 @@ def llm_json(messages, max_tokens=2000, req_id="-", with_model=False):
         log.warning("[%s] llm_json: no JSON braces in response: %s", req_id, _preview(text))
         raise ValueError("No JSON in model response: " + text[:200])
     try:
-        parsed = json.loads(text[start : end + 1])
-        return (parsed, model) if with_model else parsed
+        return json.loads(text[start : end + 1])
     except ValueError:
         log.warning("[%s] llm_json: JSON parse failed on: %s", req_id, _preview(text))
         raise
@@ -501,16 +499,6 @@ If nothing qualifies, reply {"products": []}."""
 NEW_PRICE_MAX = 60  # listings per call; one search returns at most 60
 
 
-def trusts_new_prices(model, req_id="-"):
-    """Only the primary model's new-price estimates are shown. The free
-    fallback guesses prices badly (it once put a ~€1,000 Louis Poulsen PH 5
-    at €350), and a wrong number is worse than none."""
-    if model == MODELS[0]:
-        return True
-    log.info("[%s] new prices dropped: answered by fallback model %s", req_id, model)
-    return False
-
-
 def parse_new_price(item):
     """(new_price, new_query) from one LLM product entry, or None if either is
     missing or implausible."""
@@ -528,7 +516,9 @@ def estimate_new_prices(listings, wish="", req_id="-"):
     """{index: (new_price, new_query, is_set)} for the listings the model can
     price; is_set means valuable extras are included in the price. One call
     for the whole set, so the same product gets the same price on every
-    card. Raises if the call fails."""
+    card. Raises if the call fails. Only the primary model is asked: the free
+    fallback guesses prices badly (it once put a ~€1,000 Louis Poulsen PH 5
+    at €350), and a wrong number is worse than none."""
     lines = []
     for i, l in enumerate(listings[:NEW_PRICE_MAX]):
         desc = str(l.get("description") or "")[:400]
@@ -537,17 +527,15 @@ def estimate_new_prices(listings, wish="", req_id="-"):
                      f" | {desc} | {attrs}")
     t0 = time.time()
     system = NEW_PRICE_PROMPT % (str(wish)[:300] or "(not given)")
-    result, model = llm_json(
+    result = llm_json(
         [
             {"role": "system", "content": system},
             {"role": "user", "content": "\n".join(lines)},
         ],
         max_tokens=4000,
         req_id=req_id,
-        with_model=True,
+        models=MODELS[:1],
     )
-    if not trusts_new_prices(model, req_id):
-        return {}
     priced, products, unsure = {}, 0, 0
     for p in result.get("products", []):
         new = parse_new_price(p) if isinstance(p, dict) else None
