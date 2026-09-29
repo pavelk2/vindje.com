@@ -457,6 +457,7 @@ def filter_listings(requirements, listings, req_id="-"):
 # ---------------------------------------------------------------- Step 4: new prices
 
 NEW_PRICE_PROMPT = """You estimate what second-hand Dutch classifieds listings cost NEW.
+The buyer searched for: %s
 
 Below are numbered listings (title | asking price | description | attributes,
 in Dutch). Many are the same product. First group them by the exact product
@@ -469,11 +470,23 @@ the original launch price), and a search query of at most 8 words that finds it
 new in a shop. A model the maker has replaced still counts while retailers have
 new stock; refurbished or used offers do not.
 
-Price only the main product. Ignore accessories and extras bundled with it (a
-baby set, a tray, a case, a charger), even when the listing includes them.
-"units" is how many of the main product the asking price pays for: 2 for "2x"
-or a pair sold together, 4 for a set of 4, but 1 when the listing says the
-price is per piece ("per stuk", "p/st"), however many it has. Usually 1.
+The main product of a listing is the thing the buyer searched for and the
+listing is mainly about (the camera, not the lens that comes with it), so a
+bundle belongs to the same group as that product sold alone.
+
+Then, per listing:
+- "units": how many of the main product the asking price pays for: 2 for "2x"
+  or a pair sold together, 4 for a set of 4, but 1 when the listing says the
+  price is per piece ("per stuk", "p/st"), however many it has. Usually 1.
+- "extras": what the other items in the listing that are worth something on
+  their own would cost new, added up, in euros: a lens, batteries and a
+  charger, a microphone, a baby set, a second controller, games. Ignore small
+  things (a case, a strap, a cable, cushions, the box). 0 when there are none.
+- "sure": false when the listing includes such items but you cannot name them
+  well enough to price them ("with accessories", "3 lenses", "many games") AND
+  your guess for them could move the total by more than about a tenth. One
+  unnamed small item next to a named camera and lens is still sure: count it
+  conservatively. A listing that is not sure is not shown.
 
 Leave out listings that are generic, unbranded, handmade, a vintage design that
 is no longer made, or not sold new anywhere. Leaving a listing out is always
@@ -481,7 +494,8 @@ better than guessing.
 
 Reply with ONLY JSON:
 {"products": [{"new_price": <euro for one unit>, "new_query": "<max 8 words>",
-               "listings": [{"n": <listing number>, "units": <count>}]}]}
+               "listings": [{"n": <listing number>, "units": <count>,
+                             "extras": <euro>, "sure": <true or false>}]}]}
 If nothing qualifies, reply {"products": []}."""
 
 NEW_PRICE_MAX = 60  # listings per call; one search returns at most 60
@@ -510,20 +524,21 @@ def parse_new_price(item):
     return price, query
 
 
-def estimate_new_prices(listings, req_id="-"):
-    """{index: (new_price, new_query)} for the listings the model can price.
-    One call for the whole set, so the same product gets the same price on
-    every card. Raises if the call fails."""
+def estimate_new_prices(listings, wish="", req_id="-"):
+    """{index: (new_price, new_query, is_set)} for the listings the model can
+    price; is_set means valuable extras are included in the price. One call
+    for the whole set, so the same product gets the same price on every
+    card. Raises if the call fails."""
     lines = []
     for i, l in enumerate(listings[:NEW_PRICE_MAX]):
-        desc = str(l.get("description") or "")[:200]
+        desc = str(l.get("description") or "")[:400]
         attrs = "; ".join(str(a) for a in (l.get("attributes") or [])[:6])
         lines.append(f"[{i}] {l.get('title', '')} | asking {l.get('price', '?')}"
                      f" | {desc} | {attrs}")
     t0 = time.time()
     result, model = llm_json(
         [
-            {"role": "system", "content": NEW_PRICE_PROMPT},
+            {"role": "system", "content": NEW_PRICE_PROMPT % (str(wish)[:300] or "(not given)")},
             {"role": "user", "content": "\n".join(lines)},
         ],
         max_tokens=4000,
@@ -532,7 +547,7 @@ def estimate_new_prices(listings, req_id="-"):
     )
     if not trusts_new_prices(model, req_id):
         return {}
-    priced, products = {}, 0
+    priced, products, unsure = {}, 0, 0
     for p in result.get("products", []):
         new = parse_new_price(p) if isinstance(p, dict) else None
         if not new:
@@ -541,12 +556,18 @@ def estimate_new_prices(listings, req_id="-"):
         for ref in p.get("listings") or []:
             try:
                 n, units = int(ref["n"]), int(ref.get("units") or 1)
-            except (KeyError, TypeError, ValueError):
+                extras = int(round(float(ref.get("extras") or 0)))
+            except (KeyError, TypeError, ValueError, OverflowError):
                 continue
-            if 0 <= n < len(lines) and 1 <= units <= 20 and n not in priced:
-                priced[n] = (new[0] * units, new[1])
-    log.info("[%s] estimate_new_prices: %d products, %d of %d listings priced in %.2fs",
-             req_id, products, len(priced), len(lines), time.time() - t0)
+            if ref.get("sure") is False:
+                unsure += 1
+                continue
+            if (0 <= n < len(lines) and 1 <= units <= 20 and 0 <= extras <= 100000
+                    and n not in priced):
+                priced[n] = (new[0] * units + extras, new[1], extras > 0)
+    log.info("[%s] estimate_new_prices: %d products, %d of %d listings priced, "
+             "%d dropped as unsure, in %.2fs",
+             req_id, products, len(priced), len(lines), unsure, time.time() - t0)
     return priced
 
 
@@ -1566,7 +1587,7 @@ f.addEventListener('submit', async e => {
     updateCount(checking);
     if (checking) {
       stage = 'Checking ' + listings.length + ' listings&hellip;';
-      const newPrices = fetchNewPrices(listings);
+      const newPrices = fetchNewPrices(listings, q);
       await checkAll(listings, reqs);
       finishOrder(listings);
       updateCount(true);
@@ -1594,9 +1615,9 @@ f.addEventListener('submit', async e => {
 
 // Asked for every listing at once, in parallel with the check, so the prices
 // are ready about when the check ends; only the matches show them.
-async function fetchNewPrices(listings) {
+async function fetchNewPrices(listings, wish) {
   try {
-    const r = await post({action: 'new_prices',
+    const r = await post({action: 'new_prices', wish: wish,
       listings: listings.slice(0, 60).map(l => ({id: l.id, title: l.title, price: l.price,
         description: l.description, attributes: l.attributes}))});
     if (r.error) throw new Error(r.error);
@@ -1612,7 +1633,7 @@ function showNewPrices(matched, prices) {
     const nw = prices[l.id];
     const badge = document.getElementById('b-' + l.id);
     if (!nw || !badge) continue;
-    l.new_price = nw.price; l.new_query = nw.query;
+    l.new_price = nw.price; l.new_query = nw.query; l.new_set = !!nw.set;
     badge.insertAdjacentHTML('afterend', newPriceHtml(l));
   }
 }
@@ -1727,7 +1748,8 @@ function newPriceHtml(l) {
   // shared search can't smuggle in a javascript: link.
   const href = 'https://www.google.com/search?tbm=shop&hl=nl&gl=nl&q=' +
                encodeURIComponent(String(l.new_query));
-  return save + '<span class="newline">New costs about <b>' + eur(np) + '</b>' +
+  return save + '<span class="newline">' + (l.new_set ? 'New set costs' : 'New costs') +
+    ' about <b>' + eur(np) + '</b>' +
     ' &middot; <a href="' + esc(href) + '" target="_blank" rel="noopener">See it new</a></span>';
 }
 
@@ -2882,9 +2904,10 @@ def app(environ, start_response):
                          if isinstance(i, dict)][:NEW_PRICE_MAX]
                 if not items:
                     raise ValueError("No listings to price")
-                new = estimate_new_prices(items, req_id=req_id)
-                result = {"new": {str(items[n].get("id")): {"price": p, "query": q}
-                                  for n, (p, q) in new.items()}}
+                new = estimate_new_prices(items, wish=wish, req_id=req_id)
+                result = {"new": {str(items[n].get("id")): {"price": p, "query": q,
+                                                            "set": is_set}
+                                  for n, (p, q, is_set) in new.items()}}
             elif action == "save":
                 share_id = save_search(payload)
                 result = {"id": share_id, "url": "/s/" + share_id}

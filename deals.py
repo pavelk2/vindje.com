@@ -217,8 +217,9 @@ def hunt_category(cat):
     finds = finds[:FINDS_PER_CATEGORY]
     if finds:
         try:
-            for i, (price, query) in estimate_new_prices(finds).items():
-                finds[i]["new_price"], finds[i]["new_query"] = price, query
+            new = estimate_new_prices(finds, wish=cat["target"])
+            for i, (price, query, is_set) in new.items():
+                finds[i].update(new_price=price, new_query=query, new_set=is_set)
         except Exception as e:
             print(f"  ! new-price lookup failed: {e}", file=sys.stderr)
     return finds, len(listings)
