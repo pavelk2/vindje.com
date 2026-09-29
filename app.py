@@ -375,26 +375,7 @@ check, not an appraisal. Say so implicitly by keeping "why" honest (e.g.
 "looks like a genuine Artemide ITIS, plausible resale value" rather than
 asserting a precise price).
 
-"""
-
-FILTER_REPLY = """Reply with ONLY JSON: {"matches": [{"n": <listing number>, "why": "<max 12 words, English, no em dashes>"}]}"""
-
-FILTER_REPLY_WITH_NEW_PRICE = """For each listing you keep, also say what it costs NEW, but only when you can
-name the specific product (brand + model + key specs such as storage or size)
-and shops still sell that exact product new. A model the maker has replaced
-still counts while retailers have new stock; refurbished or used offers do
-not count. Give a conservative estimate of what it costs new in a Dutch shop
-today in euros (not the original launch price), and a search query of at
-most 8 words that finds that product new in a shop. If the listing sells
-several units (2x, a set of 4, a pair), the new price is for all of them
-together, so it compares with the asking price. Use null for both when
-the item is generic, unbranded, handmade, a vintage design that is no longer
-made, no longer sold new anywhere, or when the text and photo don't pin down
-the model. Null is always better than a guess.
-
-Reply with ONLY JSON:
-{"matches": [{"n": <listing number>, "why": "<max 12 words, English, no em dashes>",
-              "new_price": <euro or null>, "new_query": "<max 8 words>" or null}]}"""
+Reply with ONLY JSON: {"matches": [{"n": <listing number>, "why": "<max 12 words, English, no em dashes>"}]}"""
 
 
 FILTER_CHUNK = 8  # listings per LLM call; smaller than before since each one
@@ -402,8 +383,7 @@ FILTER_CHUNK = 8  # listings per LLM call; smaller than before since each one
                   # than its text. Chunks are checked concurrently.
 
 
-def _filter_chunk(requirements, listings, base, req_id="-", new_prices=True):
-    """Returns ({n: why}, {n: (new_price, new_query)}) for the listings kept."""
+def _filter_chunk(requirements, listings, base, req_id="-"):
     content = []
     n_images = 0
     for i, l in enumerate(listings):
@@ -416,19 +396,15 @@ def _filter_chunk(requirements, listings, base, req_id="-", new_prices=True):
             content.append({"type": "image_url", "image_url": {"url": image}})
             n_images += 1
     log.info("[%s] filter_chunk base=%d: %d listings, %d with image", req_id, base, len(listings), n_images)
-    system = (FILTER_PROMPT % "\n".join("- " + r for r in requirements)
-              + (FILTER_REPLY_WITH_NEW_PRICE if new_prices else FILTER_REPLY))
-    result, model = llm_json(
+    result = llm_json(
         [
-            {"role": "system", "content": system},
+            {"role": "system", "content": FILTER_PROMPT % "\n".join("- " + r for r in requirements)},
             {"role": "user", "content": content},
         ],
         max_tokens=4000,
         req_id=req_id,
-        with_model=True,
     )
-    trust_new = new_prices and trusts_new_prices(model, req_id)
-    matches, new = {}, {}
+    matches = {}
     for m in result.get("matches", []):
         try:
             n = int(m["n"])
@@ -436,41 +412,14 @@ def _filter_chunk(requirements, listings, base, req_id="-", new_prices=True):
             continue
         if base <= n < base + len(listings):
             matches[n] = str(m.get("why", ""))
-            priced = parse_new_price(m) if trust_new else None
-            if priced:
-                new[n] = priced
-    log.info("[%s] filter_chunk base=%d: %d/%d matched, %d with new price: %s",
-             req_id, base, len(matches), len(listings), len(new),
+    log.info("[%s] filter_chunk base=%d: %d/%d matched: %s",
+             req_id, base, len(matches), len(listings),
              {k: v for k, v in matches.items()})
-    return matches, new
+    return matches
 
 
-def trusts_new_prices(model, req_id="-"):
-    """Only the primary model's new-price estimates are shown. The free
-    fallback is fine for keep/drop but guesses prices badly (it once put a
-    ~€1,000 Louis Poulsen PH 5 at €350), and a wrong number is worse than none."""
-    if model == MODELS[0]:
-        return True
-    log.info("[%s] new prices dropped: answered by fallback model %s", req_id, model)
-    return False
-
-
-def parse_new_price(item):
-    """(new_price, new_query) from one LLM verdict, or None if either is
-    missing or implausible."""
-    try:
-        price = int(round(float(item.get("new_price"))))
-    except (TypeError, ValueError, OverflowError):
-        return None
-    query = " ".join(str(item.get("new_query") or "").split())[:80]
-    if not (1 <= price <= 100000) or not query:
-        return None
-    return price, query
-
-
-def filter_listings(requirements, listings, req_id="-", new_prices=True):
-    """Returns (matches dict, note or None) and sets new_price/new_query on
-    the kept listings that got one. Raises only if every chunk fails."""
+def filter_listings(requirements, listings, req_id="-"):
+    """Returns (matches dict, note or None). Raises only if every chunk fails."""
     if not requirements or not listings:
         return None, None
     chunks = [(i, listings[i : i + FILTER_CHUNK])
@@ -480,16 +429,12 @@ def filter_listings(requirements, listings, req_id="-", new_prices=True):
     t0 = time.time()
     matches, failed = {}, []
     with ThreadPoolExecutor(max_workers=min(4, len(chunks))) as ex:
-        futures = {ex.submit(_filter_chunk, requirements, chunk, base, req_id,
-                             new_prices): (base, chunk)
+        futures = {ex.submit(_filter_chunk, requirements, chunk, base, req_id): (base, chunk)
                    for base, chunk in chunks}
         for fut in as_completed(futures):
             base, chunk = futures[fut]
             try:
-                chunk_matches, chunk_new = fut.result()
-                matches.update(chunk_matches)
-                for n, (price, query) in chunk_new.items():
-                    listings[n]["new_price"], listings[n]["new_query"] = price, query
+                matches.update(fut.result())
             except Exception as e:
                 log.warning("[%s] filter_listings: chunk base=%d FAILED: %s", req_id, base, e)
                 failed.append((base, chunk))
@@ -507,6 +452,102 @@ def filter_listings(requirements, listings, req_id="-", new_prices=True):
     log.info("[%s] filter_listings: done in %.2fs, %d matched of %d, %d chunk(s) failed",
              req_id, time.time() - t0, len(matches), len(listings), len(failed))
     return matches, note
+
+
+# ---------------------------------------------------------------- Step 4: new prices
+
+NEW_PRICE_PROMPT = """You estimate what second-hand Dutch classifieds listings cost NEW.
+
+Below are numbered listings (title | asking price | description | attributes,
+in Dutch). Many are the same product. First group them by the exact product
+being sold: brand + model + the specs that change the price (storage, size,
+version). Colour does not make a new group unless it changes the price.
+
+For each product you can name, and that shops still sell new, give ONE
+conservative estimate of what it costs new in a Dutch shop today, in euros (not
+the original launch price), and a search query of at most 8 words that finds it
+new in a shop. A model the maker has replaced still counts while retailers have
+new stock; refurbished or used offers do not.
+
+Price only the main product. Ignore accessories and extras bundled with it (a
+baby set, a tray, a case, a charger), even when the listing includes them.
+"units" is how many of the main product the asking price pays for: 2 for "2x"
+or a pair sold together, 4 for a set of 4, but 1 when the listing says the
+price is per piece ("per stuk", "p/st"), however many it has. Usually 1.
+
+Leave out listings that are generic, unbranded, handmade, a vintage design that
+is no longer made, or not sold new anywhere. Leaving a listing out is always
+better than guessing.
+
+Reply with ONLY JSON:
+{"products": [{"new_price": <euro for one unit>, "new_query": "<max 8 words>",
+               "listings": [{"n": <listing number>, "units": <count>}]}]}
+If nothing qualifies, reply {"products": []}."""
+
+NEW_PRICE_MAX = 60  # listings per call; one search returns at most 60
+
+
+def trusts_new_prices(model, req_id="-"):
+    """Only the primary model's new-price estimates are shown. The free
+    fallback guesses prices badly (it once put a ~€1,000 Louis Poulsen PH 5
+    at €350), and a wrong number is worse than none."""
+    if model == MODELS[0]:
+        return True
+    log.info("[%s] new prices dropped: answered by fallback model %s", req_id, model)
+    return False
+
+
+def parse_new_price(item):
+    """(new_price, new_query) from one LLM product entry, or None if either is
+    missing or implausible."""
+    try:
+        price = int(round(float(item.get("new_price"))))
+    except (TypeError, ValueError, OverflowError):
+        return None
+    query = " ".join(str(item.get("new_query") or "").split())[:80]
+    if not (1 <= price <= 100000) or not query:
+        return None
+    return price, query
+
+
+def estimate_new_prices(listings, req_id="-"):
+    """{index: (new_price, new_query)} for the listings the model can price.
+    One call for the whole set, so the same product gets the same price on
+    every card. Raises if the call fails."""
+    lines = []
+    for i, l in enumerate(listings[:NEW_PRICE_MAX]):
+        desc = str(l.get("description") or "")[:200]
+        attrs = "; ".join(str(a) for a in (l.get("attributes") or [])[:6])
+        lines.append(f"[{i}] {l.get('title', '')} | asking {l.get('price', '?')}"
+                     f" | {desc} | {attrs}")
+    t0 = time.time()
+    result, model = llm_json(
+        [
+            {"role": "system", "content": NEW_PRICE_PROMPT},
+            {"role": "user", "content": "\n".join(lines)},
+        ],
+        max_tokens=4000,
+        req_id=req_id,
+        with_model=True,
+    )
+    if not trusts_new_prices(model, req_id):
+        return {}
+    priced, products = {}, 0
+    for p in result.get("products", []):
+        new = parse_new_price(p) if isinstance(p, dict) else None
+        if not new:
+            continue
+        products += 1
+        for ref in p.get("listings") or []:
+            try:
+                n, units = int(ref["n"]), int(ref.get("units") or 1)
+            except (KeyError, TypeError, ValueError):
+                continue
+            if 0 <= n < len(lines) and 1 <= units <= 20 and n not in priced:
+                priced[n] = (new[0] * units, new[1])
+    log.info("[%s] estimate_new_prices: %d products, %d of %d listings priced in %.2fs",
+             req_id, products, len(priced), len(lines), time.time() - t0)
+    return priced
 
 
 # ---------------------------------------------------------------- sharing (Upstash Redis)
@@ -920,7 +961,7 @@ def bid_note(hidden):
 
 
 def smart_search(wish, postcode, parsed=_UNSET, notes=None, exclude_bids=False,
-                 req_id="-", new_prices=True):
+                 req_id="-"):
     """Phase 2: search Marktplaats and AI-filter. Runs phase 1 first unless a
     pre-parsed result (possibly None) is handed in."""
     t0 = time.time()
@@ -950,8 +991,7 @@ def smart_search(wish, postcode, parsed=_UNSET, notes=None, exclude_bids=False,
     kept = listings
     if parsed and requirements and listings:
         try:
-            matches, fnote = filter_listings(requirements, listings, req_id=req_id,
-                                             new_prices=new_prices)
+            matches, fnote = filter_listings(requirements, listings, req_id=req_id)
             if fnote:
                 notes.append(fnote)
             if matches is not None:
@@ -1526,9 +1566,12 @@ f.addEventListener('submit', async e => {
     updateCount(checking);
     if (checking) {
       stage = 'Checking ' + listings.length + ' listings&hellip;';
+      const newPrices = fetchNewPrices(listings);
       await checkAll(listings, reqs);
       finishOrder(listings);
       updateCount(true);
+      stage = 'Looking up new prices&hellip;';
+      showNewPrices(listings.filter(l => l._m), await newPrices);
     }
     if ((checking && state.matched === 0) || (!checking && listings.length === 0)) {
       showNoMatchesModal();
@@ -1549,6 +1592,31 @@ f.addEventListener('submit', async e => {
   }
 });
 
+// Asked for every listing at once, in parallel with the check, so the prices
+// are ready about when the check ends; only the matches show them.
+async function fetchNewPrices(listings) {
+  try {
+    const r = await post({action: 'new_prices',
+      listings: listings.slice(0, 60).map(l => ({id: l.id, title: l.title, price: l.price,
+        description: l.description, attributes: l.attributes}))});
+    if (r.error) throw new Error(r.error);
+    return r.new || {};
+  } catch (err) {
+    console.warn('new prices unavailable:', err.message);  // optional extra, never blocks results
+    return {};
+  }
+}
+
+function showNewPrices(matched, prices) {
+  for (const l of matched) {
+    const nw = prices[l.id];
+    const badge = document.getElementById('b-' + l.id);
+    if (!nw || !badge) continue;
+    l.new_price = nw.price; l.new_query = nw.query;
+    badge.insertAdjacentHTML('afterend', newPriceHtml(l));
+  }
+}
+
 async function checkAll(listings, reqs) {
   const B = 15, batches = [];
   for (let i = 0; i < listings.length; i += B) batches.push(listings.slice(i, i + B));
@@ -1561,11 +1629,7 @@ async function checkAll(listings, reqs) {
           listings: batch.map(l => ({id: l.id, title: l.title,
             description: l.description, attributes: l.attributes}))});
         if (r.error) throw new Error(r.error);
-        for (const l of batch) {
-          const nw = r.new && r.new[l.id];
-          if (nw) { l.new_price = nw.price; l.new_query = nw.query; }
-          applyVerdict(l, r.matches ? r.matches[l.id] : undefined, false);
-        }
+        for (const l of batch) applyVerdict(l, r.matches ? r.matches[l.id] : undefined, false);
       } catch (err) {
         for (const l of batch) applyVerdict(l, undefined, true);
       }
@@ -1590,7 +1654,6 @@ function applyVerdict(l, why, failed) {
     card.classList.add('matched');
     badge.className = 'why';
     badge.innerHTML = '<b>&#10003;</b> ' + (why ? esc(why) : 'Matches');
-    badge.insertAdjacentHTML('afterend', newPriceHtml(l));
   } else {
     state.rejected++; l._r = 1;
     card.classList.add('rejected');
@@ -2810,13 +2873,18 @@ def app(environ, start_response):
                          if isinstance(i, dict)]
                 if not items:
                     raise ValueError("No listings to check")
-                matches, new = _filter_chunk(requirements, items, 0, req_id=req_id)
-                result = {
-                    "matches": {str(items[n].get("id")): why
-                                for n, why in matches.items()},
-                    "new": {str(items[n].get("id")): {"price": price, "query": query}
-                            for n, (price, query) in new.items()},
-                }
+                matches = _filter_chunk(requirements, items, 0, req_id=req_id)
+                result = {"matches": {str(items[n].get("id")): why
+                                      for n, why in matches.items()}}
+            elif action == "new_prices":
+                # one call for the whole result set, after filtering
+                items = [i for i in (payload.get("listings") or [])
+                         if isinstance(i, dict)][:NEW_PRICE_MAX]
+                if not items:
+                    raise ValueError("No listings to price")
+                new = estimate_new_prices(items, req_id=req_id)
+                result = {"new": {str(items[n].get("id")): {"price": p, "query": q}
+                                  for n, (p, q) in new.items()}}
             elif action == "save":
                 share_id = save_search(payload)
                 result = {"id": share_id, "url": "/s/" + share_id}

@@ -36,8 +36,8 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
-from app import (DEALS_KEY, OPENROUTER_API_KEY, llm_json, parse_new_price,
-                 search_marktplaats, trusts_new_prices, upstash_command)
+from app import (DEALS_KEY, OPENROUTER_API_KEY, estimate_new_prices, llm_json,
+                 search_marktplaats, upstash_command)
 
 # ---------------------------------------------------------------- what to hunt
 
@@ -96,22 +96,9 @@ low–high range in euros. Be skeptical: when the text leaves brand, model, orig
 or condition unclear, value it low.
 
 Keep ONLY listings where the conservative LOW end of your resale estimate is at least
-€%d AND at least twice the asking price.
-
-For each find, also say what it costs NEW, but only when you can name the specific
-product (brand + model) and shops still sell that exact product new. A model the maker
-has replaced still counts while retailers have new stock; refurbished or used offers
-do not. Give a conservative estimate of what it costs new in a Dutch shop today in
-euros (not the original launch price), and a search query of at most 8 words that
-finds it new in a shop. If the listing sells several units (2x, a set of 4, a pair),
-the new price is for all of them together. Use null for both for handmade or
-unidentified items, vintage designs that are no longer made, and anything no longer
-sold new anywhere. Null is always better than a guess.
-
-Reply with ONLY JSON:
+€%d AND at least twice the asking price. Reply with ONLY JSON:
 {"finds": [{"n": <listing number>, "resale_low": <euro>, "resale_high": <euro>,
-            "why": "<max 15 words, English, no em dashes: what makes this undervalued>",
-            "new_price": <euro or null>, "new_query": "<max 8 words>" or null}]}
+            "why": "<max 15 words, English, no em dashes: what makes this undervalued>"}]}
 If nothing qualifies, reply {"finds": []}."""
 
 VALUE_CHUNK = 12  # listings per LLM call; chunks are valued concurrently
@@ -124,15 +111,13 @@ def _value_chunk(target, listings, base):
         attrs = "; ".join(str(a) for a in (l.get("attributes") or [])[:8])
         lines.append(f"[{base + i}] {l.get('title', '')} | asking {l.get('price', '?')}"
                      f" | {desc} | {attrs}")
-    result, model = llm_json(
+    result = llm_json(
         [
             {"role": "system", "content": VALUE_PROMPT % (target, RESALE_MIN_EURO)},
             {"role": "user", "content": "\n".join(lines)},
         ],
         max_tokens=4000,
-        with_model=True,
     )
-    trust_new = trusts_new_prices(model)
     finds = {}
     for f in result.get("finds", []):
         try:
@@ -144,9 +129,6 @@ def _value_chunk(target, listings, base):
         if base <= n < base + len(listings):
             finds[n] = {"resale_low": low, "resale_high": high,
                         "why": str(f.get("why", ""))[:200]}
-            new = parse_new_price(f) if trust_new else None
-            if new:
-                finds[n]["new_price"], finds[n]["new_query"] = new
     return finds
 
 
@@ -232,7 +214,14 @@ def hunt_category(cat):
             continue
         finds.append({**l, **v})
     finds.sort(key=lambda f: f["resale_low"] / f["asking_euro"], reverse=True)
-    return finds[:FINDS_PER_CATEGORY], len(listings)
+    finds = finds[:FINDS_PER_CATEGORY]
+    if finds:
+        try:
+            for i, (price, query) in estimate_new_prices(finds).items():
+                finds[i]["new_price"], finds[i]["new_query"] = price, query
+        except Exception as e:
+            print(f"  ! new-price lookup failed: {e}", file=sys.stderr)
+    return finds, len(listings)
 
 
 # ---------------------------------------------------------------- run + store
