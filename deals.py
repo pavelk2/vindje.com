@@ -36,8 +36,8 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
-from app import (DEALS_KEY, OPENROUTER_API_KEY, llm_json, search_marktplaats,
-                 upstash_command)
+from app import (DEALS_KEY, OPENROUTER_API_KEY, estimate_new_prices, llm_json,
+                 search_marktplaats, upstash_command)
 
 # ---------------------------------------------------------------- what to hunt
 
@@ -102,20 +102,6 @@ Keep ONLY listings where the conservative LOW end of your resale estimate is at 
 If nothing qualifies, reply {"finds": []}."""
 
 VALUE_CHUNK = 12  # listings per LLM call; chunks are valued concurrently
-
-
-def parse_asking_price(price_str):
-    """€-string from app.format_price -> euros (int), or None if there is no
-    fixed number (on request / see description / bidding). Auction listings
-    never get this far — the search drops them — so any number seen here is a
-    real asking price, not a bid floor."""
-    m = re.match(r"€([\d.]+)", str(price_str or ""))
-    if not m:
-        return None
-    try:
-        return int(m.group(1).replace(".", ""))
-    except ValueError:
-        return None
 
 
 def _value_chunk(target, listings, base):
@@ -205,14 +191,13 @@ def hunt_category(cat):
             print(f"  ! search '{q}' failed: {e}", file=sys.stderr)
             continue
         for l in found:
-            asking = parse_asking_price(l.get("price"))
+            asking = l["asking_euro"]
             # no fixed price -> no way to establish the upside; skip
-            if asking is None or asking == 0 or asking > PRICE_MAX_EURO:
+            if asking is None or asking > PRICE_MAX_EURO:
                 continue
             if l["id"] in seen:
                 continue
             seen.add(l["id"])
-            l["asking_euro"] = asking
             listings.append(l)
     before = len(listings)
     listings = dedupe_relistings(listings)
@@ -229,7 +214,15 @@ def hunt_category(cat):
             continue
         finds.append({**l, **v})
     finds.sort(key=lambda f: f["resale_low"] / f["asking_euro"], reverse=True)
-    return finds[:FINDS_PER_CATEGORY], len(listings)
+    finds = finds[:FINDS_PER_CATEGORY]
+    if finds:
+        try:
+            new = estimate_new_prices(finds, wish=cat["target"])
+            for i, (price, query, is_set) in new.items():
+                finds[i].update(new_price=price, new_query=query, new_set=is_set)
+        except Exception as e:
+            print(f"  ! new-price lookup failed: {e}", file=sys.stderr)
+    return finds, len(listings)
 
 
 # ---------------------------------------------------------------- run + store

@@ -103,13 +103,14 @@ MODELS = [
 log.info("vindje.com module loaded: models=%s api_key_set=%s", MODELS, bool(OPENROUTER_API_KEY))
 
 
-def llm(messages, max_tokens=2000, req_id="-"):
-    """Call the first model that answers. Returns text or raises."""
+def llm(messages, max_tokens=2000, req_id="-", models=None):
+    """Call the first model (of `models`, default MODELS) that answers.
+    Returns text or raises."""
     if not OPENROUTER_API_KEY:
         raise RuntimeError("OPENROUTER_API_KEY is not set")
     shape = _summarize_messages(messages)
     last_err = None
-    for model in MODELS:
+    for model in models or MODELS:
         # Ask for low reasoning effort to keep searches snappy. If a model
         # rejects that parameter, retry without it.
         for extra in ({"reasoning": {"effort": "low"}}, {}):
@@ -162,9 +163,9 @@ def llm(messages, max_tokens=2000, req_id="-"):
     raise RuntimeError(f"All models failed, last error: {last_err}")
 
 
-def llm_json(messages, max_tokens=2000, req_id="-"):
+def llm_json(messages, max_tokens=2000, req_id="-", models=None):
     """llm() + tolerant JSON extraction (models love code fences)."""
-    text = llm(messages, max_tokens=max_tokens, req_id=req_id)
+    text = llm(messages, max_tokens=max_tokens, req_id=req_id, models=models)
     text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip(), flags=re.MULTILINE)
     start = text.find("{")
     end = text.rfind("}")
@@ -268,6 +269,7 @@ def search_marktplaats(terms, postcode=None, distance_meters=None,
     for raw in data.get("listings", []):
         price_info = raw.get("priceInfo") or {}
         price = format_price(price_info)
+        euros, bid = whole_euros(price_info), is_bid(price_info)
         loc = raw.get("location") or {}
         attrs = []
         for a in (raw.get("extendedAttributes") or raw.get("attributes") or []):
@@ -287,7 +289,10 @@ def search_marktplaats(terms, postcode=None, distance_meters=None,
                 "description": (raw.get("categorySpecificDescription")
                                 or raw.get("description") or ""),
                 "price": price,
-                "bid": is_bid(price_info),
+                # a fixed price you can simply pay vs. the floor of an auction
+                "asking_euro": None if bid else euros,
+                "bid_from_euro": euros if bid else None,
+                "bid": bid,
                 "city": loc.get("cityName", ""),
                 "distance_km": round(dist / 1000, 1) if dist and dist > 0 else None,
                 "attributes": attrs,
@@ -316,6 +321,12 @@ def format_price(price_info):
         "NOTK": "Negotiable", "ON_REQUEST": "On request", "RESERVED": "Reserved",
         "SEE_DESCRIPTION": "See description", "EXCHANGE": "Exchange",
     }.get(ptype, ptype or "?")
+
+
+def whole_euros(price_info):
+    """The number on the ad in whole euros, or None when it shows none."""
+    cents = price_info.get("priceCents") or 0
+    return round(cents / 100) if cents > 0 else None
 
 
 def is_bid(price_info):
@@ -439,6 +450,117 @@ def filter_listings(requirements, listings, req_id="-"):
     log.info("[%s] filter_listings: done in %.2fs, %d matched of %d, %d chunk(s) failed",
              req_id, time.time() - t0, len(matches), len(listings), len(failed))
     return matches, note
+
+
+# ---------------------------------------------------------------- Step 4: new prices
+
+NEW_PRICE_PROMPT = """You estimate what second-hand Dutch classifieds listings cost NEW.
+The buyer searched for: %s
+
+Below are numbered listings (title | asking price | description | attributes,
+in Dutch). Many are the same product. First group them by the exact product
+being sold: brand + model + the specs that change the price (storage, size,
+version). Colour does not make a new group unless it changes the price.
+Only use a model the listing itself names in its title, description or
+attributes. Never infer a specific model from a generic title ("Sony noise
+cancelling koptelefoon", "Sparta damesfiets"); leave such listings out.
+
+For each product you can name, and that shops still sell new, give ONE
+conservative estimate of what it costs new in a Dutch shop today, in euros (not
+the original launch price), and a search query of at most 8 words that finds it
+new in a shop. A model the maker has replaced still counts while retailers have
+new stock; refurbished or used offers do not.
+
+The main product of a listing is the thing the buyer searched for and the
+listing is mainly about (the camera, not the lens that comes with it), so a
+bundle belongs to the same group as that product sold alone.
+
+Then, per listing:
+- "units": how many of the main product the asking price pays for: 2 for "2x"
+  or a pair sold together, 4 for a set of 4, but 1 when the listing says the
+  price is per piece ("per stuk", "p/st"), however many it has. Usually 1.
+- "extras": what the other items in the listing that are worth something on
+  their own would cost new, added up, in euros: a lens, batteries and a
+  charger, a microphone, a baby set, a second controller, games. Ignore small
+  things (a case, a strap, a cable, cushions, the box). 0 when there are none.
+- "sure": false when the listing includes such items but you cannot name them
+  well enough to price them ("with accessories", "3 lenses", "many games") AND
+  your guess for them could move the total by more than about a tenth. One
+  unnamed small item next to a named camera and lens is still sure: count it
+  conservatively. A listing that is not sure is not shown.
+
+Leave out listings that are generic, unbranded, handmade, a vintage design that
+is no longer made, or not sold new anywhere. Leaving a listing out is always
+better than guessing.
+
+Reply with ONLY JSON:
+{"products": [{"new_price": <euro for one unit>, "new_query": "<max 8 words>",
+               "listings": [{"n": <listing number>, "units": <count>,
+                             "extras": <euro>, "sure": <true or false>}]}]}
+If nothing qualifies, reply {"products": []}."""
+
+NEW_PRICE_MAX = 60  # listings per call; one search returns at most 60
+
+
+def parse_new_price(item):
+    """(new_price, new_query) from one LLM product entry, or None if either is
+    missing or implausible."""
+    try:
+        price = int(round(float(item.get("new_price"))))
+    except (TypeError, ValueError, OverflowError):
+        return None
+    query = " ".join(str(item.get("new_query") or "").split())[:80]
+    if not (1 <= price <= 100000) or not query:
+        return None
+    return price, query
+
+
+def estimate_new_prices(listings, wish="", req_id="-"):
+    """{index: (new_price, new_query, is_set)} for the listings the model can
+    price; is_set means valuable extras are included in the price. One call
+    for the whole set, so the same product gets the same price on every
+    card. Raises if the call fails. Only the primary model is asked: the free
+    fallback guesses prices badly (it once put a ~€1,000 Louis Poulsen PH 5
+    at €350), and a wrong number is worse than none."""
+    lines = []
+    for i, l in enumerate(listings[:NEW_PRICE_MAX]):
+        desc = str(l.get("description") or "")[:400]
+        attrs = "; ".join(str(a) for a in (l.get("attributes") or [])[:6])
+        lines.append(f"[{i}] {l.get('title', '')} | asking {l.get('price', '?')}"
+                     f" | {desc} | {attrs}")
+    t0 = time.time()
+    system = NEW_PRICE_PROMPT % (str(wish)[:300] or "(not given)")
+    result = llm_json(
+        [
+            {"role": "system", "content": system},
+            {"role": "user", "content": "\n".join(lines)},
+        ],
+        max_tokens=4000,
+        req_id=req_id,
+        models=MODELS[:1],
+    )
+    priced, products, unsure = {}, 0, 0
+    for p in result.get("products", []):
+        new = parse_new_price(p) if isinstance(p, dict) else None
+        if not new:
+            continue
+        products += 1
+        for ref in p.get("listings") or []:
+            try:
+                n, units = int(ref["n"]), int(ref.get("units") or 1)
+                extras = int(round(float(ref.get("extras") or 0)))
+            except (KeyError, TypeError, ValueError, OverflowError):
+                continue
+            if ref.get("sure") is False:
+                unsure += 1
+                continue
+            if (0 <= n < len(lines) and 1 <= units <= 20 and 0 <= extras <= 100000
+                    and n not in priced):
+                priced[n] = (new[0] * units + extras, new[1], extras > 0)
+    log.info("[%s] estimate_new_prices: %d products, %d of %d listings priced, "
+             "%d dropped as unsure, in %.2fs",
+             req_id, products, len(priced), len(lines), unsure, time.time() - t0)
+    return priced
 
 
 # ---------------------------------------------------------------- sharing (Upstash Redis)
@@ -1109,11 +1231,16 @@ HTML = """<!doctype html>
   @media (min-width: 860px) { #results { grid-template-columns: 1fr 1fr; } }
 
   .card {
+    position: relative;
     display: flex; gap: 15px; background: #fff; border-radius: 20px; padding: 13px;
     text-decoration: none; color: inherit; border: 1px solid var(--line);
     animation: rise .3s ease backwards;
     transition: box-shadow .18s ease, border-color .18s ease, opacity .3s ease;
   }
+  /* The whole card opens the listing via this overlay, which leaves room for
+     real links inside the card (a nested <a> is invalid HTML). */
+  .card-link { position: absolute; inset: 0; border-radius: inherit; z-index: 1; }
+  .card-link:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
   .card:hover { border-color: var(--line2); box-shadow: 0 10px 34px rgba(0,0,0,.08); }
   .card img, .noimg { width: 104px; height: 104px; object-fit: cover;
                       border-radius: 13px; background: var(--field); flex: none; }
@@ -1142,6 +1269,16 @@ HTML = """<!doctype html>
   }
   .why.warn { border: 1px dashed var(--line2); border-radius: 980px;
               padding: 3px 11px; }
+  .save { margin-top: 8px; display: flex; flex-wrap: wrap; width: fit-content;
+          align-items: baseline; column-gap: 7px; background: #eef4ef;
+          color: #3d6b4f; border-radius: 14px; padding: 4px 11px; font-size: 13.5px;
+          font-weight: 700; line-height: 1.35; }
+  .save span { font-weight: 500; }
+  .newline { display: block; margin-top: 6px; font-size: 13px; color: var(--body); }
+  .newline b { color: var(--ink); font-weight: 600; }
+  .newline a { position: relative; z-index: 2; color: var(--ink); font-weight: 600;
+               text-underline-offset: 2px; white-space: nowrap; }
+  .newline a:hover { text-decoration-thickness: 2px; }
   .card.pending { opacity: .5; }
   .card.matched { border-color: var(--ink); box-shadow: 0 0 0 1.5px var(--ink); }
   .card.matched:hover { box-shadow: 0 0 0 1.5px var(--ink), 0 10px 34px rgba(0,0,0,.08); }
@@ -1442,9 +1579,12 @@ f.addEventListener('submit', async e => {
     updateCount(checking);
     if (checking) {
       stage = 'Checking ' + listings.length + ' listings&hellip;';
+      const newPrices = fetchNewPrices(listings, q);
       await checkAll(listings, reqs);
       finishOrder(listings);
       updateCount(true);
+      stage = 'Looking up new prices&hellip;';
+      showNewPrices(listings.filter(l => l._m), await newPrices);
     }
     if ((checking && state.matched === 0) || (!checking && listings.length === 0)) {
       showNoMatchesModal();
@@ -1464,6 +1604,31 @@ f.addEventListener('submit', async e => {
     document.getElementById('spin').style.display = 'none';
   }
 });
+
+// Asked for every listing at once, in parallel with the check, so the prices
+// are ready about when the check ends; only the matches show them.
+async function fetchNewPrices(listings, wish) {
+  try {
+    const r = await post({action: 'new_prices', wish: wish,
+      listings: listings.slice(0, 60).map(l => ({id: l.id, title: l.title, price: l.price,
+        description: l.description, attributes: l.attributes}))});
+    if (r.error) throw new Error(r.error);
+    return r.new || {};
+  } catch (err) {
+    console.warn('new prices unavailable:', err.message);  // optional extra, never blocks results
+    return {};
+  }
+}
+
+function showNewPrices(matched, prices) {
+  for (const l of matched) {
+    const nw = prices[l.id];
+    const badge = document.getElementById('b-' + l.id);
+    if (!nw || !badge) continue;
+    l.new_price = nw.price; l.new_query = nw.query; l.new_set = !!nw.set;
+    badge.insertAdjacentHTML('afterend', newPriceHtml(l));
+  }
+}
 
 async function checkAll(listings, reqs) {
   const B = 15, batches = [];
@@ -1545,7 +1710,8 @@ function updateCount(checking) {
 
 function cardShell(l, extraClass, badgeHtml) {
   return `
-    <a class="card${extraClass ? ' ' + extraClass : ''}" id="c-${esc(l.id)}" href="${esc(l.url)}" target="_blank" rel="noopener">
+    <div class="card${extraClass ? ' ' + extraClass : ''}" id="c-${esc(l.id)}">
+      <a class="card-link" href="${esc(l.url)}" target="_blank" rel="noopener" aria-label="${esc(l.title)}"></a>
       ${l.image ? `<img src="${esc(l.image)}" alt="${esc(l.title)}" loading="lazy">` : '<div class="noimg">no photo</div>'}
       <div>
         <h3>${esc(l.title)}</h3>
@@ -1553,8 +1719,30 @@ function cardShell(l, extraClass, badgeHtml) {
           &middot; ${esc(l.city)}${l.distance_km != null ? ' &middot; ' + l.distance_km + ' km' : ''}</div>
         <div class="desc">${esc(l.description)}</div>
         ${badgeHtml || ''}
+        ${newPriceHtml(l)}
       </div>
-    </a>`;
+    </div>`;
+}
+
+function newPriceHtml(l) {
+  const np = Math.round(+l.new_price), ask = +l.asking_euro, bid = +l.bid_from_euro;
+  if (!(np > 0) || !l.new_query) return '';
+  const eur = n => '&euro;' + n.toLocaleString('en-GB');
+  // A bid floor is not what you pay, so its savings are only an upper bound.
+  const base = ask > 0 ? ask : bid;
+  const pct = base > 0 ? Math.round((np - base) / np * 100) : 0;
+  const save = pct < 1 ? '' : ask > 0
+    ? '<span class="save">Save ' + eur(np - ask) +
+      ' <span>' + pct + '% below new</span></span>'
+    : '<span class="save">Save up to ' + eur(np - bid) +
+      ' <span>bids start ' + pct + '% below new</span></span>';
+  // Built from the query alone, never taken from stored data, so a tampered
+  // shared search can't smuggle in a javascript: link.
+  const href = 'https://www.google.com/search?tbm=shop&hl=nl&gl=nl&q=' +
+               encodeURIComponent(String(l.new_query));
+  return save + '<span class="newline">' + (l.new_set ? 'New set costs' : 'New costs') +
+    ' about <b>' + eur(np) + '</b>' +
+    ' &middot; <a href="' + esc(href) + '" target="_blank" rel="noopener">See it new</a></span>';
 }
 
 function renderCards(listings, checking) {
@@ -2702,6 +2890,16 @@ def app(environ, start_response):
                 matches = _filter_chunk(requirements, items, 0, req_id=req_id)
                 result = {"matches": {str(items[n].get("id")): why
                                       for n, why in matches.items()}}
+            elif action == "new_prices":
+                # one call for the whole result set, after filtering
+                items = [i for i in (payload.get("listings") or [])
+                         if isinstance(i, dict)][:NEW_PRICE_MAX]
+                if not items:
+                    raise ValueError("No listings to price")
+                new = estimate_new_prices(items, wish=wish, req_id=req_id)
+                result = {"new": {str(items[n].get("id")): {"price": p, "query": q,
+                                                            "set": is_set}
+                                  for n, (p, q, is_set) in new.items()}}
             elif action == "save":
                 share_id = save_search(payload)
                 result = {"id": share_id, "url": "/s/" + share_id}
