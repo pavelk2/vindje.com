@@ -461,6 +461,9 @@ Below are numbered listings (title | asking price | description | attributes,
 in Dutch). Many are the same product. First group them by the exact product
 being sold: brand + model + the specs that change the price (storage, size,
 version). Colour does not make a new group unless it changes the price.
+Only use a model the listing itself names in its title, description or
+attributes. Never infer a specific model from a generic title ("Sony noise
+cancelling koptelefoon", "Sparta damesfiets"); leave such listings out.
 
 For each product you can name, and that shops still sell new, give ONE
 conservative estimate of what it costs new in a Dutch shop today, in euros (not
