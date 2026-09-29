@@ -536,9 +536,10 @@ def estimate_new_prices(listings, wish="", req_id="-"):
         lines.append(f"[{i}] {l.get('title', '')} | asking {l.get('price', '?')}"
                      f" | {desc} | {attrs}")
     t0 = time.time()
+    system = NEW_PRICE_PROMPT % (str(wish)[:300] or "(not given)")
     result, model = llm_json(
         [
-            {"role": "system", "content": NEW_PRICE_PROMPT % (str(wish)[:300] or "(not given)")},
+            {"role": "system", "content": system},
             {"role": "user", "content": "\n".join(lines)},
         ],
         max_tokens=4000,
