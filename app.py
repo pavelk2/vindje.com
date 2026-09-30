@@ -297,6 +297,7 @@ def search_marktplaats(terms, postcode=None, distance_meters=None,
                 "distance_km": round(dist / 1000, 1) if dist and dist > 0 else None,
                 "attributes": attrs,
                 "image": image,
+                "category_id": raw.get("categoryId"),
                 "url": "https://www.marktplaats.nl" + raw.get("vipUrl", ""),
             }
         )
@@ -1079,7 +1080,12 @@ HTML = """<!doctype html>
   .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
           flex: 1 0 auto; }
 
-  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em;
+         display: flex; align-items: center; justify-content: space-between; }
+  .top .flip-link { font-size: 13.5px; font-weight: 600; letter-spacing: 0; color: var(--ink);
+                    text-decoration: none; padding: 7px 15px; border-radius: 980px;
+                    background: var(--field); transition: background .15s ease; }
+  .top .flip-link:hover { background: var(--line); }
 
   .hero { max-width: 660px; margin: 0 auto; }
   h1 {
@@ -1339,7 +1345,8 @@ HTML = """<!doctype html>
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><a href="/" style="color:inherit;text-decoration:none">vindje.com</a></div>
+  <div class="top"><a href="/" style="color:inherit;text-decoration:none">vindje.com</a>
+    <a class="flip-link" href="/flip" title="Vintage finds for resellers">Flip?</a></div>
   <section class="hero">
     <h1>Advanced search for Marktplaats</h1>
     <form id="f">
@@ -2750,6 +2757,560 @@ def render_ideas(ideas, origin=""):
                        .replace("__ORIGIN__", origin))
 
 
+# ---------------------------------------------------------------- flip page (/flip?item=)
+# Landing pages for people who buy vintage items on Marktplaats to resell.
+# One template, one config entry per category. The live rows come from the
+# morning deal hunt (deals.py writes them to deals:latest); with no finds
+# stored we fall back to a cached plain search so the page never goes empty.
+# The goal right now is conversations, so every call to action books a call.
+
+FLIP_HTML = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__ &middot; vindje.com for resellers</title>
+<meta name="description" content="For people who flip vintage __PLURAL__: every morning vindje.com scans second-hand marketplaces and hands you the ones worth buying, with a resale estimate.">
+<link rel="canonical" href="__ORIGIN____PATH__">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="vindje.com">
+<meta property="og:title" content="__TITLE__ &middot; vindje.com">
+<meta property="og:description" content="The vintage __PLURAL__ worth flipping, found across marketplaces every morning, with a resale estimate.">
+<meta property="og:url" content="__ORIGIN____PATH__">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
+<style>
+  :root {
+    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
+    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
+    --money: #0a7d4f; --fade: #b8b8bd;
+  }
+  * { box-sizing: border-box; }
+  ::selection { background: var(--ink); color: #fff; }
+  body {
+    margin: 0; background: #fff; color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
+                 system-ui, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  }
+  a { color: inherit; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+
+  .top { display: flex; align-items: center; justify-content: space-between;
+         gap: 16px; padding: 28px 0 0; }
+  .brand { font-size: 16px; font-weight: 700; letter-spacing: -.01em;
+           text-decoration: none; }
+  .tabs { display: flex; gap: 2px; background: var(--field); border-radius: 980px;
+          padding: 4px; }
+  .tabs a { padding: 7px 15px; border-radius: 980px; font-size: 13.5px;
+            color: var(--body); text-decoration: none; }
+  .tabs a[aria-current] { background: var(--ink); color: #fff; font-weight: 600; }
+
+  .hero { display: grid; grid-template-columns: minmax(0, 1fr) 300px;
+          grid-template-areas: "h1 art" "h1 go"; align-items: end; gap: 28px 64px;
+          margin: clamp(48px, 9vh, 88px) 0 0; }
+  .hero h1 { grid-area: h1; }
+  .hero .go { grid-area: go; width: 100%; }
+  .art { grid-area: art; margin: 0; position: relative; align-self: center; }
+  .art img { display: block; width: 100%; height: auto; position: relative; z-index: 1; }
+  .art.ground img, .art.crop img { animation: float 6s ease-in-out infinite; }
+  .art.crop { width: 136%; margin-left: -18%; }
+  .art.crop img { -webkit-mask-image: radial-gradient(ellipse 58% 60% at 58% 44%,
+                    #000 52%, transparent 100%);
+                  mask-image: radial-gradient(ellipse 58% 60% at 58% 44%,
+                    #000 52%, transparent 100%); }
+  .art.ground::after { content: ""; position: absolute; left: 18%; right: 18%;
+                       bottom: -14px; height: 14px; border-radius: 50%;
+                       background: radial-gradient(closest-side, rgba(0,0,0,.14), transparent);
+                       animation: shade 6s ease-in-out infinite; }
+  .art.hang img { transform-origin: 50% 0; animation: sway 7s ease-in-out infinite; }
+  @keyframes float { 50% { transform: translateY(-12px); } }
+  @keyframes shade { 50% { transform: scaleX(.8); opacity: .6; } }
+  @keyframes sway { 0%, 100% { transform: rotate(-1.4deg); }
+                    50% { transform: rotate(1.4deg); } }
+  h1 { margin: 0; max-width: 700px; font-size: clamp(38px, 6vw, 64px);
+       line-height: 1.03; letter-spacing: -.035em; font-weight: 700; }
+  h1 span, h2 span { color: var(--fade); }
+  .go { flex: none; display: flex; flex-direction: column; gap: 10px; width: 260px; }
+  .btn { display: block; text-align: center; padding: 15px 22px; border-radius: 980px;
+         background: var(--ink); color: #fff; font-size: 15px; font-weight: 600;
+         text-decoration: none; transition: opacity .15s ease; }
+  .btn:hover { opacity: .85; }
+  .btn:focus-visible, .row:focus-visible, .tabs a:focus-visible {
+    outline: 2px solid var(--ink); outline-offset: 3px; }
+  .go small { font-size: 12.5px; color: var(--muted); text-align: center; }
+
+  .watch { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 40px 0 0;
+           font-size: 13.5px; color: var(--muted); }
+  .watch b { color: var(--ink); font-weight: 600; }
+
+  section { margin: 88px 0 0; }
+  h2 { margin: 0 0 22px; font-size: clamp(24px, 3.2vw, 32px); line-height: 1.12;
+       letter-spacing: -.025em; font-weight: 700; max-width: 720px; }
+
+  .list-head, .row { display: grid; align-items: center; gap: 20px;
+                     grid-template-columns: 64px minmax(0, 1fr) 80px 120px 80px; }
+  .list-head { padding: 0 0 10px; border-bottom: 1px solid var(--line2);
+               font-size: 12.5px; color: var(--muted); }
+  .list-head span:first-child { grid-column: 1 / 3; }
+  .row { padding: 14px 0; border-bottom: 1px solid var(--line); text-decoration: none; }
+  .row:hover .what b { text-decoration: underline; }
+  .thumb { width: 64px; height: 64px; border-radius: 12px; overflow: hidden;
+           background: var(--field); }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .what { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .what b { font-size: 15.5px; font-weight: 600; white-space: nowrap; overflow: hidden;
+            text-overflow: ellipsis; }
+  .what span { font-size: 13px; color: var(--muted); overflow: hidden;
+               display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .num { text-align: right; font-size: 15px; font-variant-numeric: tabular-nums;
+         white-space: nowrap; }
+  .est { color: var(--body); }
+  .margin { font-weight: 700; color: var(--money); }
+  .soon { color: var(--muted); font-size: 13px; }
+  .caption, .empty { font-size: 12.5px; color: var(--muted); margin: 12px 0 0; }
+
+  .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+           gap: 56px; align-items: center; }
+  .ex { border: 1px solid var(--line); border-radius: 20px; padding: 26px; }
+  .ex-head { display: flex; justify-content: space-between; gap: 12px;
+             font-size: 15px; }
+  .ex-head span { color: var(--muted); white-space: nowrap; }
+  .track { position: relative; height: 44px; margin: 26px 0 10px; }
+  .track::before { content: ""; position: absolute; left: 0; right: 0; top: 50%;
+                   height: 1px; background: var(--line2); }
+  .band { position: absolute; top: 12px; height: 20px; border-radius: 6px;
+          background: rgba(10, 125, 79, .12); }
+  i.ref, i.askmark { position: absolute; top: 50%; width: 11px; height: 11px;
+                     margin: -5.5px 0 0 -5.5px; border-radius: 50%; }
+  i.ref { background: var(--money); }
+  i.askmark { background: #fff; border: 2px solid var(--ink); }
+  .legend { display: flex; gap: 20px; font-size: 12.5px; color: var(--muted); }
+  .legend i { position: static; display: inline-block; margin: 0 6px -1px 0; }
+  .facts { margin: 22px 0 0; }
+  .facts div { display: flex; justify-content: space-between; padding: 11px 0;
+               border-top: 1px solid var(--line); font-size: 14px; }
+  .facts dt { color: var(--body); }
+  .facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums;
+              white-space: nowrap; }
+  .facts dd.g { color: var(--money); }
+  .preview { font-size: 12.5px; color: var(--muted); margin: 12px 0 0; }
+
+  .board { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+  .col { background: var(--field); border-radius: 14px; padding: 12px; min-height: 120px;
+         display: flex; flex-direction: column; gap: 8px; }
+  .col-h { font-size: 12.5px; font-weight: 600; color: var(--muted); padding: 2px 2px 4px; }
+  .card { display: flex; flex-direction: column; gap: 3px;
+          background: #fff; border-radius: 9px; padding: 10px 11px; font-size: 13px;
+          box-shadow: 0 0 0 1px var(--line); }
+  .card b { font-weight: 600; margin-bottom: 2px; }
+  .card .m { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .card .p { font-style: normal; font-weight: 700; color: var(--money); font-size: 13px;
+             padding-top: 5px; margin-top: 3px; border-top: 1px solid var(--line); }
+  .board-total { display: flex; justify-content: flex-end; gap: 6px; margin: 14px 0 0;
+                 font-size: 15px; color: var(--body); font-variant-numeric: tabular-nums; }
+  .board-total b { color: var(--money); }
+
+  .plans { border-top: 1px solid var(--line2); }
+  .plan { display: grid; grid-template-columns: 140px minmax(0, 1fr) 140px; gap: 20px;
+          align-items: baseline; padding: 18px 0; border-bottom: 1px solid var(--line); }
+  .plan b { font-size: 17px; }
+  .plan p { margin: 0; font-size: 14.5px; color: var(--body); }
+  .plan .num { font-size: 17px; font-weight: 600; }
+  .plan .num small { font-size: 13px; font-weight: 400; color: var(--muted); }
+
+  .end { display: flex; align-items: flex-end; justify-content: space-between; gap: 48px;
+         margin: 104px 0 0; padding: 0 0 8px; }
+
+  .footer { margin-top: 96px; border-top: 1px solid var(--line); }
+  .footer-inner { max-width: 1040px; margin: 0 auto; padding: 22px 20px 30px;
+                  display: flex; align-items: center; justify-content: space-between;
+                  flex-wrap: wrap; gap: 12px; }
+  .footer-brand { font-size: 13px; color: var(--muted); }
+  .footer-links { display: flex; gap: 22px; flex-wrap: wrap; }
+  .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; }
+  .footer-links a:hover { color: var(--ink); }
+
+  @media (max-width: 760px) {
+    .top { flex-direction: column; align-items: flex-start; }
+    .hero { grid-template-columns: 1fr; grid-template-areas: "art" "h1" "go";
+            gap: 28px; }
+    .art { width: 72%; max-width: 280px; justify-self: center; }
+    .art.crop { width: 100%; max-width: 420px; margin-left: 0; }
+    .end { flex-direction: column; align-items: stretch; gap: 28px; }
+    .go { width: 100%; }
+    .list-head { display: none; }
+    .row { grid-template-columns: 56px minmax(0, 1fr) auto; gap: 4px 14px; }
+    .thumb { width: 56px; height: 56px; grid-row: span 2; }
+    .what { grid-column: 2 / 4; }
+    .num.ask { text-align: left; font-size: 13.5px; }
+    .num.est { display: none; }
+    .split { grid-template-columns: 1fr; gap: 28px; }
+    .board { grid-template-columns: repeat(5, 150px); overflow-x: auto;
+             padding-bottom: 6px; }
+    .plan { grid-template-columns: minmax(0, 1fr) auto; }
+    .plan p { grid-column: 1 / 3; grid-row: 2; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration: .01s !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="/">vindje</a>
+    <nav class="tabs" aria-label="Categories">__TABS__</nav>
+  </header>
+
+  <div class="hero">
+    <h1>__LEAD__ <span>Vindje scans the marketplaces for you every morning.</span></h1>
+    <figure class="art __FLOAT__">__ART__</figure>
+    <div class="go">
+      <a class="btn" href="__CALL__" target="_blank" rel="noopener">Book a 15-min call</a>
+      <small>First 10 resellers get a free pilot month.</small>
+    </div>
+  </div>
+  <p class="watch"><b>Watching</b>__WATCH__</p>
+
+  <section aria-labelledby="today">
+    <h2 id="today">Today&rsquo;s list. <span>Live from the marketplaces.</span></h2>
+    <div class="list-head"><span>__CAPTION__</span><span class="num">Asking</span>
+      <span class="num">Resale est.</span><span class="num">Margin</span></div>
+    __ROWS__
+  </section>
+
+  <section class="split" aria-labelledby="find">
+    <h2 id="find">Every find comes with its numbers. <span>Real sales of the same __NOUN__, what it should fetch, and how fast it goes.</span></h2>
+    <div>
+      <div class="ex">__EXAMPLE__</div>
+      <p class="preview">Example. Reference sales and sell-through odds are coming in the pilot.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="board">
+    <h2 id="board">From spotted to sold on one board. <span>Every find keeps its numbers, from asking price to profit.</span></h2>
+    __BOARD__
+    <p class="preview">Preview of the reseller board.</p>
+  </section>
+
+  <section aria-labelledby="plans">
+    <h2 id="plans">Priced like a tool that pays for itself. <span>One good flip a month covers it.</span></h2>
+    <div class="plans">
+      <div class="plan"><b>Solo</b><p>One category, the Netherlands, daily email with estimates.</p><span class="num">&euro;100 <small>/ month</small></span></div>
+      <div class="plan"><b>Pro</b><p>All categories, NL, BE and DE, alerts within minutes, the board.</p><span class="num">&euro;250 <small>/ month</small></span></div>
+      <div class="plan"><b>Trade</b><p>Your own brands and markets including Denmark, team seats, export to your shop.</p><span class="num">&euro;1.000 <small>/ month</small></span></div>
+    </div>
+  </section>
+
+  <div class="end">
+    <h2 style="margin:0">We&rsquo;re talking to 10 resellers this month. <span>Show us how you source. We build around it.</span></h2>
+    <div class="go">
+      <a class="btn" href="__CALL__" target="_blank" rel="noopener">Book a 15-min call</a>
+      <small>English, Nederlands or Deutsch.</small>
+    </div>
+  </div>
+</div>
+<footer class="footer">
+  <div class="footer-inner">
+    <span class="footer-brand">vindje.com, made in the Netherlands</span>
+    <nav class="footer-links">
+      <a href="/">Search</a>
+      <a href="/how-it-works">How it works</a>
+      <a href="/ideas">Ideas</a>
+      <a href="/credits">Credits</a>
+      <a href="__CALL__" target="_blank" rel="noopener">Contact</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>"""
+
+
+FLIP_CALL_URL = "https://timetuna.com/pavel?Purpose=vindje.com"
+FLIP_FRESH_TTL = 1800   # seconds a fallback search is reused per instance
+FLIP_ROWS = 6
+
+FLIP_PAGES = {
+    "lamps": {
+        "key": "lamps", "tab": "Lamps", "noun": "lamp", "plural": "lamps",
+        "img": ("/img/flip-lamps.webp", "Louis Poulsen PH 5 pendant lamp", 640, 573),
+        "float": "hang",
+        "title": "Flip vintage lamps",
+        "lead": "Find the &euro;60 lamp that sells for &euro;400.",
+        "fresh_query": "vintage design lamp",
+        # Hang-, Vloer-, Tafel-, Wand-, Plafond-, Overige lampen, Antiek lampen
+        "fresh_categories": {1258, 1259, 1260, 1622, 2761, 1265, 7},
+        "watch": ["Louis Poulsen", "Artemide", "Flos", "Philips", "Anvia",
+                  "Hala Zeist", "Raak", "Dijkstra"],
+        "example": {"title": "Louis Poulsen PH 4/3, brass", "ask": 90,
+                    "refs": [360, 420, 450, 520], "low": 380, "high": 480,
+                    "odds": 71, "days": 12},
+        "board": {
+            "spotted": [("Artemide Tolomeo", 60), ("Philips Evoluon lamp", 45)],
+            "messaged": [("Anvia desk lamp", 80, 60)],
+            "bought": [("Louis Poulsen PH 5", 140, 110)],
+            "listed": [("Raak Amsterdam pendant", 70, 15, 190)],
+            "sold": [("Hala Zeist desk lamp", 55, 10, 160),
+                     ("Louis Poulsen PH 4/3", 120, 0, 260)],
+        },
+    },
+    "bikes": {
+        "key": "bikes", "tab": "Bikes", "noun": "bike", "plural": "bikes",
+        "img": ("/img/flip-bikes.webp", "Red RIH Sport racing bike", 960, 640),
+        "float": "crop",
+        "title": "Flip vintage bikes",
+        "lead": "Find the &euro;150 racing bike that sells for &euro;600.",
+        "fresh_query": "vintage racefiets",
+        "fresh_categories": {464, 2026},        # Racefietsen, Oldtimers
+        "watch": ["Koga Miyata", "RIH", "Gazelle", "Peugeot", "Gitane",
+                  "Raleigh", "Bianchi", "Batavus"],
+        "example": {"title": "Koga Miyata Gentsluxe, 1988", "ask": 140,
+                    "refs": [290, 340, 360, 410], "low": 300, "high": 380,
+                    "odds": 78, "days": 9},
+        "board": {
+            "spotted": [("Peugeot PX10", 250), ("Gitane Tour de France", 120)],
+            "messaged": [("Gazelle Champion Mondial", 180, 140)],
+            "bought": [("Batavus Professional", 120, 95)],
+            "listed": [("Raleigh Competition", 80, 45, 260)],
+            "sold": [("RIH Sport", 150, 40, 380),
+                     ("Koga Miyata Gentsluxe", 110, 35, 240)],
+        },
+    },
+    "chairs": {
+        "key": "chairs", "tab": "Chairs", "noun": "chair", "plural": "chairs",
+        "img": ("/img/flip-chairs.webp", "Marcel Breuer Wassily chair", 395, 373),
+        "float": "ground",
+        "title": "Flip vintage chairs",
+        "lead": "Find the &euro;50 chair that sells for &euro;350.",
+        "fresh_query": "vintage design stoel",
+        # Stoelen, Fauteuils, Bureaustoelen, Antiek stoelen en banken
+        "fresh_categories": {530, 1940, 3194, 1505},
+        "watch": ["Vitra", "Herman Miller", "Pastoe", "Gispen", "Spectrum",
+                  "Artifort", "Thonet", "Friso Kramer"],
+        "example": {"title": "Gispen 116 tube chair, pair", "ask": 60,
+                    "refs": [280, 320, 350, 390, 410], "low": 300, "high": 380,
+                    "odds": 64, "days": 16},
+        "board": {
+            "spotted": [("Pastoe FM31", 90), ("Spectrum SZ01", 75)],
+            "messaged": [("Vitra Eames DSW, pair", 120, 90)],
+            "bought": [("Friso Kramer Revolt, set of 4", 180, 140)],
+            "listed": [("Artifort Mushroom", 120, 60, 380)],
+            "sold": [("Gispen 201, pair", 90, 20, 260),
+                     ("Vitra Panton", 40, 0, 110)],
+        },
+    },
+}
+FLIP_DEFAULT = "lamps"
+# ?item= also takes the words people naturally type
+FLIP_ALIASES = {"lights": "lamps", "light": "lamps", "lamp": "lamps",
+                "bike": "bikes", "fietsen": "bikes", "chair": "chairs", "stoelen": "chairs"}
+
+_flip_fresh_cache = {}
+
+# Hero photos live in img/. Vercel serves them as static files; this set lets
+# the local server (and the function, if a request reaches it) do the same.
+FLIP_IMAGES = {p["img"][0] for p in FLIP_PAGES.values()}
+
+# The fallback has no AI valuation, so the title has to earn its row: a watched
+# brand or a vintage word, and none of the new-retail or replica tells.
+_FLIP_VINTAGE_RE = re.compile(
+    r"vintage|retro|antiek|klassiek|jaren\s*'?[2-8]0|'[2-8]0s|\b19[2-9]\d\b", re.I)
+_FLIP_REJECT_RE = re.compile(
+    r"nieuw|new|2025|2026|sale|kinder|kids|ikea|vidaxl|stijl|style|look|replica|"
+    r"tafel|table|onderdel|frame\b", re.I)
+
+
+def _flip_title_ok(title, page):
+    """True when an unvalued listing title reads like a real vintage find."""
+    t = title.lower()
+    if _FLIP_REJECT_RE.search(t):
+        return False
+    return (any(w.lower() in t for w in page["watch"])
+            or bool(_FLIP_VINTAGE_RE.search(t)))
+
+
+def _flip_fresh(page, req_id="-"):
+    """Plain, unvalued listings for a flip page, cached per instance so page
+    views never turn into repeated Marktplaats calls. Empty on any failure."""
+    key = page["key"]
+    hit = _flip_fresh_cache.get(key)
+    if hit and time.time() - hit[0] < FLIP_FRESH_TTL:
+        return hit[1]
+    try:
+        # the €40 floor keeps out toys, parts and accessories
+        found, _total = search_marktplaats(page["fresh_query"], price_min_euro=40,
+                                           price_max_euro=250, limit=40,
+                                           exclude_bids=True, req_id=req_id)
+    except Exception as e:
+        log.warning("[%s] flip fallback search failed for %s: %s", req_id, key, e)
+        found = []
+    # keyword search also matches text anywhere ("Vintage Racer" sneakers),
+    # so keep only listings filed in the page's own Marktplaats categories
+    found = [l for l in found
+             if l.get("category_id") in page["fresh_categories"]
+             and _flip_title_ok(str(l.get("title") or ""), page)
+             and l.get("asking_euro") and l.get("image")][:FLIP_ROWS]
+    _flip_fresh_cache[key] = (time.time(), found)
+    return found
+
+
+def _euro(n):
+    return "&euro;" + f"{int(n):,}".replace(",", ".")
+
+
+def _flip_rows(listings, valued):
+    """Listing rows: thumbnail, title, place, ask, resale estimate, margin."""
+    rows = []
+    for l in listings[:FLIP_ROWS]:
+        url = str(l.get("url") or "")
+        if not url.startswith("https://www.marktplaats.nl/"):
+            continue
+        img = html.escape(str(l.get("image") or ""))
+        thumb = (f'<img src="{img}" alt="" loading="lazy">' if img
+                 else '<span class="ph"></span>')
+        place = str(l.get("city") or "")
+        sub = str(l.get("why") or "") if valued else ""
+        meta = " &middot; ".join(html.escape(b) for b in (place, sub) if b)
+        ask = l.get("asking_euro")
+        ask_s = _euro(ask) if ask else html.escape(str(l.get("price") or ""))
+        if valued and ask and l.get("resale_low"):
+            est = f'{_euro(l["resale_low"])}&ndash;{_euro(l.get("resale_high") or 0)}'
+            margin = f'+{_euro(int(l["resale_low"]) - int(ask))}'
+        else:
+            est, margin = '<span class="soon">soon</span>', ""
+        rows.append(
+            f'<a class="row" href="{html.escape(url)}" target="_blank" rel="noopener">'
+            f'<span class="thumb">{thumb}</span>'
+            f'<span class="what"><b>{html.escape(str(l.get("title") or ""))}</b>'
+            f'<span>{meta}</span></span>'
+            f'<span class="num ask">{ask_s}</span>'
+            f'<span class="num est">{est}</span>'
+            f'<span class="num margin">{margin}</span></a>'
+        )
+    return "".join(rows)
+
+
+def _flip_example(ex):
+    """The 'every find comes with' card: reference sales on a price line,
+    the estimate band, the ask, and the odds of selling within 30 days."""
+    lo_axis = 0
+    hi_axis = max(ex["refs"] + [ex["high"]]) * 1.15
+
+    def pct(v):
+        return f"{(v - lo_axis) / (hi_axis - lo_axis) * 100:.1f}%"
+
+    dots = "".join(f'<i class="ref" style="left:{pct(r)}" title="Sold {_euro(r)}"></i>'
+                   for r in ex["refs"])
+    band_w = f"{(ex['high'] - ex['low']) / (hi_axis - lo_axis) * 100:.1f}%"
+    return (
+        f'<div class="ex-head"><b>{html.escape(ex["title"])}</b>'
+        f'<span>Asking {_euro(ex["ask"])}</span></div>'
+        f'<div class="track"><span class="band" style="left:{pct(ex["low"])};'
+        f'width:{band_w}"></span>{dots}'
+        f'<i class="askmark" style="left:{pct(ex["ask"])}"></i></div>'
+        f'<div class="legend"><span><i class="ref"></i>{len(ex["refs"])} similar sales, '
+        f'last 90 days</span><span><i class="askmark"></i>This listing</span></div>'
+        f'<dl class="facts">'
+        f'<div><dt>Resale estimate</dt>'
+        f'<dd>{_euro(ex["low"])}&ndash;{_euro(ex["high"])}</dd></div>'
+        f'<div><dt>Margin</dt><dd class="g">+{_euro(ex["low"] - ex["ask"])}</dd></div>'
+        f'<div><dt>Sells within 30 days</dt><dd class="g">{ex["odds"]}%</dd></div>'
+        f'<div><dt>Typical time to sell</dt><dd>{ex["days"]} days</dd></div>'
+        f'</dl>'
+    )
+
+
+def _flip_board(board):
+    """The reseller board preview: each card carries its stage's numbers, the
+    sold column ends in profit, and the board totals it."""
+    def card(title, *lines):
+        meta = "".join(f'<span class="m">{l}</span>' for l in lines)
+        return f'<span class="card"><b>{html.escape(title)}</b>{meta}</span>'
+
+    cols = [
+        ("Spotted", [card(t, f"Asking {_euro(ask)}") for t, ask in board["spotted"]]),
+        ("Messaged", [card(t, f"Asking {_euro(ask)}", f"Offered {_euro(offer)}")
+                      for t, ask, offer in board["messaged"]]),
+        ("Bought", [card(t, f"Paid {_euro(paid)}", f"Asked {_euro(ask)}")
+                    for t, ask, paid in board["bought"]]),
+        ("Listed", [card(t, f"Paid {_euro(paid)} &middot; costs {_euro(cost)}",
+                         f"Listed at {_euro(price)}")
+                    for t, paid, cost, price in board["listed"]]),
+        ("Sold", [card(t, f"Paid {_euro(paid)} &middot; costs {_euro(cost)}",
+                       f"Sold for {_euro(sold)}",
+                       f'<em class="p">+{_euro(sold - paid - cost)} profit</em>')
+                  for t, paid, cost, sold in board["sold"]]),
+    ]
+    out = "".join(f'<div class="col"><span class="col-h">{name}</span>{"".join(cards)}</div>'
+                  for name, cards in cols)
+    total = sum(sold - paid - cost for _t, paid, cost, sold in board["sold"])
+    n = len(board["sold"])
+    return (f'<div class="board">{out}</div>'
+            f'<p class="board-total">{n} flip{"s" if n != 1 else ""} sold'
+            f' &middot; <b>+{_euro(total)} profit</b></p>')
+
+
+def flip_item(query_string):
+    """The category a /flip request asks for via ?item=, else the default."""
+    qs = urllib.parse.parse_qs(query_string or "")
+    item = (qs.get("item") or [""])[0].strip().lower()
+    item = FLIP_ALIASES.get(item, item)
+    return item if item in FLIP_PAGES else FLIP_DEFAULT
+
+
+def render_flip(item, origin="", req_id="-"):
+    """Render /flip for one category with today's finds for it."""
+    page = FLIP_PAGES[item]
+    path = "/flip" if item == FLIP_DEFAULT else "/flip?item=" + item
+    finds, date = [], ""
+    deals = get_deals()
+    for cat in (deals or {}).get("categories") or []:
+        if cat.get("key") == page["key"]:
+            # "flip" is the reseller-sized list; records older than it only
+            # carry the homepage's €500+ "finds"
+            finds = cat.get("flip") if "flip" in cat else cat.get("finds")
+            finds = finds or []
+            date = str(deals.get("date") or "")
+    valued = bool(finds)
+    if not valued:
+        finds = _flip_fresh(page, req_id=req_id)
+    log.info("[%s] flip %s: %d %s rows", req_id, page["key"], len(finds),
+             "valued" if valued else "fresh")
+    if valued:
+        when = date
+        try:
+            d = datetime.strptime(date, "%Y-%m-%d")
+            when = f"{d.day} {d:%B}"
+        except ValueError:
+            pass
+        caption = f"Found by the morning hunt, {html.escape(when)}"
+    else:
+        caption = "Just listed. Estimates arrive with the morning hunt."
+    rows = _flip_rows(finds, valued) or (
+        '<p class="empty">Nothing on the list right now. The next hunt runs at 8:00.</p>')
+    tabs = "".join(
+        f'<a href="/flip?item={k}"{" aria-current=page" if k == item else ""}>'
+        f'{c["tab"]}</a>' for k, c in FLIP_PAGES.items())
+    watch = "".join(f"<span>{html.escape(w)}</span>" for w in page["watch"])
+    subs = {
+        "__TITLE__": page["title"], "__LEAD__": page["lead"],
+        "__NOUN__": page["noun"], "__PLURAL__": page["plural"],
+        "__PATH__": path, "__TABS__": tabs, "__WATCH__": watch,
+        "__CAPTION__": caption, "__ROWS__": rows,
+        "__EXAMPLE__": _flip_example(page["example"]),
+        "__BOARD__": _flip_board(page["board"]),
+        "__ART__": '<img src="%s" alt="%s" width="%d" height="%d">' % page["img"],
+        "__FLOAT__": page["float"],
+        "__CALL__": html.escape(FLIP_CALL_URL), "__ORIGIN__": origin,
+    }
+    doc = FLIP_HTML
+    for k, v in subs.items():
+        doc = doc.replace(k, v)
+    return doc
+
+
 # ---------------------------------------------------------------- analytics
 # Google Tag Manager. One container, injected into every page below so the
 # snippet lives in a single place instead of being copy-pasted five times.
@@ -2784,6 +3345,7 @@ CREDITS_HTML = _with_gtm(CREDITS_HTML)
 HISTORY_HTML = _with_gtm(HISTORY_HTML)
 IDEAS_HTML = _with_gtm(IDEAS_HTML)
 UNSUBSCRIBE_HTML = _with_gtm(UNSUBSCRIBE_HTML)
+FLIP_HTML = _with_gtm(FLIP_HTML)
 
 
 ROBOTS_TXT = """User-agent: *
@@ -2797,6 +3359,9 @@ SITEMAP_XML = """<?xml version="1.0" encoding="UTF-8"?>
   <url><loc>__ORIGIN__/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
   <url><loc>__ORIGIN__/how-it-works</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>__ORIGIN__/ideas</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>__ORIGIN__/flip</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>__ORIGIN__/flip?item=bikes</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>__ORIGIN__/flip?item=chairs</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>__ORIGIN__/credits</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
 </urlset>
 """
@@ -2991,6 +3556,21 @@ def app(environ, start_response):
             headers = [("Content-Type", "application/xml; charset=utf-8")]
         elif path == "/how-it-works":
             body = HOW_IT_WORKS_HTML.replace("__ORIGIN__", origin).encode()
+            headers = [("Content-Type", "text/html; charset=utf-8")]
+        elif path in FLIP_IMAGES:
+            try:
+                file = os.path.join(os.path.dirname(os.path.abspath(__file__)), path[1:])
+                with open(file, "rb") as f:
+                    body = f.read()
+                headers = [("Content-Type", "image/webp"),
+                           ("Cache-Control", "public, max-age=604800")]
+            except OSError as e:
+                log.warning("[%s] flip image %s missing: %s", req_id, path, e)
+                status, body = "404 Not Found", b"Not found"
+                headers = [("Content-Type", "text/plain; charset=utf-8")]
+        elif path == "/flip":
+            item = flip_item(environ.get("QUERY_STRING", ""))
+            body = render_flip(item, origin=origin, req_id=req_id).encode()
             headers = [("Content-Type", "text/html; charset=utf-8")]
         elif path == "/credits":
             body = CREDITS_HTML.replace("__ORIGIN__", origin).encode()

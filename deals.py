@@ -12,11 +12,13 @@ Pipeline (reuses app.py's LLM + search + Redis helpers):
      and you can't just buy the item at the price shown.
   2. An LLM values every listing: is it a genuine, complete item from a
      target brand (not a replica, part, or accessory), what would it
-     realistically resell for on the Dutch market, and is the upside
-     real? Only finds valued at €500+ (conservative low end) survive.
+     realistically resell for on the Dutch market (sold prices, not
+     asking prices), and is the upside real? Finds valued at €500+
+     (conservative low end) go to the homepage; anything with a clear
+     margin for a reseller (FLIP_* below) goes to the /flip page.
   3. The result is stored in Upstash Redis under deals:latest (and a
      dated deals:<YYYY-MM-DD> copy), which the homepage renders as
-     "Today's finds".
+     "Today's finds" and /flip renders per category from "flip".
 
 Run it manually:
   OPENROUTER_API_KEY=sk-or-... python3 deals.py --dry-run   # print only
@@ -45,12 +47,21 @@ PRICE_MAX_EURO = 250    # asking price cap: "costs under €250..."
 RESALE_MIN_EURO = 500   # "...with good reason to resell for €500+"
 FINDS_PER_CATEGORY = 8  # keep at most this many finds per category
 
+# The /flip page wants more, smaller wins than the homepage: anything a reseller
+# can buy and sell on with a clear margin, not only the €500+ outliers.
+FLIP_MIN_MARGIN_EURO = 40   # conservative resale minus asking: worth the trip
+FLIP_MIN_RATIO = 1.3        # ...and at least this multiple of the asking price
+FLIP_MAX_RATIO = 10         # above this the valuation is more likely wrong than lucky
+FLIP_MIN_ASK_EURO = 10      # €1 "prijs n.o.t.k." placeholders aren't real prices
+FLIP_PER_CATEGORY = 8
+
 CATEGORIES = [
     {
         "key": "bikes",
         "label": "Vintage racing bikes",
         "queries": ["koga miyata racefiets", "rih racefiets", "gitane racefiets",
-                    "peugeot racefiets vintage", "raleigh racefiets", "bianchi racefiets"],
+                    "peugeot racefiets vintage", "raleigh racefiets", "bianchi racefiets",
+                    "gazelle racefiets", "batavus racefiets"],
         "target": ("a complete, ridable vintage/classic racing bike from a quality "
                    "brand such as RIH, Peugeot, Gitane, Koga Miyata, Raleigh or "
                    "Bianchi, in good original condition (bikes needing a full "
@@ -59,17 +70,25 @@ CATEGORIES = [
     {
         "key": "lamps",
         "label": "Designer lamps",
-        "queries": ["louis poulsen lamp", "artemide lamp"],
-        "target": ("a genuine designer lamp by Louis Poulsen or Artemide (an "
-                   "original, not a replica, 'in de stijl van' lookalike, or a "
-                   "loose shade/part), in working, sellable condition"),
+        "queries": ["louis poulsen lamp", "artemide lamp", "flos lamp",
+                    "philips vintage lamp", "anvia lamp", "hala zeist lamp",
+                    "raak lamp", "dijkstra lamp"],
+        "target": ("a genuine designer lamp by Louis Poulsen, Artemide, Flos, or a "
+                   "vintage Dutch maker (Philips, Anvia, Hala Zeist, Raak, Dijkstra) "
+                   "(an original, not a replica, 'in de stijl van' lookalike, a "
+                   "recent mass-market Philips lamp, or a loose shade/part), in "
+                   "working, sellable condition"),
     },
     {
         "key": "chairs",
         "label": "Design chairs",
-        "queries": ["vitra stoel", "herman miller stoel", "herman miller bureaustoel"],
-        "target": ("a genuine design chair by Vitra or Herman Miller (an original, "
-                   "not a replica or lookalike), in good, sellable condition"),
+        "queries": ["vitra stoel", "herman miller stoel", "herman miller bureaustoel",
+                    "pastoe stoel", "gispen stoel", "spectrum stoel", "artifort stoel",
+                    "thonet stoel", "friso kramer stoel"],
+        "target": ("a genuine design chair by Vitra, Herman Miller, Pastoe, Gispen, "
+                   "Spectrum, Artifort, Thonet or Friso Kramer (an original, not a "
+                   "replica, 'Thonet stijl' or other lookalike), in good, sellable "
+                   "condition"),
     },
     {
         "key": "macmini",
@@ -84,22 +103,29 @@ CATEGORIES = [
 
 # ---------------------------------------------------------------- valuation
 
-VALUE_PROMPT = """You are an expert reseller valuing Dutch classifieds listings.
-The buyer hunts for: %s.
+VALUE_PROMPT = """You are a seasoned reseller valuing Dutch classifieds listings for someone
+who buys items to sell them on. They hunt for: %s.
 
 Below are numbered listings (title | asking price | description | attributes, in Dutch).
-For each, decide whether it is genuinely the target item (reject replicas, lookalikes,
+First decide whether each one is genuinely the target item. Reject replicas, lookalikes,
 'stijl van' / 'geïnspireerd' items, spare parts, bare frames, shades, accessories,
-defective units, and wrong kinds of item) and estimate what it would REALISTICALLY
-resell for on the Dutch second-hand market (Marktplaats/Catawiki), as a conservative
-low–high range in euros. Be skeptical: when the text leaves brand, model, originality
-or condition unclear, value it low.
+defective units, and wrong kinds of item.
 
-Keep ONLY listings where the conservative LOW end of your resale estimate is at least
-€%d AND at least twice the asking price. Reply with ONLY JSON:
-{"finds": [{"n": <listing number>, "resale_low": <euro>, "resale_high": <euro>,
-            "why": "<max 15 words, English, no em dashes: what makes this undervalued>"}]}
-If nothing qualifies, reply {"finds": []}."""
+For every genuine item, estimate a realistic resale price range in euros:
+- Base it on what the same model in similar condition actually SELLS for in the
+  Netherlands (Marktplaats, Catawiki hammer prices), not on what other sellers ask.
+  Marktplaats asking prices typically run 20-30%% above what items sell for.
+- resale_low: what a reseller reliably gets within about 30 days, after a clean-up.
+  resale_high: what a patient seller gets on the best channel. At most 1.5x resale_low.
+- Deduct for anything the listing says is worn, damaged, missing or needs repair. When
+  brand, model, originality or condition are unclear, value it as the most common,
+  cheapest variant.
+- When in doubt, go lower. An optimistic estimate costs the buyer real money.
+
+Reply with ONLY JSON:
+{"items": [{"n": <listing number>, "resale_low": <euro>, "resale_high": <euro>,
+            "why": "<max 15 words, English, no em dashes: what the value rests on>"}]}
+Leave out listings that are not the genuine target item. If none are, reply {"items": []}."""
 
 VALUE_CHUNK = 12  # listings per LLM call; chunks are valued concurrently
 
@@ -113,19 +139,23 @@ def _value_chunk(target, listings, base):
                      f" | {desc} | {attrs}")
     result = llm_json(
         [
-            {"role": "system", "content": VALUE_PROMPT % (target, RESALE_MIN_EURO)},
+            {"role": "system", "content": VALUE_PROMPT % target},
             {"role": "user", "content": "\n".join(lines)},
         ],
         max_tokens=4000,
     )
     finds = {}
-    for f in result.get("finds", []):
+    for f in result.get("items", result.get("finds", [])):
         try:
             n = int(f["n"])
             low = int(f["resale_low"])
             high = int(f["resale_high"])
         except (KeyError, TypeError, ValueError):
             continue
+        if low <= 0:
+            continue
+        # hold the model to its own rule: a wide range is a guess, not a price
+        high = max(low, min(high, round(low * 1.5)))
         if base <= n < base + len(listings):
             finds[n] = {"resale_low": low, "resale_high": high,
                         "why": str(f.get("why", ""))[:200]}
@@ -133,7 +163,8 @@ def _value_chunk(target, listings, base):
 
 
 def value_listings(target, listings):
-    """LLM-value all listings concurrently. Returns {index: valuation}."""
+    """LLM-value all listings concurrently. Returns {index: valuation} for the
+    genuine target items; the callers decide which clear their bar."""
     chunks = [(i, listings[i : i + VALUE_CHUNK])
               for i in range(0, len(listings), VALUE_CHUNK)]
     finds = {}
@@ -146,6 +177,22 @@ def value_listings(target, listings):
             except Exception as e:
                 print(f"  ! valuation batch failed: {e}", file=sys.stderr)
     return finds
+
+
+# Auction-house lots (Catawiki and the like) advertise on Marktplaats with a
+# fixed-price label, but the number is an opening bid. You can't buy at it.
+_AUCTION_LOT_RE = re.compile(
+    r"winnende bieding|koperbescherming|geschatte waarde|\bkavel\b|geveild|veiling", re.I)
+
+
+def is_auction_lot(listing):
+    """True for an auction lot dressed up as a fixed-price ad: auction wording
+    in the text, or a paid ad (id starting with 'a') titled the way auction
+    houses title lots, 'Maker - Designer - Type - Model -'."""
+    if _AUCTION_LOT_RE.search(str(listing.get("description") or "")):
+        return True
+    title = str(listing.get("title") or "")
+    return str(listing.get("id") or "").startswith("a") and title.count(" - ") >= 3
 
 
 _TITLE_WORD_RE = re.compile(r"[a-z0-9]+")
@@ -181,7 +228,8 @@ def dedupe_relistings(listings, threshold=0.6):
 
 def hunt_category(cat):
     """Search all of a category's queries, dedupe, value, and return the
-    qualifying finds (best upside first) plus how many listings were scanned."""
+    homepage finds (best upside first), the /flip finds (best margin first)
+    and how many listings were scanned."""
     listings, seen = [], set()
     for q in cat["queries"]:
         try:
@@ -195,7 +243,7 @@ def hunt_category(cat):
             # no fixed price -> no way to establish the upside; skip
             if asking is None or asking > PRICE_MAX_EURO:
                 continue
-            if l["id"] in seen:
+            if l["id"] in seen or is_auction_lot(l):
                 continue
             seen.add(l["id"])
             listings.append(l)
@@ -206,13 +254,20 @@ def hunt_category(cat):
     print(f"  {len(listings)} priced candidates from {len(cat['queries'])} queries")
 
     valuations = value_listings(cat["target"], listings)
-    finds = []
+    finds, flip = [], []
     for i, v in valuations.items():
         l = listings[i]
-        # re-check the bar in code; the model's word alone isn't enough
-        if v["resale_low"] < max(RESALE_MIN_EURO, 2 * l["asking_euro"]):
-            continue
-        finds.append({**l, **v})
+        ask, low = l["asking_euro"], v["resale_low"]
+        # re-check every bar in code; the model's word alone isn't enough
+        if low >= max(RESALE_MIN_EURO, 2 * ask):
+            finds.append({**l, **v})
+        if (ask >= FLIP_MIN_ASK_EURO and low - ask >= FLIP_MIN_MARGIN_EURO
+                and FLIP_MIN_RATIO * ask <= low <= FLIP_MAX_RATIO * ask):
+            flip.append({**l, **v})
+    flip.sort(key=lambda f: f["resale_low"] - f["asking_euro"], reverse=True)
+    flip = flip[:FLIP_PER_CATEGORY]
+    print(f"  {len(valuations)} genuine, {len(finds)} homepage find(s), "
+          f"{len(flip)} flip find(s)")
     finds.sort(key=lambda f: f["resale_low"] / f["asking_euro"], reverse=True)
     finds = finds[:FINDS_PER_CATEGORY]
     if finds:
@@ -222,7 +277,7 @@ def hunt_category(cat):
                 finds[i].update(new_price=price, new_query=query, new_set=is_set)
         except Exception as e:
             print(f"  ! new-price lookup failed: {e}", file=sys.stderr)
-    return finds, len(listings)
+    return finds, flip, len(listings)
 
 
 # ---------------------------------------------------------------- run + store
@@ -240,10 +295,10 @@ def run(categories=None, save=True):
               "scanned": 0, "categories": []}
     for cat in cats:
         print(f"{cat['label']}...")
-        finds, scanned = hunt_category(cat)
+        finds, flip, scanned = hunt_category(cat)
         record["scanned"] += scanned
         record["categories"].append(
-            {"key": cat["key"], "label": cat["label"], "finds": finds})
+            {"key": cat["key"], "label": cat["label"], "finds": finds, "flip": flip})
         print(f"  -> {len(finds)} find(s)")
     if save:
         payload = json.dumps(record)
