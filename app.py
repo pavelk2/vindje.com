@@ -3213,7 +3213,10 @@ def render_flip(item, origin="", req_id="-"):
     deals = get_deals()
     for cat in (deals or {}).get("categories") or []:
         if cat.get("key") == page["key"]:
-            finds = cat.get("finds") or []
+            # "flip" is the reseller-sized list; records older than it only
+            # carry the homepage's €500+ "finds"
+            finds = cat.get("flip") if "flip" in cat else cat.get("finds")
+            finds = finds or []
             date = str(deals.get("date") or "")
     valued = bool(finds)
     if not valued:
@@ -3227,7 +3230,7 @@ def render_flip(item, origin="", req_id="-"):
             when = f"{d.day} {d:%B}"
         except ValueError:
             pass
-        caption = f"Found by this morning&rsquo;s hunt, {html.escape(when)}"
+        caption = f"Found by the morning hunt, {html.escape(when)}"
     else:
         caption = "Just listed on Marktplaats. Estimates arrive with the morning hunt."
     rows = _flip_rows(finds, valued) or (

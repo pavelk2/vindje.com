@@ -12,7 +12,12 @@ on:
     # GitHub cron has no timezone support, so winter runs are an hour
     # early rather than an hour late.
     - cron: "0 6 * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print the finds, save nothing"
+        type: boolean
+        default: false
 
 jobs:
   hunt:
@@ -29,4 +34,4 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
-        run: python3 deals.py
+        run: python3 deals.py ${{ inputs.dry_run && '--dry-run' || '' }}
