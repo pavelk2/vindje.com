@@ -49,8 +49,8 @@ FINDS_PER_CATEGORY = 8  # keep at most this many finds per category
 
 # The /flip page wants more, smaller wins than the homepage: anything a reseller
 # can buy and sell on with a clear margin, not only the €500+ outliers.
-FLIP_MIN_MARGIN_EURO = 100  # conservative resale minus asking price
-FLIP_MIN_RATIO = 1.6        # ...and at least this multiple of the asking price
+FLIP_MIN_MARGIN_EURO = 40   # conservative resale minus asking: worth the trip
+FLIP_MIN_RATIO = 1.3        # ...and at least this multiple of the asking price
 FLIP_MAX_RATIO = 10         # above this the valuation is more likely wrong than lucky
 FLIP_MIN_ASK_EURO = 10      # €1 "prijs n.o.t.k." placeholders aren't real prices
 FLIP_PER_CATEGORY = 8
@@ -171,6 +171,17 @@ def value_listings(target, listings):
     return finds
 
 
+# Auction-house lots (Catawiki and the like) advertise on Marktplaats with a
+# fixed-price label, but the number is an opening bid. You can't buy at it.
+_AUCTION_LOT_RE = re.compile(r"winnende bieding|koperbescherming|geschatte waarde|\bkavel\b",
+                             re.I)
+
+
+def is_auction_lot(listing):
+    """True for an auction lot dressed up as a fixed-price ad."""
+    return bool(_AUCTION_LOT_RE.search(str(listing.get("description") or "")))
+
+
 _TITLE_WORD_RE = re.compile(r"[a-z0-9]+")
 
 def _normalized_title(title):
@@ -219,7 +230,7 @@ def hunt_category(cat):
             # no fixed price -> no way to establish the upside; skip
             if asking is None or asking > PRICE_MAX_EURO:
                 continue
-            if l["id"] in seen:
+            if l["id"] in seen or is_auction_lot(l):
                 continue
             seen.add(l["id"])
             listings.append(l)
