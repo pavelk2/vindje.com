@@ -1080,7 +1080,12 @@ HTML = """<!doctype html>
   .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
           flex: 1 0 auto; }
 
-  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em;
+         display: flex; align-items: center; justify-content: space-between; }
+  .top .flip-link { font-size: 13.5px; font-weight: 600; letter-spacing: 0; color: var(--ink);
+                    text-decoration: none; padding: 7px 15px; border-radius: 980px;
+                    background: var(--field); transition: background .15s ease; }
+  .top .flip-link:hover { background: var(--line); }
 
   .hero { max-width: 660px; margin: 0 auto; }
   h1 {
@@ -1340,7 +1345,8 @@ HTML = """<!doctype html>
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><a href="/" style="color:inherit;text-decoration:none">vindje.com</a></div>
+  <div class="top"><a href="/" style="color:inherit;text-decoration:none">vindje.com</a>
+    <a class="flip-link" href="/flip" title="Vintage finds for resellers">Flip?</a></div>
   <section class="hero">
     <h1>Advanced search for Marktplaats</h1>
     <form id="f">
@@ -2764,12 +2770,12 @@ FLIP_HTML = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>__TITLE__ &middot; vindje.com for resellers</title>
-<meta name="description" content="For people who flip vintage __PLURAL__: every morning vindje.com reads the new Marktplaats listings and hands you the ones worth buying, with a resale estimate.">
+<meta name="description" content="For people who flip vintage __PLURAL__: every morning vindje.com scans second-hand marketplaces and hands you the ones worth buying, with a resale estimate.">
 <link rel="canonical" href="__ORIGIN____PATH__">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="vindje.com">
 <meta property="og:title" content="__TITLE__ &middot; vindje.com">
-<meta property="og:description" content="The Marktplaats __PLURAL__ worth flipping, found for you every morning, with a resale estimate.">
+<meta property="og:description" content="The vintage __PLURAL__ worth flipping, found across marketplaces every morning, with a resale estimate.">
 <meta property="og:url" content="__ORIGIN____PATH__">
 <meta name="twitter:card" content="summary">
 <meta name="theme-color" content="#ffffff">
@@ -2895,9 +2901,16 @@ FLIP_HTML = """<!doctype html>
   .col { background: var(--field); border-radius: 14px; padding: 12px; min-height: 120px;
          display: flex; flex-direction: column; gap: 8px; }
   .col-h { font-size: 12.5px; font-weight: 600; color: var(--muted); padding: 2px 2px 4px; }
-  .card { background: #fff; border-radius: 9px; padding: 10px 11px; font-size: 13px;
+  .card { display: flex; flex-direction: column; gap: 3px;
+          background: #fff; border-radius: 9px; padding: 10px 11px; font-size: 13px;
           box-shadow: 0 0 0 1px var(--line); }
-  .col:last-child .card { color: var(--money); font-weight: 600; }
+  .card b { font-weight: 600; margin-bottom: 2px; }
+  .card .m { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .card .p { font-style: normal; font-weight: 700; color: var(--money); font-size: 13px;
+             padding-top: 5px; margin-top: 3px; border-top: 1px solid var(--line); }
+  .board-total { display: flex; justify-content: flex-end; gap: 6px; margin: 14px 0 0;
+                 font-size: 15px; color: var(--body); font-variant-numeric: tabular-nums; }
+  .board-total b { color: var(--money); }
 
   .plans { border-top: 1px solid var(--line2); }
   .plan { display: grid; grid-template-columns: 140px minmax(0, 1fr) 140px; gap: 20px;
@@ -2952,7 +2965,7 @@ FLIP_HTML = """<!doctype html>
   </header>
 
   <div class="hero">
-    <h1>__LEAD__ <span>Vindje reads Marktplaats every morning and hands you the few worth flipping.</span></h1>
+    <h1>__LEAD__ <span>Vindje scans the marketplaces for you every morning.</span></h1>
     <figure class="art __FLOAT__">__ART__</figure>
     <div class="go">
       <a class="btn" href="__CALL__" target="_blank" rel="noopener">Book a 15-min call</a>
@@ -2962,7 +2975,7 @@ FLIP_HTML = """<!doctype html>
   <p class="watch"><b>Watching</b>__WATCH__</p>
 
   <section aria-labelledby="today">
-    <h2 id="today">Today&rsquo;s list. <span>Live, straight from Marktplaats.</span></h2>
+    <h2 id="today">Today&rsquo;s list. <span>Live from the marketplaces.</span></h2>
     <div class="list-head"><span>__CAPTION__</span><span class="num">Asking</span>
       <span class="num">Resale est.</span><span class="num">Margin</span></div>
     __ROWS__
@@ -2977,8 +2990,8 @@ FLIP_HTML = """<!doctype html>
   </section>
 
   <section aria-labelledby="board">
-    <h2 id="board">From spotted to sold on one board. <span>Your daily email feeds it. Drag a find along as you go.</span></h2>
-    <div class="board">__BOARD__</div>
+    <h2 id="board">From spotted to sold on one board. <span>Every find keeps its numbers, from asking price to profit.</span></h2>
+    __BOARD__
     <p class="preview">Preview of the reseller board.</p>
   </section>
 
@@ -3034,9 +3047,16 @@ FLIP_PAGES = {
         "example": {"title": "Louis Poulsen PH 4/3, brass", "ask": 90,
                     "refs": [360, 420, 450, 520], "low": 380, "high": 480,
                     "odds": 71, "days": 12},
-        "board": [["Artemide Tolomeo", "Philips Evoluon lamp"], ["Anvia desk lamp"],
-                  ["Louis Poulsen PH 5"], ["Raak Amsterdam"], ["Hala Zeist"]],
-    },    "bikes": {
+        "board": {
+            "spotted": [("Artemide Tolomeo", 60), ("Philips Evoluon lamp", 45)],
+            "messaged": [("Anvia desk lamp", 80, 60)],
+            "bought": [("Louis Poulsen PH 5", 140, 110)],
+            "listed": [("Raak Amsterdam pendant", 70, 15, 190)],
+            "sold": [("Hala Zeist desk lamp", 55, 10, 160),
+                     ("Louis Poulsen PH 4/3", 120, 0, 260)],
+        },
+    },
+    "bikes": {
         "key": "bikes", "tab": "Bikes", "noun": "bike", "plural": "bikes",
         "img": ("/img/flip-bikes.webp", "Red RIH Sport racing bike", 960, 640),
         "float": "crop",
@@ -3049,9 +3069,16 @@ FLIP_PAGES = {
         "example": {"title": "Koga Miyata Gentsluxe, 1988", "ask": 140,
                     "refs": [290, 340, 360, 410], "low": 300, "high": 380,
                     "odds": 78, "days": 9},
-        "board": [["Peugeot PX10", "Gitane Tour de France"], ["Gazelle Champion Mondial"],
-                  ["Batavus Professional"], ["Raleigh Competition"], ["RIH Sport"]],
-    },    "chairs": {
+        "board": {
+            "spotted": [("Peugeot PX10", 250), ("Gitane Tour de France", 120)],
+            "messaged": [("Gazelle Champion Mondial", 180, 140)],
+            "bought": [("Batavus Professional", 120, 95)],
+            "listed": [("Raleigh Competition", 80, 45, 260)],
+            "sold": [("RIH Sport", 150, 40, 380),
+                     ("Koga Miyata Gentsluxe", 110, 35, 240)],
+        },
+    },
+    "chairs": {
         "key": "chairs", "tab": "Chairs", "noun": "chair", "plural": "chairs",
         "img": ("/img/flip-chairs.webp", "Marcel Breuer Wassily chair", 395, 373),
         "float": "ground",
@@ -3065,9 +3092,16 @@ FLIP_PAGES = {
         "example": {"title": "Gispen 116 tube chair, pair", "ask": 60,
                     "refs": [280, 320, 350, 390, 410], "low": 300, "high": 380,
                     "odds": 64, "days": 16},
-        "board": [["Pastoe FM31", "Spectrum SZ01"], ["Vitra Eames DSW"],
-                  ["Friso Kramer Revolt"], ["Artifort Mushroom"], ["Gispen 201"]],
-    },}
+        "board": {
+            "spotted": [("Pastoe FM31", 90), ("Spectrum SZ01", 75)],
+            "messaged": [("Vitra Eames DSW, pair", 120, 90)],
+            "bought": [("Friso Kramer Revolt, set of 4", 180, 140)],
+            "listed": [("Artifort Mushroom", 120, 60, 380)],
+            "sold": [("Gispen 201, pair", 90, 20, 260),
+                     ("Vitra Panton", 40, 0, 110)],
+        },
+    },
+}
 FLIP_DEFAULT = "lamps"
 # ?item= also takes the words people naturally type
 FLIP_ALIASES = {"lights": "lamps", "light": "lamps", "lamp": "lamps",
@@ -3188,13 +3222,34 @@ def _flip_example(ex):
     )
 
 
-def _flip_board(cards):
-    cols = ["Spotted", "Messaged", "Bought", "Listed", "Sold"]
-    out = []
-    for name, items in zip(cols, cards):
-        chips = "".join(f'<span class="card">{html.escape(t)}</span>' for t in items)
-        out.append(f'<div class="col"><span class="col-h">{name}</span>{chips}</div>')
-    return "".join(out)
+def _flip_board(board):
+    """The reseller board preview: each card carries its stage's numbers, the
+    sold column ends in profit, and the board totals it."""
+    def card(title, *lines):
+        meta = "".join(f'<span class="m">{l}</span>' for l in lines)
+        return f'<span class="card"><b>{html.escape(title)}</b>{meta}</span>'
+
+    cols = [
+        ("Spotted", [card(t, f"Asking {_euro(ask)}") for t, ask in board["spotted"]]),
+        ("Messaged", [card(t, f"Asking {_euro(ask)}", f"Offered {_euro(offer)}")
+                      for t, ask, offer in board["messaged"]]),
+        ("Bought", [card(t, f"Paid {_euro(paid)}", f"Asked {_euro(ask)}")
+                    for t, ask, paid in board["bought"]]),
+        ("Listed", [card(t, f"Paid {_euro(paid)} &middot; costs {_euro(cost)}",
+                         f"Listed at {_euro(price)}")
+                    for t, paid, cost, price in board["listed"]]),
+        ("Sold", [card(t, f"Paid {_euro(paid)} &middot; costs {_euro(cost)}",
+                       f"Sold for {_euro(sold)}",
+                       f'<em class="p">+{_euro(sold - paid - cost)} profit</em>')
+                  for t, paid, cost, sold in board["sold"]]),
+    ]
+    out = "".join(f'<div class="col"><span class="col-h">{name}</span>{"".join(cards)}</div>'
+                  for name, cards in cols)
+    total = sum(sold - paid - cost for _t, paid, cost, sold in board["sold"])
+    n = len(board["sold"])
+    return (f'<div class="board">{out}</div>'
+            f'<p class="board-total">{n} flip{"s" if n != 1 else ""} sold'
+            f' &middot; <b>+{_euro(total)} profit</b></p>')
 
 
 def flip_item(query_string):
@@ -3232,7 +3287,7 @@ def render_flip(item, origin="", req_id="-"):
             pass
         caption = f"Found by the morning hunt, {html.escape(when)}"
     else:
-        caption = "Just listed on Marktplaats. Estimates arrive with the morning hunt."
+        caption = "Just listed. Estimates arrive with the morning hunt."
     rows = _flip_rows(finds, valued) or (
         '<p class="empty">Nothing on the list right now. The next hunt runs at 8:00.</p>')
     tabs = "".join(
