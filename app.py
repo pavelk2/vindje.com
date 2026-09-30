@@ -297,6 +297,7 @@ def search_marktplaats(terms, postcode=None, distance_meters=None,
                 "distance_km": round(dist / 1000, 1) if dist and dist > 0 else None,
                 "attributes": attrs,
                 "image": image,
+                "category_id": raw.get("categoryId"),
                 "url": "https://www.marktplaats.nl" + raw.get("vipUrl", ""),
             }
         )
@@ -2999,6 +3000,7 @@ FLIP_PAGES = {
         "title": "Flip vintage bikes",
         "lead": "Find the &euro;150 racing bike that sells for &euro;600.",
         "fresh_query": "vintage racefiets",
+        "fresh_categories": {464, 2026},        # Racefietsen, Oldtimers
         "watch": ["Koga Miyata", "RIH", "Gazelle", "Peugeot", "Gitane",
                   "Raleigh", "Bianchi", "Batavus"],
         "example": {"title": "Koga Miyata Gentsluxe, 1988", "ask": 140,
@@ -3012,6 +3014,8 @@ FLIP_PAGES = {
         "title": "Flip vintage lamps",
         "lead": "Find the &euro;60 lamp that sells for &euro;400.",
         "fresh_query": "vintage design lamp",
+        # Hang-, Vloer-, Tafel-, Wand-, Plafond-, Overige lampen, Antiek lampen
+        "fresh_categories": {1258, 1259, 1260, 1622, 2761, 1265, 7},
         "watch": ["Louis Poulsen", "Artemide", "Flos", "Philips", "Anvia",
                   "Hala Zeist", "Raak", "Dijkstra"],
         "example": {"title": "Louis Poulsen PH 4/3, brass", "ask": 90,
@@ -3025,6 +3029,8 @@ FLIP_PAGES = {
         "title": "Flip vintage chairs",
         "lead": "Find the &euro;50 chair that sells for &euro;350.",
         "fresh_query": "vintage design stoel",
+        # Stoelen, Fauteuils, Bureaustoelen, Antiek stoelen en banken
+        "fresh_categories": {530, 1940, 3194, 1505},
         "watch": ["Vitra", "Herman Miller", "Pastoe", "Gispen", "Spectrum",
                   "Artifort", "Thonet", "Friso Kramer"],
         "example": {"title": "Gispen 116 tube chair, pair", "ask": 60,
@@ -3037,6 +3043,23 @@ FLIP_PAGES = {
 
 _flip_fresh_cache = {}
 
+# The fallback has no AI valuation, so the title has to earn its row: a watched
+# brand or a vintage word, and none of the new-retail or replica tells.
+_FLIP_VINTAGE_RE = re.compile(
+    r"vintage|retro|antiek|klassiek|jaren\s*'?[2-8]0|'[2-8]0s|\b19[2-9]\d\b", re.I)
+_FLIP_REJECT_RE = re.compile(
+    r"nieuw|new|2025|2026|sale|kinder|kids|ikea|vidaxl|stijl|style|look|replica|"
+    r"tafel|table|onderdel|frame\b", re.I)
+
+
+def _flip_title_ok(title, page):
+    """True when an unvalued listing title reads like a real vintage find."""
+    t = title.lower()
+    if _FLIP_REJECT_RE.search(t):
+        return False
+    return (any(w.lower() in t for w in page["watch"])
+            or bool(_FLIP_VINTAGE_RE.search(t)))
+
 
 def _flip_fresh(page, req_id="-"):
     """Plain, unvalued listings for a flip page, cached per instance so page
@@ -3048,12 +3071,17 @@ def _flip_fresh(page, req_id="-"):
     try:
         # the €40 floor keeps out toys, parts and accessories
         found, _total = search_marktplaats(page["fresh_query"], price_min_euro=40,
-                                           price_max_euro=250, limit=20,
+                                           price_max_euro=250, limit=40,
                                            exclude_bids=True, req_id=req_id)
     except Exception as e:
         log.warning("[%s] flip fallback search failed for %s: %s", req_id, key, e)
         found = []
-    found = [l for l in found if l.get("asking_euro") and l.get("image")][:FLIP_ROWS]
+    # keyword search also matches text anywhere ("Vintage Racer" sneakers),
+    # so keep only listings filed in the page's own Marktplaats categories
+    found = [l for l in found
+             if l.get("category_id") in page["fresh_categories"]
+             and _flip_title_ok(str(l.get("title") or ""), page)
+             and l.get("asking_euro") and l.get("image")][:FLIP_ROWS]
     _flip_fresh_cache[key] = (time.time(), found)
     return found
 
