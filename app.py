@@ -26,7 +26,6 @@ import hashlib
 import html
 import json
 import logging
-import math
 import os
 import re
 import secrets
@@ -2808,13 +2807,18 @@ FLIP_HTML = """<!doctype html>
   .hero h1 { grid-area: h1; }
   .hero .go { grid-area: go; width: 100%; }
   .art { grid-area: art; margin: 0; position: relative; align-self: center; }
-  .art svg { display: block; width: 100%; height: auto; position: relative; z-index: 1; }
-  .art.ground svg { animation: float 6s ease-in-out infinite; }
+  .art img { display: block; width: 100%; height: auto; position: relative; z-index: 1; }
+  .art.ground img, .art.crop img { animation: float 6s ease-in-out infinite; }
+  .art.crop { width: 136%; margin-left: -18%; }
+  .art.crop img { -webkit-mask-image: radial-gradient(ellipse 58% 60% at 58% 44%,
+                    #000 52%, transparent 100%);
+                  mask-image: radial-gradient(ellipse 58% 60% at 58% 44%,
+                    #000 52%, transparent 100%); }
   .art.ground::after { content: ""; position: absolute; left: 18%; right: 18%;
                        bottom: -14px; height: 14px; border-radius: 50%;
                        background: radial-gradient(closest-side, rgba(0,0,0,.14), transparent);
                        animation: shade 6s ease-in-out infinite; }
-  .art.hang svg { transform-origin: 50% 0; animation: sway 7s ease-in-out infinite; }
+  .art.hang img { transform-origin: 50% 0; animation: sway 7s ease-in-out infinite; }
   @keyframes float { 50% { transform: translateY(-12px); } }
   @keyframes shade { 50% { transform: scaleX(.8); opacity: .6; } }
   @keyframes sway { 0%, 100% { transform: rotate(-1.4deg); }
@@ -2920,6 +2924,7 @@ FLIP_HTML = """<!doctype html>
     .hero { grid-template-columns: 1fr; grid-template-areas: "art" "h1" "go";
             gap: 28px; }
     .art { width: 72%; max-width: 280px; justify-self: center; }
+    .art.crop { width: 100%; max-width: 420px; margin-left: 0; }
     .end { flex-direction: column; align-items: stretch; gap: 28px; }
     .go { width: 100%; }
     .list-head { display: none; }
@@ -3010,108 +3015,14 @@ FLIP_HTML = """<!doctype html>
 </html>"""
 
 
-# The hero object on each page, drawn as inline SVG: no photo rights to clear,
-# no extra request, sharp at any size.
-def _flip_spokes(cx, cy, r_in, r_out, n=18):
-    out = []
-    for i in range(n):
-        a = 2 * math.pi * i / n
-        b = a + math.pi / 7   # tangential lacing, as on a real wheel
-        out.append(f"M{cx + r_in * math.cos(a):.1f} {cy + r_in * math.sin(a):.1f}"
-                   f"L{cx + r_out * math.cos(b):.1f} {cy + r_out * math.sin(b):.1f}")
-    return "".join(out)
-
-
-def _flip_wheel(cx, cy):
-    return (f'<circle cx="{cx}" cy="{cy}" r="66" stroke-width="5"/>'
-            f'<circle cx="{cx}" cy="{cy}" r="59" stroke-width="1.6"/>'
-            f'<path d="{_flip_spokes(cx, cy, 5, 58)}" stroke-width=".7" stroke="#86868b"/>'
-            f'<circle cx="{cx}" cy="{cy}" r="5" fill="#fff" stroke-width="1.6"/>')
-
-
-# A late-70s RIH road bike, side view: lugged steel frame, drop bars,
-# downtube shifters, the RIH name on the down tube.
-FLIP_ART_BIKE = (
-    '<svg viewBox="0 0 380 240" role="img" aria-label="Drawing of a vintage RIH racing bike"'
-    ' fill="none" stroke="#1d1d1f" stroke-linecap="round" stroke-linejoin="round">'
-    + _flip_wheel(82, 164) + _flip_wheel(298, 164) +
-    # frame
-    '<path d="M82 164 L178 170 L156 70 Z" stroke-width="4.2"/>'
-    '<path d="M156 70 L268 72 L276 100 L178 170" stroke-width="4.2"/>'
-    '<path d="M268 72 L276 100" stroke-width="6"/>'
-    # fork with rake
-    '<path d="M276 100 C284 128 288 150 298 164" stroke-width="3.6"/>'
-    # seatpost and saddle
-    '<path d="M156 70 L151 50" stroke-width="3"/>'
-    '<path d="M134 46 C140 42 164 42 172 45 C168 50 150 51 138 50 Z"'
-    ' fill="#1d1d1f" stroke-width="1.5"/>'
-    # stem and drop bar
-    '<path d="M268 72 L266 62 L282 60" stroke-width="3"/>'
-    '<path d="M282 60 C296 60 301 70 298 82 C295 92 287 95 280 91" stroke-width="3.2"/>'
-    # drivetrain
-    '<circle cx="178" cy="170" r="17" stroke-width="2"/>'
-    '<circle cx="178" cy="170" r="12" stroke-width="1"/>'
-    '<path d="M178 170 L190 190 M184 190 L197 190" stroke-width="3"/>'
-    '<path d="M162 171 L86 172 M163 158 L86 157" stroke-width=".9" stroke="#86868b"/>'
-    '<path d="M244 105 L247 98" stroke-width="2.4"/>'
-    # brakes
-    '<path d="M150 64 L146 62 M276 96 L282 94" stroke-width="2"/>'
-    '<text x="0" y="0" transform="translate(206 143) rotate(-35.6)" fill="#1d1d1f"'
-    ' stroke="none" font-size="11.5" font-weight="700" letter-spacing="1.5"'
-    ' font-family="Georgia, serif">RIH</text>'
-    '</svg>'
-)
-
-# Louis Poulsen PH 5, side view: the three-shade system on a cord.
-FLIP_ART_LAMP = (
-    '<svg viewBox="0 0 300 274" role="img" aria-label="Drawing of a PH 5 pendant lamp"'
-    ' stroke="#1d1d1f" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">'
-    '<path d="M150 0 L150 90" stroke-width="1.6"/>'
-    '<rect x="141" y="84" width="18" height="16" rx="3" fill="#1d1d1f"/>'
-    # bottom bowl, then middle shade, then the wide top shade over both
-    '<path d="M98 214 C102 246 126 262 150 262 C174 262 198 246 202 214'
-    ' C182 219 118 219 98 214 Z" fill="#f5f5f7"/>'
-    '<path d="M118 208 C130 202 170 202 182 208 C170 214 130 214 118 208 Z"'
-    ' fill="#c8102e" stroke="none"/>'
-    '<path d="M66 204 C88 166 120 152 150 152 C180 152 212 166 234 204'
-    ' C208 197 180 195 150 195 C120 195 92 197 66 204 Z" fill="#f5f5f7"/>'
-    '<path d="M22 176 C52 124 106 100 150 100 C194 100 248 124 278 176'
-    ' C252 167 202 162 150 162 C98 162 48 167 22 176 Z" fill="#f5f5f7"/>'
-    '</svg>'
-)
-
-# Marcel Breuer's Wassily (B3) chair, side view: bent chrome tube with black
-# leather straps for arms, seat and back; the far side frame sits behind.
-_FLIP_CHAIR_FRAME = (
-    '<path d="M60 244 L246 244 C254 244 258 240 258 232 L258 132 C258 124 254 120 246 120'
-    ' L70 120"/>'
-    '<path d="M60 244 C52 244 48 240 48 232 L36 62 C36 56 40 52 46 52"/>'
-    '<path d="M258 156 L78 186"/>'
-)
-FLIP_ART_CHAIR = (
-    '<svg viewBox="0 0 318 270" role="img" aria-label="Drawing of a Wassily chair"'
-    ' fill="none" stroke-linecap="round" stroke-linejoin="round">'
-    '<g transform="translate(44 -30)" stroke="#c7c7cc" stroke-width="4.5">'
-    + _FLIP_CHAIR_FRAME + '</g>'
-    # leather: back, seat, arm
-    '<path d="M40 70 L84 40 L98 150 L54 180 Z" fill="#2c2c2e"/>'
-    '<path d="M258 156 L302 126 L122 156 L78 186 Z" fill="#1d1d1f"/>'
-    '<path d="M72 124 L256 124 L256 150 L74 150 Z" fill="#1d1d1f"/>'
-    '<g stroke="#6e6e73" stroke-width="5">' + _FLIP_CHAIR_FRAME +
-    '<path d="M60 244 L104 214 M258 232 L302 202 M46 52 L90 22 M258 132 L302 102"/>'
-    '</g>'
-    '<path d="M40 70 L50 222 M256 136 L256 224" stroke="#fff" stroke-width="1.2"'
-    ' opacity=".7"/>'
-    '</svg>'
-)
-
 FLIP_CALL_URL = "https://timetuna.com/pavel?purpose=vindje.com"
 FLIP_FRESH_TTL = 1800   # seconds a fallback search is reused per instance
 FLIP_ROWS = 6
 
 FLIP_PAGES = {
     "/flip-vintage-bikes": {
-        "key": "bikes", "art": FLIP_ART_BIKE, "float": "ground", "tab": "Bikes", "noun": "bike", "plural": "bikes",
+        "key": "bikes", "tab": "Bikes", "noun": "bike", "plural": "bikes",
+        "img": ("/img/flip-bikes.webp", "Red RIH Sport racing bike", 960, 640), "float": "crop",
         "title": "Flip vintage bikes",
         "lead": "Find the &euro;150 racing bike that sells for &euro;600.",
         "fresh_query": "vintage racefiets",
@@ -3125,7 +3036,8 @@ FLIP_PAGES = {
                   ["Batavus Professional"], ["Raleigh Competition"], ["RIH Sport"]],
     },
     "/flip-vintage-lamps": {
-        "key": "lamps", "art": FLIP_ART_LAMP, "float": "hang", "tab": "Lamps", "noun": "lamp", "plural": "lamps",
+        "key": "lamps", "tab": "Lamps", "noun": "lamp", "plural": "lamps",
+        "img": ("/img/flip-lamps.webp", "Louis Poulsen PH 5 pendant lamp", 640, 573), "float": "hang",
         "title": "Flip vintage lamps",
         "lead": "Find the &euro;60 lamp that sells for &euro;400.",
         "fresh_query": "vintage design lamp",
@@ -3140,7 +3052,8 @@ FLIP_PAGES = {
                   ["Louis Poulsen PH 5"], ["Raak Amsterdam"], ["Hala Zeist"]],
     },
     "/flip-vintage-chairs": {
-        "key": "chairs", "art": FLIP_ART_CHAIR, "float": "ground", "tab": "Chairs", "noun": "chair", "plural": "chairs",
+        "key": "chairs", "tab": "Chairs", "noun": "chair", "plural": "chairs",
+        "img": ("/img/flip-chairs.webp", "Marcel Breuer Wassily chair", 395, 373), "float": "ground",
         "title": "Flip vintage chairs",
         "lead": "Find the &euro;50 chair that sells for &euro;350.",
         "fresh_query": "vintage design stoel",
@@ -3157,6 +3070,10 @@ FLIP_PAGES = {
 }
 
 _flip_fresh_cache = {}
+
+# Hero photos live in img/. Vercel serves them as static files; this set lets
+# the local server (and the function, if a request reaches it) do the same.
+FLIP_IMAGES = {p["img"][0] for p in FLIP_PAGES.values()}
 
 # The fallback has no AI valuation, so the title has to earn its row: a watched
 # brand or a vintage word, and none of the new-retail or replica tells.
@@ -3312,7 +3229,8 @@ def render_flip(path, origin="", req_id="-"):
         "__CAPTION__": caption, "__ROWS__": rows,
         "__EXAMPLE__": _flip_example(page["example"]),
         "__BOARD__": _flip_board(page["board"]),
-        "__ART__": page["art"], "__FLOAT__": page["float"],
+        "__ART__": '<img src="%s" alt="%s" width="%d" height="%d">' % page["img"],
+        "__FLOAT__": page["float"],
         "__CALL__": html.escape(FLIP_CALL_URL), "__ORIGIN__": origin,
     }
     doc = FLIP_HTML
@@ -3567,6 +3485,17 @@ def app(environ, start_response):
         elif path == "/how-it-works":
             body = HOW_IT_WORKS_HTML.replace("__ORIGIN__", origin).encode()
             headers = [("Content-Type", "text/html; charset=utf-8")]
+        elif path in FLIP_IMAGES:
+            try:
+                file = os.path.join(os.path.dirname(os.path.abspath(__file__)), path[1:])
+                with open(file, "rb") as f:
+                    body = f.read()
+                headers = [("Content-Type", "image/webp"),
+                           ("Cache-Control", "public, max-age=604800")]
+            except OSError as e:
+                log.warning("[%s] flip image %s missing: %s", req_id, path, e)
+                status, body = "404 Not Found", b"Not found"
+                headers = [("Content-Type", "text/plain; charset=utf-8")]
         elif path in FLIP_PAGES:
             body = render_flip(path, origin=origin, req_id=req_id).encode()
             headers = [("Content-Type", "text/html; charset=utf-8")]
