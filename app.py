@@ -2751,7 +2751,7 @@ def render_ideas(ideas, origin=""):
                        .replace("__ORIGIN__", origin))
 
 
-# ---------------------------------------------------------------- flip pages (/flip-vintage-*)
+# ---------------------------------------------------------------- flip page (/flip?item=)
 # Landing pages for people who buy vintage items on Marktplaats to resell.
 # One template, one config entry per category. The live rows come from the
 # morning deal hunt (deals.py writes them to deals:latest); with no finds
@@ -3015,29 +3015,15 @@ FLIP_HTML = """<!doctype html>
 </html>"""
 
 
-FLIP_CALL_URL = "https://timetuna.com/pavel?purpose=vindje.com"
+FLIP_CALL_URL = "https://timetuna.com/pavel?Purpose=vindje.com"
 FLIP_FRESH_TTL = 1800   # seconds a fallback search is reused per instance
 FLIP_ROWS = 6
 
 FLIP_PAGES = {
-    "/flip-vintage-bikes": {
-        "key": "bikes", "tab": "Bikes", "noun": "bike", "plural": "bikes",
-        "img": ("/img/flip-bikes.webp", "Red RIH Sport racing bike", 960, 640), "float": "crop",
-        "title": "Flip vintage bikes",
-        "lead": "Find the &euro;150 racing bike that sells for &euro;600.",
-        "fresh_query": "vintage racefiets",
-        "fresh_categories": {464, 2026},        # Racefietsen, Oldtimers
-        "watch": ["Koga Miyata", "RIH", "Gazelle", "Peugeot", "Gitane",
-                  "Raleigh", "Bianchi", "Batavus"],
-        "example": {"title": "Koga Miyata Gentsluxe, 1988", "ask": 140,
-                    "refs": [290, 340, 360, 410], "low": 300, "high": 380,
-                    "odds": 78, "days": 9},
-        "board": [["Peugeot PX10", "Gitane Tour de France"], ["Gazelle Champion Mondial"],
-                  ["Batavus Professional"], ["Raleigh Competition"], ["RIH Sport"]],
-    },
-    "/flip-vintage-lamps": {
+    "lamps": {
         "key": "lamps", "tab": "Lamps", "noun": "lamp", "plural": "lamps",
-        "img": ("/img/flip-lamps.webp", "Louis Poulsen PH 5 pendant lamp", 640, 573), "float": "hang",
+        "img": ("/img/flip-lamps.webp", "Louis Poulsen PH 5 pendant lamp", 640, 573),
+        "float": "hang",
         "title": "Flip vintage lamps",
         "lead": "Find the &euro;60 lamp that sells for &euro;400.",
         "fresh_query": "vintage design lamp",
@@ -3050,10 +3036,25 @@ FLIP_PAGES = {
                     "odds": 71, "days": 12},
         "board": [["Artemide Tolomeo", "Philips Evoluon lamp"], ["Anvia desk lamp"],
                   ["Louis Poulsen PH 5"], ["Raak Amsterdam"], ["Hala Zeist"]],
-    },
-    "/flip-vintage-chairs": {
+    },    "bikes": {
+        "key": "bikes", "tab": "Bikes", "noun": "bike", "plural": "bikes",
+        "img": ("/img/flip-bikes.webp", "Red RIH Sport racing bike", 960, 640),
+        "float": "crop",
+        "title": "Flip vintage bikes",
+        "lead": "Find the &euro;150 racing bike that sells for &euro;600.",
+        "fresh_query": "vintage racefiets",
+        "fresh_categories": {464, 2026},        # Racefietsen, Oldtimers
+        "watch": ["Koga Miyata", "RIH", "Gazelle", "Peugeot", "Gitane",
+                  "Raleigh", "Bianchi", "Batavus"],
+        "example": {"title": "Koga Miyata Gentsluxe, 1988", "ask": 140,
+                    "refs": [290, 340, 360, 410], "low": 300, "high": 380,
+                    "odds": 78, "days": 9},
+        "board": [["Peugeot PX10", "Gitane Tour de France"], ["Gazelle Champion Mondial"],
+                  ["Batavus Professional"], ["Raleigh Competition"], ["RIH Sport"]],
+    },    "chairs": {
         "key": "chairs", "tab": "Chairs", "noun": "chair", "plural": "chairs",
-        "img": ("/img/flip-chairs.webp", "Marcel Breuer Wassily chair", 395, 373), "float": "ground",
+        "img": ("/img/flip-chairs.webp", "Marcel Breuer Wassily chair", 395, 373),
+        "float": "ground",
         "title": "Flip vintage chairs",
         "lead": "Find the &euro;50 chair that sells for &euro;350.",
         "fresh_query": "vintage design stoel",
@@ -3066,8 +3067,11 @@ FLIP_PAGES = {
                     "odds": 64, "days": 16},
         "board": [["Pastoe FM31", "Spectrum SZ01"], ["Vitra Eames DSW"],
                   ["Friso Kramer Revolt"], ["Artifort Mushroom"], ["Gispen 201"]],
-    },
-}
+    },}
+FLIP_DEFAULT = "lamps"
+# ?item= also takes the words people naturally type
+FLIP_ALIASES = {"lights": "lamps", "light": "lamps", "lamp": "lamps",
+                "bike": "bikes", "fietsen": "bikes", "chair": "chairs", "stoelen": "chairs"}
 
 _flip_fresh_cache = {}
 
@@ -3175,7 +3179,8 @@ def _flip_example(ex):
         f'<div class="legend"><span><i class="ref"></i>{len(ex["refs"])} similar sales, '
         f'last 90 days</span><span><i class="askmark"></i>This listing</span></div>'
         f'<dl class="facts">'
-        f'<div><dt>Resale estimate</dt><dd>{_euro(ex["low"])}&ndash;{_euro(ex["high"])}</dd></div>'
+        f'<div><dt>Resale estimate</dt>'
+        f'<dd>{_euro(ex["low"])}&ndash;{_euro(ex["high"])}</dd></div>'
         f'<div><dt>Margin</dt><dd class="g">+{_euro(ex["low"] - ex["ask"])}</dd></div>'
         f'<div><dt>Sells within 30 days</dt><dd class="g">{ex["odds"]}%</dd></div>'
         f'<div><dt>Typical time to sell</dt><dd>{ex["days"]} days</dd></div>'
@@ -3192,9 +3197,18 @@ def _flip_board(cards):
     return "".join(out)
 
 
-def render_flip(path, origin="", req_id="-"):
-    """Render one /flip-vintage-* page with today's finds for its category."""
-    page = FLIP_PAGES[path]
+def flip_item(query_string):
+    """The category a /flip request asks for via ?item=, else the default."""
+    qs = urllib.parse.parse_qs(query_string or "")
+    item = (qs.get("item") or [""])[0].strip().lower()
+    item = FLIP_ALIASES.get(item, item)
+    return item if item in FLIP_PAGES else FLIP_DEFAULT
+
+
+def render_flip(item, origin="", req_id="-"):
+    """Render /flip for one category with today's finds for it."""
+    page = FLIP_PAGES[item]
+    path = "/flip" if item == FLIP_DEFAULT else "/flip?item=" + item
     finds, date = [], ""
     deals = get_deals()
     for cat in (deals or {}).get("categories") or []:
@@ -3219,8 +3233,8 @@ def render_flip(path, origin="", req_id="-"):
     rows = _flip_rows(finds, valued) or (
         '<p class="empty">Nothing on the list right now. The next hunt runs at 8:00.</p>')
     tabs = "".join(
-        f'<a href="{p}"{" aria-current=page" if p == path else ""}>{c["tab"]}</a>'
-        for p, c in FLIP_PAGES.items())
+        f'<a href="/flip?item={k}"{" aria-current=page" if k == item else ""}>'
+        f'{c["tab"]}</a>' for k, c in FLIP_PAGES.items())
     watch = "".join(f"<span>{html.escape(w)}</span>" for w in page["watch"])
     subs = {
         "__TITLE__": page["title"], "__LEAD__": page["lead"],
@@ -3287,9 +3301,9 @@ SITEMAP_XML = """<?xml version="1.0" encoding="UTF-8"?>
   <url><loc>__ORIGIN__/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
   <url><loc>__ORIGIN__/how-it-works</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>__ORIGIN__/ideas</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
-  <url><loc>__ORIGIN__/flip-vintage-bikes</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>__ORIGIN__/flip-vintage-lamps</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>__ORIGIN__/flip-vintage-chairs</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>__ORIGIN__/flip</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>__ORIGIN__/flip?item=bikes</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>__ORIGIN__/flip?item=chairs</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>__ORIGIN__/credits</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
 </urlset>
 """
@@ -3496,8 +3510,9 @@ def app(environ, start_response):
                 log.warning("[%s] flip image %s missing: %s", req_id, path, e)
                 status, body = "404 Not Found", b"Not found"
                 headers = [("Content-Type", "text/plain; charset=utf-8")]
-        elif path in FLIP_PAGES:
-            body = render_flip(path, origin=origin, req_id=req_id).encode()
+        elif path == "/flip":
+            item = flip_item(environ.get("QUERY_STRING", ""))
+            body = render_flip(item, origin=origin, req_id=req_id).encode()
             headers = [("Content-Type", "text/html; charset=utf-8")]
         elif path == "/credits":
             body = CREDITS_HTML.replace("__ORIGIN__", origin).encode()

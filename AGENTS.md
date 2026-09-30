@@ -120,8 +120,8 @@ logs. Never log an API key or a full prompt payload.
 `IDEAS_HTML`, `UNSUBSCRIBE_HTML`, `FLIP_HTML`), each wrapped once by
 `_with_gtm`. The CSS custom properties (`--ink`, `--body`, `--muted`,
 `--line`, `--line2`, `--field`) are duplicated in all seven. Change the
-palette in one, change it in all seven. `FLIP_HTML` serves the three
-`/flip-vintage-*` pages from one `FLIP_PAGES` config entry each. `digest.py`'s email HTML is separate: inline styles, not custom
+palette in one, change it in all seven. `FLIP_HTML` serves `/flip`;
+`?item=lamps|bikes|chairs` picks a `FLIP_PAGES` entry (default lamps). `digest.py`'s email HTML is separate: inline styles, not custom
 properties — most mail clients strip `<style>`/don't support `var()`.
 
 **Escaping.** Anything user-supplied that reaches HTML goes through
