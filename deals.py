@@ -70,17 +70,25 @@ CATEGORIES = [
     {
         "key": "lamps",
         "label": "Designer lamps",
-        "queries": ["louis poulsen lamp", "artemide lamp"],
-        "target": ("a genuine designer lamp by Louis Poulsen or Artemide (an "
-                   "original, not a replica, 'in de stijl van' lookalike, or a "
-                   "loose shade/part), in working, sellable condition"),
+        "queries": ["louis poulsen lamp", "artemide lamp", "flos lamp",
+                    "philips vintage lamp", "anvia lamp", "hala zeist lamp",
+                    "raak lamp", "dijkstra lamp"],
+        "target": ("a genuine designer lamp by Louis Poulsen, Artemide, Flos, or a "
+                   "vintage Dutch maker (Philips, Anvia, Hala Zeist, Raak, Dijkstra) "
+                   "(an original, not a replica, 'in de stijl van' lookalike, a "
+                   "recent mass-market Philips lamp, or a loose shade/part), in "
+                   "working, sellable condition"),
     },
     {
         "key": "chairs",
         "label": "Design chairs",
-        "queries": ["vitra stoel", "herman miller stoel", "herman miller bureaustoel"],
-        "target": ("a genuine design chair by Vitra or Herman Miller (an original, "
-                   "not a replica or lookalike), in good, sellable condition"),
+        "queries": ["vitra stoel", "herman miller stoel", "herman miller bureaustoel",
+                    "pastoe stoel", "gispen stoel", "spectrum stoel", "artifort stoel",
+                    "thonet stoel", "friso kramer stoel"],
+        "target": ("a genuine design chair by Vitra, Herman Miller, Pastoe, Gispen, "
+                   "Spectrum, Artifort, Thonet or Friso Kramer (an original, not a "
+                   "replica, 'Thonet stijl' or other lookalike), in good, sellable "
+                   "condition"),
     },
     {
         "key": "macmini",
@@ -173,13 +181,18 @@ def value_listings(target, listings):
 
 # Auction-house lots (Catawiki and the like) advertise on Marktplaats with a
 # fixed-price label, but the number is an opening bid. You can't buy at it.
-_AUCTION_LOT_RE = re.compile(r"winnende bieding|koperbescherming|geschatte waarde|\bkavel\b",
-                             re.I)
+_AUCTION_LOT_RE = re.compile(
+    r"winnende bieding|koperbescherming|geschatte waarde|\bkavel\b|geveild|veiling", re.I)
 
 
 def is_auction_lot(listing):
-    """True for an auction lot dressed up as a fixed-price ad."""
-    return bool(_AUCTION_LOT_RE.search(str(listing.get("description") or "")))
+    """True for an auction lot dressed up as a fixed-price ad: auction wording
+    in the text, or a paid ad (id starting with 'a') titled the way auction
+    houses title lots, 'Maker - Designer - Type - Model -'."""
+    if _AUCTION_LOT_RE.search(str(listing.get("description") or "")):
+        return True
+    title = str(listing.get("title") or "")
+    return str(listing.get("id") or "").startswith("a") and title.count(" - ") >= 3
 
 
 _TITLE_WORD_RE = re.compile(r"[a-z0-9]+")
