@@ -201,3 +201,5 @@ Append here when an agent gets something wrong. One line each.
   secrets and a Read/Edit tool call puts the whole file, keys included, in
   the session transcript. Ask the person running the agent to make the
   change, or point them to the exact line/value to set.
+- Don't log an email address, wish or postcode in code that runs in GitHub
+  Actions (`digest.py`, `deals.py`). Those logs are public.
