@@ -33,7 +33,9 @@ In production a GitHub Actions cron runs this every night at 03:00 UTC
 import argparse
 import html
 import json
+import logging
 import os
+import re
 import sys
 import time
 
@@ -45,6 +47,16 @@ from app import (OPENROUTER_API_KEY, SAVED_SEARCH_INDEX_KEY,
 PAUSE_BETWEEN_SEARCHES_SECONDS = 2  # be gentle with Marktplaats — batched, no rush
 
 SITE_ORIGIN = os.environ.get("SITE_ORIGIN", "https://vindje.com")
+
+# GitHub Actions logs on this repo are public, so nothing this script prints
+# may contain an email address, a wish or a postcode. Searches are named by id.
+_EMAIL_RE = re.compile(r"[^\s@<>\"']+@[^\s@<>\"']+\.[A-Za-z]{2,}")
+
+
+def _redact(text):
+    """Replace email addresses in an error message before it is printed."""
+    return _EMAIL_RE.sub("<email>", str(text))
+
 
 INK, BODY, MUTED, LINE, FIELD = "#1d1d1f", "#48484a", "#86868b", "#e8e8ed", "#f5f5f7"
 
@@ -129,19 +141,24 @@ def run(dry_run=False):
     if not OPENROUTER_API_KEY:
         sys.exit("OPENROUTER_API_KEY is not set — the filtering step needs an LLM.")
 
+    # app.py logs each wish and postcode at INFO level. That is fine in
+    # Vercel's private logs, but this script runs in public Actions logs,
+    # so keep only warnings and errors from app.py here.
+    logging.getLogger("vindje").setLevel(logging.WARNING)
+
     sent_count = 0
     skipped_total = 0
     for key, row in iter_saved_searches():
         email = row.get("email", "?")
         wish = row.get("wish", "")
-        print(f"{email}: {wish!r}")
+        print(f"search {row.get('id', '?')}")
         try:
             result = smart_search(row["wish"], row.get("postcode"),
                                   parsed=row.get("parsed"),
                                   exclude_bids=bool(row.get("exclude_bids")),
                                   req_id=f"digest:{row['id']}")
         except Exception as e:
-            print(f"  ! search failed: {e}", file=sys.stderr)
+            print(f"  ! search failed: {_redact(e)}", file=sys.stderr)
             time.sleep(PAUSE_BETWEEN_SEARCHES_SECONDS)
             continue
 
@@ -177,7 +194,7 @@ def run(dry_run=False):
                 sent_count += 1
                 print(f"  sent {len(new)} new match(es)")
             except Exception as e:
-                print(f"  ! send failed: {e}", file=sys.stderr)
+                print(f"  ! send failed: {_redact(e)}", file=sys.stderr)
 
         time.sleep(PAUSE_BETWEEN_SEARCHES_SECONDS)
 
