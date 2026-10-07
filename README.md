@@ -147,6 +147,29 @@ sharing, above) and a [Resend](https://resend.com) account with a
 verified sending domain. The workflow needs `RESEND_API_KEY` as a fourth
 repository secret alongside the three deal-hunt ones.
 
+## Overlooked (photo recognition, pilot: lamps)
+
+Issue #50: find second-hand items whose listing doesn't name the brand, but
+whose photos look like a valuable model. `overlooked.py` shows the model up
+to 3 large photos plus the listing text with every brand, model and designer
+name cut out, and asks which model from `data/vintage_resale_icons.json` it
+is, if any.
+
+So far this is the accuracy test. The daily hunt and the section on `/flip`
+come next. The test set (`data/overlooked_eval_lamps.json`) holds listings
+whose title names the lamp, so the answer is known but hidden from the model,
+plus ordinary lamps that name no brand:
+
+```bash
+python3 overlooked.py --collect lamps                       # build the test set
+OPENROUTER_API_KEY=sk-or-... python3 overlooked.py --eval lamps   # score it
+python3 overlooked.py --eval lamps --no-text                 # photos only
+```
+
+Adding a category means data, not code: an entry in `CATEGORIES` in
+`overlooked.py` that points at a category in the data file, plus what each
+model looks like in a photo.
+
 ## Configuration (all optional, via environment variables)
 
 | Variable | Default | Purpose |

@@ -281,6 +281,15 @@ def search_marktplaats(terms, postcode=None, distance_meters=None,
             image = pics[0].get("mediumUrl") or pics[0].get("largeUrl") or ""
         elif raw.get("imageUrls"):
             image = "https:" + raw["imageUrls"][0]
+        # Up to 3 large photos for photo recognition (overlooked.py). The size
+        # rule at the end of the URL picks the size: the search hands out _82
+        # (147px) and _83 (358px); _85 is the 726px version.
+        images = []
+        if pics:
+            images = [p.get("largeUrl") or p.get("mediumUrl") or "" for p in pics[:3]]
+        elif raw.get("imageUrls"):
+            images = ["https:" + u for u in raw["imageUrls"][:3]]
+        images = [re.sub(r"_8\d\.(jpe?g)", r"_85.\1", u, flags=re.I) for u in images if u]
         dist = loc.get("distanceMeters", -1000)
         listings.append(
             {
@@ -297,6 +306,7 @@ def search_marktplaats(terms, postcode=None, distance_meters=None,
                 "distance_km": round(dist / 1000, 1) if dist and dist > 0 else None,
                 "attributes": attrs,
                 "image": image,
+                "images": images,
                 "category_id": raw.get("categoryId"),
                 "url": "https://www.marktplaats.nl" + raw.get("vipUrl", ""),
             }

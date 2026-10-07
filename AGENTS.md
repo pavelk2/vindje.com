@@ -46,6 +46,13 @@ Saved-search digest:
 python3 digest.py --dry-run                     # print, send nothing
 ```
 
+Overlooked photo recognition (issue #50), accuracy test:
+
+```bash
+python3 overlooked.py --eval lamps              # needs OPENROUTER_API_KEY
+python3 overlooked.py --eval lamps --no-text    # photos only
+```
+
 MCP server (needs `pip install mcp uvicorn`):
 
 ```bash
@@ -73,8 +80,8 @@ Add a variable → add a row here and in `README.md`, and set it in Vercel.
 
 ## Hard limits
 
-1. **`app.py`, `deals.py`, `digest.py` and `listing_cards_ui.py` are standard
-   library only.** No requests, no flask, no jinja. `requirements.txt` exists
+1. **`app.py`, `deals.py`, `digest.py`, `overlooked.py` and
+   `listing_cards_ui.py` are standard library only.** No requests, no flask, no jinja. `requirements.txt` exists
    for Vercel detection and carries `mcp` for `mcp_server.py` alone. Adding
    any other dependency is a PR conversation, not a drive-by commit.
    `digest.py` sends email over Resend's HTTP API via bare `urllib`, the same
@@ -97,6 +104,8 @@ Add a variable → add a row here and in `README.md`, and set it in Vercel.
 | `app.py` | Everything for the web app: LLM calls, Marktplaats search, filtering, Upstash storage, ideas board, HTML templates, WSGI router. ~2500 lines, sectioned by `# ---- name` comment banners. |
 | `deals.py` | Daily deal hunt. Imports from `app.py`. Run by GitHub Actions. |
 | `digest.py` | Nightly saved-search email digest (issue #28). Imports from `app.py`. Run by GitHub Actions. |
+| `overlooked.py` | Unbranded finds recognized from photos (issue #50, pilot: lamps). For now the accuracy test. Imports from `app.py`. |
+| `data/` | `vintage_resale_icons.json` (valuable models with resale and buy prices, kept as delivered) and the overlooked test sets. |
 | `mcp_server.py` | MCP server. Raw listings only, no AI on our side. |
 | `listing_cards_ui.py` | MCP Apps widget HTML for listing cards. |
 | `api/index.py`, `api/mcp.py` | Vercel serverless entry points. Thin shims. |
@@ -148,6 +157,13 @@ tells the valuer what counts and what to reject. Then
 `python3 deals.py --dry-run --category <key>` and read the output before you
 open the PR. If the finds are junk, the `target` is too loose.
 
+**An overlooked category.** The models go in `data/vintage_resale_icons.json`.
+Then one entry in `CATEGORIES` in `overlooked.py`: which `source` category,
+which `/flip` page, a `looks` line per model (shape in a photo, not value),
+`designers`, and `copied` for models a photo can't tell from a copy. Build
+the test set with `--collect`, check its labels by hand against the links,
+and run `--eval` before you open the PR.
+
 **A page/route.** Five places, all of them:
 1. the `*_HTML` template string in `app.py`,
 2. the `_with_gtm(...)` wrap next to the others,
@@ -176,12 +192,13 @@ There is no linter or test suite in CI yet (it's on the backlog). Until there
 is, the floor is:
 
 ```bash
-python3 -m py_compile app.py deals.py digest.py mcp_server.py listing_cards_ui.py api/*.py
+python3 -m py_compile app.py deals.py digest.py overlooked.py mcp_server.py listing_cards_ui.py api/*.py
 python3 app.py            # open localhost:8000, run a real search
 ```
 
 Touched `deals.py`? Run `--dry-run` on at least one category. Touched
-`digest.py`? Run `--dry-run` against a real saved search. Touched a
+`digest.py`? Run `--dry-run` against a real saved search. Touched
+`overlooked.py`? Run `--eval` and put the numbers in the PR. Touched a
 template? Load that page. Touched the MCP server? Start it and call the tool.
 "It looks right" is not a check.
 
