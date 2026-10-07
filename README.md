@@ -155,10 +155,21 @@ to 3 large photos plus the listing text with every brand, model and designer
 name cut out, and asks which model from `data/vintage_resale_icons.json` it
 is, if any.
 
-So far this is the accuracy test. The daily hunt and the section on `/flip`
-come next. The test set (`data/overlooked_eval_lamps.json`) holds listings
-whose title names the lamp, so the answer is known but hidden from the model,
-plus ordinary lamps that name no brand:
+Every morning, right after the deal hunt, the same GitHub Actions workflow runs
+`overlooked.py`. It searches in the plain words of a seller who doesn't know the
+brand ("lamp contragewicht", "glazen blokken lamp"), skips listings that already
+name a brand or designer, and keeps the ones the model recognizes at or under
+the model's buy price. `/flip` shows the strong matches under **Overlooked**;
+`/flip?possible=1` (not indexed) also shows possible ones, for testing. No Redis,
+no section.
+
+```bash
+OPENROUTER_API_KEY=sk-or-... python3 overlooked.py --dry-run   # print only
+```
+
+The accuracy test (`data/overlooked_eval_lamps.json`) holds listings whose title
+names the lamp, so the answer is known but hidden from the model, plus ordinary
+lamps that name no brand:
 
 ```bash
 python3 overlooked.py --collect lamps                       # build the test set

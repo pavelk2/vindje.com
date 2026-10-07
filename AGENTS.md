@@ -46,9 +46,10 @@ Saved-search digest:
 python3 digest.py --dry-run                     # print, send nothing
 ```
 
-Overlooked photo recognition (issue #50), accuracy test:
+Overlooked finds (issue #50), daily hunt and accuracy test:
 
 ```bash
+python3 overlooked.py --dry-run                 # hunt, print, save nothing
 python3 overlooked.py --eval lamps              # needs OPENROUTER_API_KEY
 python3 overlooked.py --eval lamps --no-text    # photos only
 ```
@@ -104,7 +105,7 @@ Add a variable → add a row here and in `README.md`, and set it in Vercel.
 | `app.py` | Everything for the web app: LLM calls, Marktplaats search, filtering, Upstash storage, ideas board, HTML templates, WSGI router. ~2500 lines, sectioned by `# ---- name` comment banners. |
 | `deals.py` | Daily deal hunt. Imports from `app.py`. Run by GitHub Actions. |
 | `digest.py` | Nightly saved-search email digest (issue #28). Imports from `app.py`. Run by GitHub Actions. |
-| `overlooked.py` | Unbranded finds recognized from photos (issue #50, pilot: lamps). For now the accuracy test. Imports from `app.py`. |
+| `overlooked.py` | Unbranded finds recognized from photos (issue #50, pilot: lamps): daily hunt for `/flip`'s Overlooked section, plus its accuracy test. Imports from `app.py` and `deals.py`. Run by GitHub Actions. |
 | `data/` | `vintage_resale_icons.json` (valuable models with resale and buy prices, kept as delivered) and the overlooked test sets. |
 | `mcp_server.py` | MCP server. Raw listings only, no AI on our side. |
 | `listing_cards_ui.py` | MCP Apps widget HTML for listing cards. |

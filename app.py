@@ -804,6 +804,19 @@ def get_deals():
         return None
 
 
+OVERLOOKED_KEY = "overlooked:latest"
+
+
+def get_overlooked():
+    """The morning's unbranded finds recognized from photos (written by
+    overlooked.py), for /flip. None if absent or Redis isn't configured."""
+    try:
+        raw = upstash_command("GET", OVERLOOKED_KEY)
+        return json.loads(raw) if raw else None
+    except Exception:
+        return None
+
+
 def get_history(limit=HISTORY_MAX):
     """Most recent saved searches, newest first, for the /history page."""
     raw = upstash_command("LRANGE", HISTORY_KEY, "0", str(limit - 1))
@@ -2781,7 +2794,7 @@ FLIP_HTML = """<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>__TITLE__ &middot; vindje.com for resellers</title>
 <meta name="description" content="For people who flip vintage __PLURAL__: every morning vindje.com scans second-hand marketplaces and hands you the ones worth buying, with a resale estimate.">
-<link rel="canonical" href="__ORIGIN____PATH__">
+<link rel="canonical" href="__ORIGIN____PATH__">__ROBOTS__
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="vindje.com">
 <meta property="og:title" content="__TITLE__ &middot; vindje.com">
@@ -2880,6 +2893,12 @@ FLIP_HTML = """<!doctype html>
   .margin { font-weight: 700; color: var(--money); }
   .soon { color: var(--muted); font-size: 13px; }
   .caption, .empty { font-size: 12.5px; color: var(--muted); margin: 12px 0 0; }
+  .what .match { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .what .match::before { content: ""; display: inline-block; width: 6px; height: 6px;
+                         border-radius: 50%; background: currentColor; margin: 0 6px 1px 0; }
+  .what .match.strong { color: var(--money); }
+  .internal { display: inline-block; margin: 0 0 14px; padding: 5px 12px; border-radius: 8px;
+              background: var(--field); font-size: 12.5px; color: var(--body); }
 
   .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
            gap: 56px; align-items: center; }
@@ -2990,6 +3009,7 @@ FLIP_HTML = """<!doctype html>
       <span class="num">Resale est.</span><span class="num">Margin</span></div>
     __ROWS__
   </section>
+__OVERLOOKED__
 
   <section class="split" aria-labelledby="find">
     <h2 id="find">Every find comes with its numbers. <span>Real sales of the same __NOUN__, what it should fetch, and how fast it goes.</span></h2>
@@ -3262,6 +3282,62 @@ def _flip_board(board):
             f' &middot; <b>+{_euro(total)} profit</b></p>')
 
 
+def _overlooked_section(key, show_possible=False):
+    """The Overlooked section: unbranded listings the morning hunt recognized
+    from their photos. Strong matches only, unless show_possible (the internal
+    view). Empty string when there's nothing to show, so the section hides."""
+    record = get_overlooked() or {}
+    finds = []
+    for cat in record.get("categories") or []:
+        if cat.get("key") == key:
+            finds = [f for f in cat.get("finds") or []
+                     if show_possible or f.get("confidence") == "strong"]
+    rows = []
+    for f in finds[:FLIP_ROWS]:
+        url = str(f.get("url") or "")
+        ask, low = f.get("asking_euro"), f.get("resale_low")
+        if not url.startswith("https://www.marktplaats.nl/") or not ask or not low:
+            continue
+        img = html.escape(str(f.get("image") or ""))
+        thumb = (f'<img src="{img}" alt="" loading="lazy">' if img
+                 else '<span class="ph"></span>')
+        looks = f"Looks like {f.get('match', '')}. {f.get('why', '')}".strip()
+        meta = " &middot; ".join(html.escape(b) for b in (str(f.get("city") or ""), looks)
+                                 if b)
+        strong = f.get("confidence") == "strong"
+        label = (f'<small class="match{" strong" if strong else ""}">'
+                 f'{"Strong" if strong else "Possible"} match</small>')
+        rows.append(
+            f'<a class="row" href="{html.escape(url)}" target="_blank" rel="noopener">'
+            f'<span class="thumb">{thumb}</span>'
+            f'<span class="what"><b>{html.escape(str(f.get("title") or ""))}</b>'
+            f'<span>{meta}</span>{label}</span>'
+            f'<span class="num ask">{_euro(ask)}</span>'
+            f'<span class="num est">{_euro(low)}&ndash;{_euro(f.get("resale_high") or low)}'
+            f'</span><span class="num margin">+{_euro(int(low) - int(ask))}</span></a>'
+        )
+    if not rows:
+        return ""
+    when = str(record.get("date") or "")
+    try:
+        d = datetime.strptime(when, "%Y-%m-%d")
+        when = f"{d.day} {d:%B}"
+    except ValueError:
+        pass
+    note = ('<p class="internal">Internal view. Also shows possible matches. '
+            'Not on the public page.</p>' if show_possible else "")
+    return (
+        f'  <section aria-labelledby="overlooked">\n    {note}\n'
+        f'    <h2 id="overlooked">Overlooked. <span>No brand in the listing.</span></h2>\n'
+        f'    <div class="list-head"><span>Recognized from the photo by the morning hunt, '
+        f'{html.escape(when)}</span><span class="num">Asking</span>'
+        f'<span class="num">Resale est.</span><span class="num">Margin</span></div>\n'
+        f'    {"".join(rows)}\n'
+        f'    <p class="caption">Photo recognition is in testing, and resale estimates '
+        f'come from market knowledge, not from sold listings.</p>\n  </section>'
+    )
+
+
 def flip_item(query_string):
     """The category a /flip request asks for via ?item=, else the default."""
     qs = urllib.parse.parse_qs(query_string or "")
@@ -3270,8 +3346,9 @@ def flip_item(query_string):
     return item if item in FLIP_PAGES else FLIP_DEFAULT
 
 
-def render_flip(item, origin="", req_id="-"):
-    """Render /flip for one category with today's finds for it."""
+def render_flip(item, origin="", req_id="-", show_possible=False):
+    """Render /flip for one category with today's finds for it. show_possible
+    (?possible=1) adds the Overlooked section's possible matches, for testing."""
     page = FLIP_PAGES[item]
     path = "/flip" if item == FLIP_DEFAULT else "/flip?item=" + item
     finds, date = [], ""
@@ -3309,6 +3386,9 @@ def render_flip(item, origin="", req_id="-"):
         "__NOUN__": page["noun"], "__PLURAL__": page["plural"],
         "__PATH__": path, "__TABS__": tabs, "__WATCH__": watch,
         "__CAPTION__": caption, "__ROWS__": rows,
+        "__OVERLOOKED__": _overlooked_section(page["key"], show_possible),
+        "__ROBOTS__": ('\n<meta name="robots" content="noindex">' if show_possible
+                       else ""),
         "__EXAMPLE__": _flip_example(page["example"]),
         "__BOARD__": _flip_board(page["board"]),
         "__ART__": '<img src="%s" alt="%s" width="%d" height="%d">' % page["img"],
@@ -3579,8 +3659,11 @@ def app(environ, start_response):
                 status, body = "404 Not Found", b"Not found"
                 headers = [("Content-Type", "text/plain; charset=utf-8")]
         elif path == "/flip":
-            item = flip_item(environ.get("QUERY_STRING", ""))
-            body = render_flip(item, origin=origin, req_id=req_id).encode()
+            qs = environ.get("QUERY_STRING", "")
+            item = flip_item(qs)
+            possible = urllib.parse.parse_qs(qs).get("possible") == ["1"]
+            body = render_flip(item, origin=origin, req_id=req_id,
+                               show_possible=possible).encode()
             headers = [("Content-Type", "text/html; charset=utf-8")]
         elif path == "/credits":
             body = CREDITS_HTML.replace("__ORIGIN__", origin).encode()

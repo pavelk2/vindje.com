@@ -8,12 +8,21 @@ The valuable models, with typical resale and buy prices, come from
 data/vintage_resale_icons.json. A category here only says which part of that
 file to use and how to search for it, so adding one is data, not code.
 
-This file currently holds the accuracy test. The model sees up to 3 large
-photos and the listing text with every brand, model, designer and model
-number cut out, both here and later in the daily hunt, so the score measured
-here is close to the score you get in production. (Listings that name the
-brand also tend to be written in a more expert style, so --no-text gives the
-cautious, photos-only number.)
+Daily hunt: search Marktplaats in a seller's plain words ("lamp contragewicht"),
+drop listings that already name a brand or designer, show the model up to 3
+large photos plus the listing text with every name cut out, and keep the
+listings it recognizes at or under the model's buy price. The record goes to
+Redis as overlooked:latest, and /flip shows the strong matches under
+"Overlooked" (?possible=1 also shows possible ones, for testing). In
+production a step in .github/workflows/daily-deals.yml runs it every morning.
+
+  python3 overlooked.py --dry-run         # hunt and print, save nothing
+  python3 overlooked.py                   # hunt and save to Redis
+
+Accuracy test: the same recognition on listings whose title names the model,
+so the answer is known but hidden. Listings that name the brand tend to be
+written in a more expert style even with the names cut out, so --no-text
+gives the cautious, photos-only number.
 
   python3 overlooked.py --collect lamps   # build data/overlooked_eval_lamps.json
   python3 overlooked.py --refresh lamps   # update photos and text of saved cases
@@ -21,8 +30,7 @@ cautious, photos-only number.)
   python3 overlooked.py --eval lamps --no-text    # photos only
   python3 overlooked.py --eval lamps --limit 24   # cheap first look
 
---collect and --refresh search Marktplaats once per model, one search at a
-time with a pause in between. --eval only calls the LLM.
+Searches run one at a time with a pause in between. --eval only calls the LLM.
 """
 
 import argparse
@@ -35,7 +43,9 @@ import unicodedata
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from app import FLIP_PAGES, MODELS, OPENROUTER_API_KEY, llm_json, search_marktplaats
+from app import (FLIP_PAGES, MODELS, OPENROUTER_API_KEY, OVERLOOKED_KEY, llm_json,
+                 search_marktplaats, upstash_command)
+from deals import dedupe_relistings, is_auction_lot
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MODELS_FILE = os.path.join(HERE, "data", "vintage_resale_icons.json")
@@ -53,9 +63,16 @@ MODELS_FILE = os.path.join(HERE, "data", "vintage_resale_icons.json")
 #            a copy; they're never a "strong" match, so never public
 #   designers: names that also give the model away; cut from the listing text
 #            the model sees, and a listing that names one is skipped
+#   queries: the daily hunt's searches, in the words of a seller who doesn't
+#            know the brand: by type, by era, and by what the item looks like
 CATEGORIES = {
     "lamps": {
         "source": "Lamps", "flip": "lamps", "noun": "lamps",
+        "queries": ["vintage bureaulamp", "vintage vloerlamp", "vintage hanglamp",
+                    "vintage wandlamp", "oude lamp", "retro lamp", "jaren 60 lamp",
+                    "jaren 70 lamp", "lamp contragewicht", "glazen blokken lamp",
+                    "opaline lamp", "industriele lamp scharnier", "lamp marmeren voet",
+                    "paddenstoel lamp", "papieren lamp", "schalenlamp"],
         "designers": ["poul henningsen", "henningsen", "arne jacobsen", "jacobsen",
                       "verner panton", "panton", "verpan", "achille castiglioni",
                       "pier giacomo", "castiglioni", "vico magistretti", "magistretti",
@@ -126,6 +143,9 @@ CATEGORIES = {
     },
 }
 
+HUNT_PRICE_MAX = 250    # asking price cap, the same as the rest of /flip
+HUNT_PRICE_MIN = 10     # €1 "n.o.t.k." placeholders aren't real prices
+HUNT_MAX = 100          # photos sent to the model per category per day: the cost cap
 EVAL_PER_MODEL = 5      # positives kept per model
 EVAL_NEGATIVES = 30     # ordinary listings that name no listed brand
 SEARCH_PAUSE_S = 2      # between Marktplaats searches: be gentle
@@ -133,6 +153,9 @@ SEARCH_PAUSE_S = 2      # between Marktplaats searches: be gentle
 # Words in a model name that say nothing about which model it is.
 _GENERIC = {"lamp", "lamps", "floor", "table", "pendant", "desk", "wall", "light",
             "standard", "series", "the", "and", "with", "three", "arm"}
+# "Nieuw" in a title means new retail stock, never a vintage find; "zo goed als
+# nieuw" is only the condition of an old one.
+_NEW_RE = re.compile(r"(?<!als )\bnieuwe?\b|\bnew\b")
 # Brand words too common to mean the brand on their own ("Raak" alone does).
 _BRAND_STOP = {"louis", "luce", "amsterdam"}
 # Titles that aren't the lamp itself: copies, parts, wanted ads, books.
@@ -284,9 +307,10 @@ def recognize(key, models, images, text=""):
     confidence = "strong" if result.get("confidence") == "strong" else "possible"
     if match in CATEGORIES[key].get("copied", []):
         confidence = "possible"
+    why = str(result.get("why") or "").replace("\u2014", ",").replace("\u2013", "-")
     return {"match": match if match in names else None,   # check it in code
             "confidence": confidence,
-            "why": str(result.get("why") or "")[:200]}
+            "why": why[:200]}
 
 
 # ---------------------------------------------------------------- eval: collect
@@ -487,6 +511,95 @@ def evaluate(key, limit=None, use_text=True):
                   f"({r['confidence']}): {r['why']}")
 
 
+# ---------------------------------------------------------------- daily hunt
+
+def hunt(key):
+    """Search in plain words, keep listings that name no brand, recognize their
+    photos, and return the finds: a listed model at or under its buy price.
+    Strong matches first, then by margin. Also returns how many were checked."""
+    models = load_models(key)
+    by_name = {m["name"]: m for m in models}
+    cat = CATEGORIES[key]
+    page = FLIP_PAGES[cat["flip"]]
+    designers = cat.get("designers", [])
+    listings, seen = [], set()
+    for q in cat["queries"]:
+        try:
+            found, _total = search_marktplaats(q, price_max_euro=HUNT_PRICE_MAX,
+                                               limit=60, exclude_bids=True)
+        except Exception as e:
+            print(f"  ! search '{q}' failed: {e}", file=sys.stderr)
+            found = []
+        for l in found:
+            text = f"{l['title']} {l['description']}"
+            ask = l.get("asking_euro")
+            if (l["id"] in seen or not ask or not HUNT_PRICE_MIN <= ask <= HUNT_PRICE_MAX
+                    or not l.get("images") or is_auction_lot(l)
+                    or _NEW_RE.search(_norm(l["title"]))
+                    or l.get("category_id") not in page["fresh_categories"]
+                    # the seller already knows what it is: not overlooked
+                    or names_any_brand(text, models, designers)
+                    or any(_has(_norm(text), _norm(w)) for w in page["watch"])):
+                continue
+            seen.add(l["id"])
+            listings.append(l)
+        time.sleep(SEARCH_PAUSE_S)
+    listings = dedupe_relistings(listings)[:HUNT_MAX]
+    print(f"  {len(listings)} unbranded listings from {len(cat['queries'])} searches")
+
+    results = []
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        futures = {ex.submit(recognize, key, models, l["images"],
+                             masked_text(l, key, models)): l for l in listings}
+        for fut in as_completed(futures):
+            try:
+                results.append((futures[fut], fut.result()))
+            except Exception as e:
+                print(f"  ! {futures[fut]['id']}: recognition failed: {e}",
+                      file=sys.stderr)
+
+    finds = []
+    for l, r in results:
+        m = by_name.get(r["match"])
+        # re-check the price in code: at or under what the model is worth buying at
+        if not m or l["asking_euro"] > m["buy_eur"][1]:
+            continue
+        finds.append({
+            "id": l["id"], "title": l["title"], "url": l["url"], "image": l["image"],
+            "city": l["city"], "asking_euro": l["asking_euro"],
+            "match": m["name"], "confidence": r["confidence"], "why": r["why"],
+            "resale_low": m["resell_eur"][0], "resale_high": m["resell_eur"][1],
+        })
+    finds.sort(key=lambda f: (f["confidence"] != "strong",
+                              f["asking_euro"] - f["resale_low"]))
+    strong = sum(f["confidence"] == "strong" for f in finds)
+    print(f"  {len(finds)} find(s): {strong} strong, {len(finds) - strong} possible")
+    return finds, len(listings)
+
+
+def run(categories=None, save=True):
+    """Hunt every category (or the given keys) and store the record in Redis."""
+    if not OPENROUTER_API_KEY:
+        sys.exit("OPENROUTER_API_KEY is not set: recognition needs the LLM.")
+    keys = [k for k in CATEGORIES if categories is None or k in categories]
+    record = {"date": time.strftime("%Y-%m-%d", time.gmtime()), "ts": time.time(),
+              "scanned": 0, "categories": []}
+    for key in keys:
+        print(f"{key}...")
+        finds, scanned = hunt(key)
+        record["scanned"] += scanned
+        record["categories"].append({"key": CATEGORIES[key]["flip"], "finds": finds})
+    if save:
+        payload = json.dumps(record)
+        try:
+            upstash_command("SET", OVERLOOKED_KEY, payload)
+            upstash_command("SET", f"overlooked:{record['date']}", payload)
+            print(f"Saved to Redis as {OVERLOOKED_KEY} and overlooked:{record['date']}")
+        except Exception as e:
+            print(f"  ! not saved to Redis: {e}", file=sys.stderr)
+    return record
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Overlooked finds: unbranded items "
                                              "recognized from their photos.")
@@ -501,6 +614,10 @@ if __name__ == "__main__":
                     help="with --eval: photos only, to see what the text adds")
     ap.add_argument("--limit", type=int,
                     help="with --eval: test only this many listings, spread over models")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="daily hunt: print the finds as JSON, don't write to Redis")
+    ap.add_argument("--category", action="append", choices=sorted(CATEGORIES),
+                    help="daily hunt: only this category (repeatable)")
     args = ap.parse_args()
     if args.collect:
         collect(args.collect)
@@ -509,4 +626,6 @@ if __name__ == "__main__":
     elif args.eval:
         evaluate(args.eval, limit=args.limit, use_text=not args.no_text)
     else:
-        ap.print_help()
+        rec = run(categories=args.category, save=not args.dry_run)
+        if args.dry_run:
+            print(json.dumps(rec, indent=2, ensure_ascii=False))
