@@ -1109,6 +1109,30 @@ HTML = """<!doctype html>
                     text-decoration: none; padding: 7px 15px; border-radius: 980px;
                     background: var(--field); transition: background .15s ease; }
   .top .flip-link:hover { background: var(--line); }
+  .top .top-links { display: flex; align-items: center; gap: 10px; }
+  .top .ceo-link {
+    position: relative; display: inline-flex; align-items: center; gap: 7px;
+    font-size: 13.5px; font-weight: 600; letter-spacing: -.005em; color: var(--ink);
+    text-decoration: none; padding: 7px 15px 7px 12px; border-radius: 980px;
+    border: 1.5px solid transparent;
+    background: linear-gradient(#fff, #fff) padding-box,
+                conic-gradient(from var(--ceo-angle, 0deg), #ff9f0a, #ff375f, #bf5af2,
+                                #0a84ff, #30d158, #ff9f0a) border-box;
+    animation: ceo-spin 6s linear infinite;
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .top .ceo-link:hover { transform: translateY(-1px);
+                         box-shadow: 0 6px 18px rgba(191,90,242,.18), 0 2px 6px rgba(0,0,0,.06); }
+  .top .ceo-link:active { transform: scale(.97); }
+  .top .ceo-link svg { flex-shrink: 0; }
+  .top .ceo-short { display: none; }
+  @property --ceo-angle { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+  @keyframes ceo-spin { to { --ceo-angle: 360deg; } }
+  @media (prefers-reduced-motion: reduce) { .top .ceo-link { animation: none; } }
+  @media (max-width: 520px) {
+    .top .ceo-full { display: none; }
+    .top .ceo-short { display: inline; }
+  }
 
   .hero { max-width: 660px; margin: 0 auto; }
   h1 {
@@ -1369,7 +1393,14 @@ HTML = """<!doctype html>
 <body>
 <div class="wrap">
   <div class="top"><a href="/" style="color:inherit;text-decoration:none">vindje.com</a>
-    <a class="flip-link" href="/flip" title="Vintage finds for resellers">Flip?</a></div>
+    <span class="top-links">
+      <a class="ceo-link" href="https://timetuna.com/pavel?Purpose=vindje-CEO" target="_blank" rel="noopener"
+         title="vindje.com is looking for a CEO. Book a call with Pavel">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5L3 8z"></path></svg>
+        <span class="ceo-full">Do you want to be Vindje&rsquo;s CEO?</span><span class="ceo-short">Be our CEO?</span>
+      </a>
+      <a class="flip-link" href="/flip" title="Vintage finds for resellers">Flip?</a>
+    </span></div>
   <section class="hero">
     <h1>Advanced search for Marktplaats</h1>
     <form id="f">
