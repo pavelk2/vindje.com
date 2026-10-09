@@ -1394,8 +1394,8 @@ HTML = """<!doctype html>
 <div class="wrap">
   <div class="top"><a href="/" style="color:inherit;text-decoration:none">vindje.com</a>
     <span class="top-links">
-      <a class="ceo-link" href="https://timetuna.com/pavel?Purpose=vindje-CEO" target="_blank" rel="noopener"
-         title="vindje.com is looking for a CEO. Book a call with Pavel">
+      <a class="ceo-link" href="/become-ceo"
+         title="vindje.com is looking for a CEO">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ff9f0a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5L3 8z"></path></svg>
         <span class="ceo-full">Do you want to be Vindje&rsquo;s CEO?</span><span class="ceo-short">Be our CEO?</span>
       </a>
@@ -3432,6 +3432,259 @@ def render_flip(item, origin="", req_id="-", show_possible=False):
     return doc
 
 
+BECOME_CEO_HTML = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Become vindje.com's CEO</title>
+<meta name="description" content="vindje.com is an open, AI-driven project to make the Dutch second-hand market move faster. We are looking for someone to lead it. Unpaid, shared ownership, real odds.">
+<link rel="canonical" href="__ORIGIN__/become-ceo">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="vindje.com">
+<meta property="og:title" content="Do you want to be Vindje's CEO?">
+<meta property="og:description" content="An open, AI-driven project for the Dutch second-hand market is looking for someone to lead it. Unpaid, shared ownership, real odds.">
+<meta property="og:url" content="__ORIGIN__/become-ceo">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Do you want to be Vindje's CEO?">
+<meta name="twitter:description" content="An open, AI-driven project for the Dutch second-hand market is looking for someone to lead it.">
+<meta name="theme-color" content="#ffffff">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"vindje.com","item":"__ORIGIN__/"},{"@type":"ListItem","position":2,"name":"Become CEO","item":"__ORIGIN__/become-ceo"}]}
+</script>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
+<style>
+  :root {
+    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
+    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
+  }
+  * { box-sizing: border-box; }
+  ::selection { background: var(--ink); color: #fff; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: #fff; color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
+                 system-ui, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
+          flex: 1 0 auto; }
+  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  .top a { color: inherit; text-decoration: none; }
+
+  h1 {
+    font-size: clamp(38px, 7vw, 60px); font-weight: 700; letter-spacing: -.035em;
+    line-height: 1.04; margin: clamp(48px, 9vh, 88px) 0 22px;
+  }
+  .lede { font-size: clamp(19px, 2.4vw, 22px); line-height: 1.45; letter-spacing: -.012em;
+          color: var(--ink); margin: 0; max-width: 640px; }
+  .lede span, h2 span { color: var(--muted); }
+
+  .unpaid {
+    margin: 34px 0 0; padding: 18px 20px; border-radius: 18px; background: var(--field);
+    font-size: 15px; line-height: 1.55; color: var(--body);
+  }
+  .unpaid b { color: var(--ink); }
+
+  section { margin-top: 76px; }
+  h2 { font-size: clamp(24px, 3.6vw, 30px); font-weight: 700; letter-spacing: -.025em;
+       line-height: 1.2; margin: 0 0 22px; max-width: 640px; }
+  p.t { font-size: 16px; line-height: 1.6; color: var(--body); margin: 0 0 14px;
+        max-width: 640px; }
+  p.t a, .row a { color: var(--ink); }
+
+  .rows { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+  .row { display: grid; grid-template-columns: 190px 1fr; gap: 20px;
+         padding: 17px 0; border-bottom: 1px solid var(--line); }
+  .row .k { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+  .row .v { font-size: 15px; line-height: 1.55; color: var(--body); }
+  .row .v small { display: block; margin-top: 4px; font-size: 13px; color: var(--muted); }
+  .tag { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 980px;
+         font-size: 11.5px; font-weight: 600; vertical-align: 1px; }
+  .tag.live { background: #e3f5e8; color: #1f7a3a; }
+  .tag.next { background: var(--field); color: var(--muted); }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .odds .row { grid-template-columns: 70px 1fr; }
+  .odds .k { font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+
+  .cta { margin: 90px 0 0; text-align: center; }
+  .cta h2 { margin: 0 auto 10px; }
+  .cta p { font-size: 15px; color: var(--muted); margin: 0 0 26px; }
+  .cta a {
+    display: inline-flex; align-items: center; gap: 9px; padding: 16px 34px;
+    font-size: 16px; font-weight: 600; letter-spacing: -.01em; color: #fff;
+    background: var(--ink); border-radius: 980px; text-decoration: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,.16);
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .cta a:hover { transform: translateY(-2px); box-shadow: 0 16px 38px rgba(0,0,0,.22); }
+  .cta a:active { transform: scale(.97); }
+
+  .footer { flex-shrink: 0; margin-top: 70px; border-top: 1px solid var(--line); }
+  .footer-inner { max-width: 1040px; margin: 0 auto; padding: 22px 20px 30px;
+                  display: flex; align-items: center; justify-content: space-between;
+                  flex-wrap: wrap; gap: 12px; }
+  .footer-brand { font-size: 13px; color: var(--muted); }
+  .footer-links { display: flex; gap: 22px; flex-wrap: wrap; }
+  .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; }
+  .footer-links a:hover { color: var(--ink); }
+
+  @media (max-width: 560px) {
+    .row, .odds .row { grid-template-columns: 1fr; gap: 4px; }
+    .odds .row { grid-template-columns: 64px 1fr; gap: 12px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration: .01s !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="/">vindje.com</a></div>
+
+  <h1>Do you want to be Vindje&rsquo;s CEO?</h1>
+  <p class="lede">vindje.com is an open, AI-driven company that makes the Dutch
+     second-hand market move faster. <span>We are looking for one person to lead it,
+     grow it into a name people in Amsterdam know, and take it further from there.</span></p>
+
+  <div class="unpaid"><b>This is not a paid position.</b> There is no salary, no
+     revenue and no investment yet. What you get is the chance to lead the project,
+     a growing share of it for every week you put in, and the freedom to make it a
+     big success your way.</div>
+
+  <section>
+    <h2>The idea. <span>Become the next Tikkie or Stekkies, for finding used things.</span></h2>
+    <p class="t">Tikkie turned &ldquo;send me the money&rdquo; into a verb. Stekkies made
+       house hunting in a crowded market bearable. Vindje (&ldquo;find it&rdquo;) wants to
+       do the same for second-hand: you say what you want in plain words, and it finds
+       the listings that fit. Today that is
+       <a href="/">smart search on Marktplaats</a>, a daily hunt for
+       <a href="/flip">undervalued vintage</a>, and email alerts for saved searches.</p>
+    <ul class="rows">
+      <li class="row"><span class="k">1 to 2 months</span>
+        <span class="v">Have fun building and promoting something useful.</span></li>
+      <li class="row"><span class="k">12 months</span>
+        <span class="v">A brand people in Amsterdam recognise.</span></li>
+      <li class="row"><span class="k">2 years and on</span>
+        <span class="v">A brand known outside the Netherlands, the way everyone
+          knows Vinted today.</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>The philosophy. <span>Run the company unreasonably in the open.</span></h2>
+    <ul class="rows">
+      <li class="row"><span class="k">Code<span class="tag live">live</span></span>
+        <span class="v">Public on <a href="https://github.com/pavelk2/vindje.com" target="_blank" rel="noopener">GitHub</a>.
+          Anyone can read how it works.</span></li>
+      <li class="row"><span class="k">Roadmap<span class="tag live">live</span></span>
+        <span class="v">Public on the <a href="/ideas">ideas board</a>. Users suggest and
+          vote, we build in the open.</span></li>
+      <li class="row"><span class="k">Analytics<span class="tag next">next</span></span>
+        <span class="v">Traffic and usage numbers published on the site.</span></li>
+      <li class="row"><span class="k">Money<span class="tag next">next</span></span>
+        <span class="v">A public bank account that pays for hosting and AI tokens,
+          with every transaction visible.</span></li>
+      <li class="row"><span class="k">Updates<span class="tag next">next</span></span>
+        <span class="v">Weekly posts on what shipped and what people searched for.
+          Monthly posts on the team, revenue and costs.</span></li>
+    </ul>
+    <p class="t" style="margin-top:22px">Why work this way: it gets attention, it builds
+       trust (it is easy to trust a company that hides nothing), and it pulls in the
+       people who share the vision, both contributors and, later, investors.</p>
+  </section>
+
+  <section>
+    <h2>The market. <span>Millions of things change hands every year, slowly.</span></h2>
+    <p class="t">Second-hand in the Netherlands is huge and mostly runs on Marktplaats,
+       with Vinted for clothes, Facebook Marketplace on the side and Catawiki for
+       curated auctions. The problem is liquidity: good items sit unseen, buyers scroll
+       past hundreds of near-misses, and the price someone pays depends on luck. Five
+       groups live in this market, and each one has a reason to use Vindje.</p>
+    <ul class="rows">
+      <li class="row"><span class="k">Buyers</span>
+        <span class="v">Want one specific thing, nearby, at a fair price. Today they
+          type Dutch keywords and wade through junk.
+          <small>Vindje: describe it in any language, get only the listings that fit.</small></span></li>
+      <li class="row"><span class="k">Flippers</span>
+        <span class="v">Buy undervalued items and resell them: designer lamps, vintage
+          bikes, mid-century chairs. Their edge is being first and knowing what
+          something is worth.
+          <small>Vindje: a daily list of finds priced below resale, spotted from text and photos.</small></span></li>
+      <li class="row"><span class="k">Vintage sellers</span>
+        <span class="v">Shops and dealers with real stock. They source on Marktplaats
+          too and need their own pieces in front of the right buyer.
+          <small>Vindje: sourcing alerts now, a direct line to motivated buyers later.</small></span></li>
+      <li class="row"><span class="k">Casual sellers</span>
+        <span class="v">An attic, a move, a renovation. They list once and hope.
+          Underpriced listings are the flippers&rsquo; profit.
+          <small>Vindje: help them price and describe things right, so they sell faster.</small></span></li>
+      <li class="row"><span class="k">The platforms</span>
+        <span class="v">Marktplaats, Vinted and the rest own the listings. Vindje sits on
+          top as the layer that matches intent to inventory, the part none of them do well.</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Ownership. <span>No money in, so time is the investment.</span></h2>
+    <p class="t">We use a simplified version of Mike Moyer&rsquo;s Slicing Pie. Every week
+       someone works on Vindje, the pie grows by one week. Your share is your weeks
+       divided by all weeks ever worked by everyone. Stop working and your weeks stay
+       the same while the pie keeps growing, so your share shrinks. Keep going and it holds.</p>
+    <ul class="rows num">
+      <li class="row"><span class="k">Start</span>
+        <span class="v">Pavel works 2 weeks. The pie is 2 weeks, Pavel owns 100%.</span></li>
+      <li class="row"><span class="k">+4 weeks, 4 people</span>
+        <span class="v">Pie: 2 + 4 &times; 4 = 18 weeks. Pavel 6/18 = 33%, each of
+          the others 4/18 = 22%.</span></li>
+      <li class="row"><span class="k">+48 weeks, 1 leaves</span>
+        <span class="v">Pie: 18 + 48 &times; 3 = 162 weeks. Pavel 54/162 = 33%, each
+          person who stayed 52/162 = 32%, the person who left 4/162 = 2.5%.</span></li>
+    </ul>
+    <p class="t" style="margin-top:18px;font-size:14px;color:var(--muted)">An example,
+       not a contract. The exact rules get written down together with the first team.</p>
+  </section>
+
+  <section>
+    <h2>The odds. <span>Said plainly, so nobody is surprised.</span></h2>
+    <ul class="rows odds num">
+      <li class="row"><span class="k">95%</span>
+        <span class="v">It does not become a financially successful project.</span></li>
+      <li class="row"><span class="k">4%</span>
+        <span class="v">It becomes locally popular, but never makes a profit.</span></li>
+      <li class="row"><span class="k">1%</span>
+        <span class="v">It becomes a global phenomenon and gets acquired for a billion
+          by eBay or someone like them.</span></li>
+    </ul>
+    <p class="t" style="margin-top:22px">So why join? To have fun. To play a game others
+       don&rsquo;t play. To be part of something new in the Dutch scene, and to lead it.</p>
+  </section>
+
+  <div class="cta">
+    <h2>Sounds like your kind of game?</h2>
+    <p>30 minutes with Pavel. No CV needed, bring your ideas.</p>
+    <a href="https://timetuna.com/pavel?Purpose=vindje-CEO" target="_blank" rel="noopener">Book a call to discuss
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a>
+  </div>
+</div>
+<footer class="footer">
+  <div class="footer-inner">
+    <span class="footer-brand">vindje.com</span>
+    <nav class="footer-links">
+      <a href="/how-it-works">How it works</a>
+      <a href="/ideas">Ideas</a>
+      <a href="/history">History</a>
+      <a href="/credits">Credits</a>
+      <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>"""
+
+
 # ---------------------------------------------------------------- analytics
 # Google Tag Manager. One container, injected into every page below so the
 # snippet lives in a single place instead of being copy-pasted five times.
@@ -3467,6 +3720,7 @@ HISTORY_HTML = _with_gtm(HISTORY_HTML)
 IDEAS_HTML = _with_gtm(IDEAS_HTML)
 UNSUBSCRIBE_HTML = _with_gtm(UNSUBSCRIBE_HTML)
 FLIP_HTML = _with_gtm(FLIP_HTML)
+BECOME_CEO_HTML = _with_gtm(BECOME_CEO_HTML)
 
 
 ROBOTS_TXT = """User-agent: *
@@ -3483,6 +3737,7 @@ SITEMAP_XML = """<?xml version="1.0" encoding="UTF-8"?>
   <url><loc>__ORIGIN__/flip</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>__ORIGIN__/flip?item=bikes</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>__ORIGIN__/flip?item=chairs</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>__ORIGIN__/become-ceo</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
   <url><loc>__ORIGIN__/credits</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
 </urlset>
 """
@@ -3677,6 +3932,9 @@ def app(environ, start_response):
             headers = [("Content-Type", "application/xml; charset=utf-8")]
         elif path == "/how-it-works":
             body = HOW_IT_WORKS_HTML.replace("__ORIGIN__", origin).encode()
+            headers = [("Content-Type", "text/html; charset=utf-8")]
+        elif path == "/become-ceo":
+            body = BECOME_CEO_HTML.replace("__ORIGIN__", origin).encode()
             headers = [("Content-Type", "text/html; charset=utf-8")]
         elif path in FLIP_IMAGES:
             try:
