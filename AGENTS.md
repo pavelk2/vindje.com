@@ -106,6 +106,7 @@ Add a variable → add a row here and in `README.md`, and set it in Vercel.
 | `deals.py` | Daily deal hunt. Imports from `app.py`. Run by GitHub Actions. |
 | `digest.py` | Nightly saved-search email digest (issue #28). Imports from `app.py`. Run by GitHub Actions. |
 | `overlooked.py` | Unbranded finds recognized from photos (issue #50, pilot: lamps): daily hunt for `/flip`'s Overlooked section, plus its accuracy test. Imports from `app.py` and `deals.py`. Run by GitHub Actions. |
+| `data/guides.json` | The buying guides served at `/guides/<slug>`: plain text, escaped on render. |
 | `data/` | `vintage_resale_icons.json` (valuable models with resale and buy prices, kept as delivered) and the overlooked test sets. |
 | `mcp_server.py` | MCP server. Raw listings only, no AI on our side. |
 | `listing_cards_ui.py` | MCP Apps widget HTML for listing cards. |
@@ -125,12 +126,13 @@ name isn't enough. Section banners stay in the
 and what it returned in outline. That's how we debug production from Vercel
 logs. Never log an API key or a full prompt payload.
 
-**HTML templates.** Seven page templates live as module-level strings in
+**HTML templates.** Eight page templates live as module-level strings in
 `app.py` (`HTML`, `HOW_IT_WORKS_HTML`, `CREDITS_HTML`, `HISTORY_HTML`,
-`IDEAS_HTML`, `UNSUBSCRIBE_HTML`, `FLIP_HTML`), each wrapped once by
-`_with_gtm`. The CSS custom properties (`--ink`, `--body`, `--muted`,
-`--line`, `--line2`, `--field`) are duplicated in all seven. Change the
-palette in one, change it in all seven. `FLIP_HTML` serves `/flip`;
+`IDEAS_HTML`, `UNSUBSCRIBE_HTML`, `FLIP_HTML`, `GUIDE_HTML`), each wrapped once
+by `_with_gtm` and once by `_with_footer_guides` (the guide-links row under
+every footer). The CSS custom properties (`--ink`, `--body`, `--muted`,
+`--line`, `--line2`, `--field`) are duplicated in all eight. Change the
+palette in one, change it in all eight. `FLIP_HTML` serves `/flip`;
 `?item=lamps|bikes|chairs` picks a `FLIP_PAGES` entry (default lamps). `digest.py`'s email HTML is separate: inline styles, not custom
 properties — most mail clients strip `<style>`/don't support `var()`.
 
@@ -165,9 +167,15 @@ which `/flip` page, a `looks` line per model (shape in a photo, not value),
 the test set with `--collect`, check its labels by hand against the links,
 and run `--eval` before you open the PR.
 
+**A buying guide.** One object in `data/guides.json` (copy an existing one for
+the shape). Plain text only, English, no em dashes, honest price ranges. The
+page, `/guides` index, sitemap entry and JSON-LD come from the data. Load
+`/guides/<slug>` before you open the PR. To link it from every footer, add it
+to `FOOTER_GUIDES` in `app.py`.
+
 **A page/route.** Five places, all of them:
 1. the `*_HTML` template string in `app.py`,
-2. the `_with_gtm(...)` wrap next to the others,
+2. the `_with_gtm(...)` and `_with_footer_guides(...)` wraps next to the others,
 3. a branch in the GET section of `app()`,
 4. a rewrite in `vercel.json`,
 5. an entry in `SITEMAP_XML` if it should be indexed.

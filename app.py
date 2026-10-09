@@ -1429,6 +1429,7 @@ HTML = """<!doctype html>
     <span class="footer-brand">vindje.com</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
+      <a href="/guides">Guides</a>
       <a href="/ideas">Ideas</a>
       <a href="/history">History</a>
       <a href="/credits">Credits</a>
@@ -1857,6 +1858,10 @@ if (SHARED) {
     }
   }
 } else {
+  // /?q=... (the "Search Marktplaats like this" links on /guides) prefills
+  // the wish; it doesn't run the search, the visitor still adds a postcode.
+  const preset = new URLSearchParams(location.search).get('q');
+  if (preset) document.getElementById('q').value = preset.slice(0, 500);
   document.getElementById('pc').value = localStorage.getItem('pc') || '';
   document.getElementById('nobids').checked = !!localStorage.getItem('nobids');
 }
@@ -2090,6 +2095,7 @@ HOW_IT_WORKS_HTML = """<!doctype html>
     <span class="footer-brand">vindje.com</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
+      <a href="/guides">Guides</a>
       <a href="/ideas">Ideas</a>
       <a href="/history">History</a>
       <a href="/credits">Credits</a>
@@ -2249,6 +2255,7 @@ CREDITS_HTML = """<!doctype html>
     <span class="footer-brand">vindje.com</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
+      <a href="/guides">Guides</a>
       <a href="/ideas">Ideas</a>
       <a href="/history">History</a>
       <a href="/credits">Credits</a>
@@ -2332,6 +2339,7 @@ UNSUBSCRIBE_HTML = """<!doctype html>
     <span class="footer-brand">vindje.com</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
+      <a href="/guides">Guides</a>
       <a href="/ideas">Ideas</a>
       <a href="/history">History</a>
       <a href="/credits">Credits</a>
@@ -2450,6 +2458,7 @@ HISTORY_HTML = """<!doctype html>
     <span class="footer-brand">vindje.com</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
+      <a href="/guides">Guides</a>
       <a href="/ideas">Ideas</a>
       <a href="/history">History</a>
       <a href="/credits">Credits</a>
@@ -2631,6 +2640,7 @@ IDEAS_HTML = """<!doctype html>
     <span class="footer-brand">vindje.com</span>
     <nav class="footer-links">
       <a href="/how-it-works">How it works</a>
+      <a href="/guides">Guides</a>
       <a href="/ideas">Ideas</a>
       <a href="/history">History</a>
       <a href="/credits">Credits</a>
@@ -3048,6 +3058,7 @@ __OVERLOOKED__
     <nav class="footer-links">
       <a href="/">Search</a>
       <a href="/how-it-works">How it works</a>
+      <a href="/guides">Guides</a>
       <a href="/ideas">Ideas</a>
       <a href="/credits">Credits</a>
       <a href="__CALL__" target="_blank" rel="noopener">Contact</a>
@@ -3401,6 +3412,344 @@ def render_flip(item, origin="", req_id="-", show_possible=False):
     return doc
 
 
+# ---------------------------------------------------------------- guides (/guides)
+# Buying guides for second-hand items, one page per guide at /guides/<slug>.
+# The text lives in data/guides.json (plain text, escaped here on render), so
+# adding a guide is a data change. Missing or broken file -> no guides, the
+# rest of the site keeps working.
+
+GUIDES_UPDATED = "2026-10-09"
+
+# The guides linked from every page's footer: the ones people search for most.
+FOOTER_GUIDES = [
+    ("how-to-buy-safely-on-marktplaats", "Buying safely"),
+    ("marktplaats-scams-to-avoid", "Scams to avoid"),
+    ("marktplaats-in-english", "Marktplaats in English"),
+    ("used-bike-buying-guide", "Used bikes"),
+    ("used-e-bike-buying-guide", "Used e-bikes"),
+    ("used-sofa-buying-guide", "Used sofas"),
+    ("furnish-apartment-second-hand", "Furnish an apartment"),
+    ("used-iphone-buying-guide", "Used iPhones"),
+    ("used-washing-machine", "Washing machines"),
+    ("eames-chair-real-vs-replica", "Eames real vs replica"),
+]
+
+
+def _load_guides():
+    """Read data/guides.json into a list of guide dicts; empty on any failure."""
+    file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "guides.json")
+    try:
+        with open(file, encoding="utf-8") as f:
+            guides = json.load(f)
+        return [g for g in guides if isinstance(g, dict) and g.get("slug")]
+    except (OSError, ValueError) as e:
+        log.warning("guides not loaded: %s", e)
+        return []
+
+
+GUIDES = _load_guides()
+GUIDES_BY_SLUG = {g["slug"]: g for g in GUIDES}
+
+GUIDE_HTML = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<meta name="description" content="__DESCRIPTION__">
+<link rel="canonical" href="__ORIGIN____PATH__">__ROBOTS__
+<meta property="og:type" content="__OG_TYPE__">
+<meta property="og:site_name" content="vindje.com">
+<meta property="og:title" content="__TITLE__">
+<meta property="og:description" content="__DESCRIPTION__">
+<meta property="og:url" content="__ORIGIN____PATH__">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="__TITLE__">
+<meta name="twitter:description" content="__DESCRIPTION__">
+<meta name="theme-color" content="#ffffff">
+__JSONLD__
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128269;</text></svg>">
+<style>
+  :root {
+    --ink: #1d1d1f; --body: #48484a; --muted: #86868b;
+    --line: #e8e8ed; --line2: #d2d2d7; --field: #f5f5f7;
+  }
+  * { box-sizing: border-box; }
+  ::selection { background: var(--ink); color: #fff; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: #fff; color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
+                 system-ui, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 60px; width: 100%;
+          flex: 1 0 auto; }
+  .top { padding: 30px 2px 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+  .top a { color: inherit; text-decoration: none; }
+  .crumbs { margin: 40px 0 0; font-size: 13px; color: var(--muted); }
+  .crumbs a { color: inherit; text-decoration: none; }
+  .crumbs a:hover { color: var(--ink); }
+  h1 {
+    font-size: clamp(30px, 5.5vw, 44px); font-weight: 700; letter-spacing: -.03em;
+    line-height: 1.08; margin: 12px 0 16px;
+  }
+  .lead { font-size: 18px; color: var(--body); line-height: 1.55; margin: 0 0 8px; }
+  .meta { font-size: 13px; color: var(--muted); margin: 0 0 28px; }
+  h2 { font-size: 22px; font-weight: 700; letter-spacing: -.02em; margin: 40px 0 10px; }
+  h3 { font-size: 16px; font-weight: 700; margin: 22px 0 6px; }
+  p, li { font-size: 16px; color: var(--body); line-height: 1.65; }
+  ul.list { padding-left: 20px; margin: 10px 0 0; }
+  ul.list li { margin: 4px 0; }
+  .terms { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; padding: 0;
+           list-style: none; }
+  .terms li { font-size: 13.5px; background: var(--field); border-radius: 980px;
+              padding: 5px 12px; color: var(--ink); }
+  .try { background: var(--field); border-radius: 20px; padding: 22px; margin: 28px 0 0; }
+  .try p { margin: 0 0 12px; font-size: 15px; }
+  .try q { display: block; font-size: 16px; color: var(--ink); quotes: none;
+           margin: 0 0 16px; font-style: italic; }
+  .btn {
+    display: inline-block; padding: 12px 26px; font-size: 15px; font-weight: 600;
+    color: #fff; background: var(--ink); border-radius: 980px; text-decoration: none;
+    transition: opacity .15s ease;
+  }
+  .btn:hover { opacity: .85; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 0; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 4px; border-bottom: 1px solid var(--line); }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em;
+       color: var(--muted); font-weight: 600; }
+  td:last-child, th:last-child { text-align: right; white-space: nowrap; }
+  .note { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+  .faq h3 { margin-top: 20px; }
+  .faq p { margin: 0; }
+  .related { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 8px; }
+  .related a, .guide-list a { color: var(--ink); text-decoration: none; font-weight: 600; }
+  .related a:hover, .guide-list a:hover { text-decoration: underline; }
+  .guide-list { list-style: none; padding: 0; margin: 10px 0 0; }
+  .guide-list li { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .guide-list span { display: block; font-size: 14px; color: var(--muted);
+                     line-height: 1.5; margin-top: 2px; }
+  .cats { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 0; }
+  .cats a { font-size: 13.5px; background: var(--field); border-radius: 980px;
+            padding: 6px 13px; color: var(--ink); text-decoration: none; }
+  .cats a:hover { background: var(--line); }
+
+  .footer { flex-shrink: 0; margin-top: 70px; border-top: 1px solid var(--line); }
+  .footer-inner { max-width: 1040px; margin: 0 auto; padding: 22px 20px 30px;
+                  display: flex; align-items: center; justify-content: space-between;
+                  flex-wrap: wrap; gap: 12px; }
+  .footer-brand { font-size: 13px; color: var(--muted); }
+  .footer-links { display: flex; gap: 22px; flex-wrap: wrap; }
+  .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; }
+  .footer-links a:hover { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="/">vindje.com</a></div>
+__BODY__
+</div>
+<footer class="footer">
+  <div class="footer-inner">
+    <span class="footer-brand">vindje.com</span>
+    <nav class="footer-links">
+      <a href="/how-it-works">How it works</a>
+      <a href="/guides">Guides</a>
+      <a href="/ideas">Ideas</a>
+      <a href="/history">History</a>
+      <a href="/credits">Credits</a>
+      <a href="https://timetuna.com/pavel" target="_blank" rel="noopener">Contact</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>"""
+
+# A row of guide links under every page's footer, so each guide is one click
+# from anywhere and crawlers find them without the sitemap.
+_FOOTER_GUIDES_CSS = """<style>
+  .footer-guides { max-width: 1040px; margin: 0 auto; padding: 0 20px 28px;
+                   display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12.5px; }
+  .footer-guides span { color: var(--muted); font-weight: 600; }
+  .footer-guides a { color: var(--muted); text-decoration: none; }
+  .footer-guides a:hover { color: var(--ink); }
+</style>
+</head>"""
+
+
+def _footer_guides_html():
+    """The footer's guide-links row, or empty when no guides are loaded."""
+    links = [f'<a href="/guides/{html.escape(slug)}">{html.escape(label)}</a>'
+             for slug, label in FOOTER_GUIDES if slug in GUIDES_BY_SLUG]
+    if not links:
+        return ""
+    return ('  <nav class="footer-guides" aria-label="Buying guides">'
+            '<span>Buying guides</span>' + "".join(links)
+            + f'<a href="/guides">All {len(GUIDES)} guides</a></nav>\n')
+
+
+def _with_footer_guides(doc: str) -> str:
+    """Add the guide-links row (and its CSS) to one HTML document's footer."""
+    row = _footer_guides_html()
+    if not row:
+        return doc
+    return (doc.replace("</head>", _FOOTER_GUIDES_CSS, 1)
+               .replace("</footer>", row + "</footer>", 1))
+
+
+def _jsonld(obj) -> str:
+    """One JSON-LD script tag, safe to drop into HTML."""
+    data = json.dumps(obj, ensure_ascii=False).replace("</", "<\\/")
+    return f'<script type="application/ld+json">{data}</script>'
+
+
+def _guide_doc(path, title, description, body, jsonld, origin,
+               og_type="website", noindex=False):
+    """Fill the GUIDE_HTML shell. Text arguments must already be escaped."""
+    subs = {
+        "__TITLE__": title, "__DESCRIPTION__": description, "__PATH__": path,
+        "__ROBOTS__": '\n<meta name="robots" content="noindex">' if noindex else "",
+        "__OG_TYPE__": og_type, "__JSONLD__": "\n".join(jsonld), "__BODY__": body,
+    }
+    doc = GUIDE_HTML
+    for k, v in subs.items():
+        doc = doc.replace(k, v)
+    return doc.replace("__ORIGIN__", origin)
+
+
+def _crumbs_ld(origin, items):
+    """BreadcrumbList JSON-LD from (name, path) pairs."""
+    return {"@context": "https://schema.org", "@type": "BreadcrumbList",
+            "itemListElement": [
+                {"@type": "ListItem", "position": i, "name": name, "item": origin + p}
+                for i, (name, p) in enumerate(items, 1)]}
+
+
+def _category_id(category):
+    """Anchor id for a category heading on /guides."""
+    return re.sub(r"[^a-z0-9]+", "-", category.lower()).strip("-")
+
+
+def render_guides_index(origin="", not_found=False):
+    """Render /guides: every guide, grouped by category."""
+    cats = {}
+    for g in GUIDES:
+        cats.setdefault(g.get("category") or "Other", []).append(g)
+    chips = "".join(f'<a href="#{_category_id(c)}">{html.escape(c)}</a>' for c in cats)
+    groups = []
+    for c, items in cats.items():
+        lis = "".join(
+            f'<li><a href="/guides/{html.escape(g["slug"])}">{html.escape(g["title"])}</a>'
+            f'<span>{html.escape(g.get("description") or "")}</span></li>'
+            for g in items)
+        groups.append(f'<h2 id="{_category_id(c)}">{html.escape(c)}</h2>'
+                      f'<ul class="guide-list">{lis}</ul>')
+    missing = ('<p class="lead">That guide doesn\'t exist (anymore). '
+               'Here are all the others.</p>' if not_found else "")
+    body = (f'  <p class="crumbs"><a href="/">vindje.com</a> / Guides</p>\n'
+            f'  <h1>Second-hand buying guides for Marktplaats</h1>\n{missing}'
+            f'  <p class="lead">What to check, what to pay and which Dutch words to search '
+            f'for, before you buy something used in the Netherlands. '
+            f'{len(GUIDES)} guides, from bikes and sofas to iPhones and Eames chairs.</p>\n'
+            f'  <div class="cats">{chips}</div>\n' + "\n".join(groups))
+    jsonld = [_jsonld(_crumbs_ld(origin, [("vindje.com", "/"), ("Guides", "/guides")])),
+              _jsonld({"@context": "https://schema.org", "@type": "ItemList",
+                       "itemListElement": [
+                           {"@type": "ListItem", "position": i,
+                            "url": f'{origin}/guides/{g["slug"]}', "name": g["title"]}
+                           for i, g in enumerate(GUIDES, 1)]})]
+    return _guide_doc("/guides", "Second-hand buying guides for Marktplaats &middot; vindje.com",
+                      html.escape("What to check, what to pay and which Dutch words to "
+                                  "search for when buying second hand in the Netherlands. "
+                                  f"{len(GUIDES)} practical guides."),
+                      body, jsonld, origin, noindex=not_found)
+
+
+def render_guide(guide, origin=""):
+    """Render one guide page from its data/guides.json entry."""
+    e = html.escape
+    slug, path = guide["slug"], "/guides/" + guide["slug"]
+    parts = [f'  <p class="crumbs"><a href="/">vindje.com</a> / <a href="/guides">Guides</a>'
+             f' / {e(guide.get("category") or "")}</p>',
+             f'  <h1>{e(guide["title"])}</h1>',
+             f'  <p class="lead">{e(guide.get("intro") or "")}</p>',
+             f'  <p class="meta">Updated {datetime.strptime(GUIDES_UPDATED, "%Y-%m-%d"):%B %Y}'
+             f' &middot; vindje.com guides</p>']
+    terms = guide.get("dutch_terms") or []
+    if terms:
+        parts.append('  <h2>Search terms Dutch sellers use</h2>\n  <ul class="terms">'
+                     + "".join(f"<li>{e(t)}</li>" for t in terms) + "</ul>")
+    for s in guide.get("sections") or []:
+        parts.append(f'  <h2>{e(s.get("heading") or "")}</h2>')
+        parts.extend(f"  <p>{e(p)}</p>" for p in s.get("paragraphs") or [])
+        if s.get("bullets"):
+            parts.append('  <ul class="list">'
+                         + "".join(f"<li>{e(b)}</li>" for b in s["bullets"]) + "</ul>")
+    prices = guide.get("price_guide") or []
+    if prices:
+        rows = "".join(f'<tr><td>{e(r.get("item") or "")}</td><td>{e(r.get("price") or "")}</td></tr>'
+                       for r in prices)
+        parts.append('  <h2>What to pay second hand</h2>\n'
+                     f'  <table><thead><tr><th>Item</th><th>Typical asking price</th></tr></thead>'
+                     f'<tbody>{rows}</tbody></table>\n'
+                     '  <p class="note">Rough Marktplaats asking prices in the Netherlands. '
+                     'Condition, age and season move them a lot.</p>')
+    wish = guide.get("example_wish") or ""
+    if wish:
+        q = urllib.parse.quote(wish)
+        parts.append('  <div class="try"><p>Describe what you want in your own words and '
+                     'vindje.com searches Marktplaats in Dutch, then reads every listing '
+                     'and keeps only the real matches. For example:</p>'
+                     f'<q>{e(wish)}</q><a class="btn" href="/?q={e(q)}">Search Marktplaats '
+                     'like this</a></div>')
+    faq = guide.get("faq") or []
+    if faq:
+        parts.append('  <section class="faq"><h2>Questions people ask</h2>'
+                     + "".join(f'<h3>{e(f.get("q") or "")}</h3><p>{e(f.get("a") or "")}</p>'
+                               for f in faq) + "</section>")
+    related = [g for g in GUIDES if g.get("category") == guide.get("category")
+               and g["slug"] != slug][:6]
+    if related:
+        parts.append('  <h2>Related guides</h2>\n  <ul class="related">'
+                     + "".join(f'<li><a href="/guides/{e(g["slug"])}">{e(g["title"])}</a></li>'
+                               for g in related)
+                     + '<li><a href="/guides">All buying guides</a></li></ul>')
+    url = origin + path
+    jsonld = [
+        _jsonld({"@context": "https://schema.org", "@type": "Article",
+                 "headline": guide["title"], "description": guide.get("description") or "",
+                 "datePublished": GUIDES_UPDATED, "dateModified": GUIDES_UPDATED,
+                 "inLanguage": "en", "mainEntityOfPage": url,
+                 "author": {"@type": "Organization", "name": "vindje.com",
+                            "url": origin + "/"},
+                 "publisher": {"@type": "Organization", "name": "vindje.com",
+                               "url": origin + "/"}}),
+        _jsonld(_crumbs_ld(origin, [("vindje.com", "/"), ("Guides", "/guides"),
+                                    (guide["title"], path)])),
+    ]
+    if faq:
+        jsonld.append(_jsonld({
+            "@context": "https://schema.org", "@type": "FAQPage",
+            "mainEntity": [{"@type": "Question", "name": f.get("q") or "",
+                            "acceptedAnswer": {"@type": "Answer", "text": f.get("a") or ""}}
+                           for f in faq]}))
+    title = e(guide.get("meta_title") or guide["title"]) + " &middot; vindje.com"
+    return _guide_doc(path, title, e(guide.get("description") or ""), "\n".join(parts),
+                      jsonld, origin, og_type="article")
+
+
+def guides_sitemap_entries():
+    """Sitemap <url> lines for /guides and every guide."""
+    lines = ["  <url><loc>__ORIGIN__/guides</loc><lastmod>%s</lastmod>"
+             "<changefreq>weekly</changefreq><priority>0.7</priority></url>" % GUIDES_UPDATED]
+    lines += ["  <url><loc>__ORIGIN__/guides/%s</loc><lastmod>%s</lastmod>"
+              "<changefreq>monthly</changefreq><priority>0.6</priority></url>"
+              % (urllib.parse.quote(g["slug"]), GUIDES_UPDATED) for g in GUIDES]
+    return "\n".join(lines) + "\n" if GUIDES else ""
+
+
 # ---------------------------------------------------------------- analytics
 # Google Tag Manager. One container, injected into every page below so the
 # snippet lives in a single place instead of being copy-pasted five times.
@@ -3436,6 +3785,17 @@ HISTORY_HTML = _with_gtm(HISTORY_HTML)
 IDEAS_HTML = _with_gtm(IDEAS_HTML)
 UNSUBSCRIBE_HTML = _with_gtm(UNSUBSCRIBE_HTML)
 FLIP_HTML = _with_gtm(FLIP_HTML)
+GUIDE_HTML = _with_gtm(GUIDE_HTML)
+
+# Footer guide links go on every page, the guide pages included.
+HTML = _with_footer_guides(HTML)
+HOW_IT_WORKS_HTML = _with_footer_guides(HOW_IT_WORKS_HTML)
+CREDITS_HTML = _with_footer_guides(CREDITS_HTML)
+HISTORY_HTML = _with_footer_guides(HISTORY_HTML)
+IDEAS_HTML = _with_footer_guides(IDEAS_HTML)
+UNSUBSCRIBE_HTML = _with_footer_guides(UNSUBSCRIBE_HTML)
+FLIP_HTML = _with_footer_guides(FLIP_HTML)
+GUIDE_HTML = _with_footer_guides(GUIDE_HTML)
 
 
 ROBOTS_TXT = """User-agent: *
@@ -3453,8 +3813,8 @@ SITEMAP_XML = """<?xml version="1.0" encoding="UTF-8"?>
   <url><loc>__ORIGIN__/flip?item=bikes</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>__ORIGIN__/flip?item=chairs</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>__ORIGIN__/credits</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
-</urlset>
-"""
+__GUIDES__</urlset>
+""".replace("__GUIDES__", guides_sitemap_entries())
 
 
 def render_history(entries, origin=""):
@@ -3664,6 +4024,17 @@ def app(environ, start_response):
             possible = urllib.parse.parse_qs(qs).get("possible") == ["1"]
             body = render_flip(item, origin=origin, req_id=req_id,
                                show_possible=possible).encode()
+            headers = [("Content-Type", "text/html; charset=utf-8")]
+        elif path == "/guides":
+            body = render_guides_index(origin=origin).encode()
+            headers = [("Content-Type", "text/html; charset=utf-8")]
+        elif path.startswith("/guides/"):
+            guide = GUIDES_BY_SLUG.get(path[len("/guides/"):])
+            if guide:
+                body = render_guide(guide, origin=origin).encode()
+            else:
+                body = render_guides_index(origin=origin, not_found=True).encode()
+                status = "404 Not Found"
             headers = [("Content-Type", "text/html; charset=utf-8")]
         elif path == "/credits":
             body = CREDITS_HTML.replace("__ORIGIN__", origin).encode()
