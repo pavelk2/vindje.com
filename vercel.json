@@ -8,6 +8,7 @@
     { "source": "/ideas", "destination": "/api/index" },
     { "source": "/unsubscribe", "destination": "/api/index" },
     { "source": "/flip", "destination": "/api/index" },
+    { "source": "/become-ceo", "destination": "/api/index" },
     { "source": "/guides", "destination": "/api/index" },
     { "source": "/guides/:slug", "destination": "/api/index" },
     { "source": "/robots.txt", "destination": "/api/index" },
