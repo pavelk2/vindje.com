@@ -335,7 +335,10 @@ CATEGORIES = {
                     "The North Face Supreme Collab Mountain / Nuptse": ["north face"],
                     "C.P. Company Mille Miglia Goggle Jacket": ["cp company"],
                     "Arc'teryx Alpha SV": ["arcteryx"],
-                    "The Real McCoy's Type A-2": ["real mccoys", "mccoys"]},
+                    "The Real McCoy's Type A-2": ["real mccoys", "mccoys"],
+                    # sellers write "Levis", which "Levi's" doesn't match
+                    "Levi's Type I 506XX": ["levis"], "Levi's Type II 507XX": ["levis"],
+                    "Levi's Type III 557 / 70505 Big E": ["levis"]},
         "designers": ["massimo osti", "osti", "scot schmidt", "lagerfeld", "supreme"],
         "copied": ["Schott NYC Perfecto 618 / 613", "Levi's Type III 557 / 70505 Big E",
                    "Burberry Vintage Trench", "Chanel Tweed Jacket",
