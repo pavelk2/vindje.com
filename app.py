@@ -1380,7 +1380,6 @@ HTML = """<!doctype html>
   .fab:hover { transform: translateY(-3px);
                box-shadow: 0 16px 38px rgba(0,0,0,.24), 0 4px 12px rgba(0,0,0,.12); }
   .fab:active { transform: translateY(-1px) scale(.96); }
-  .fab.fab-hide { opacity: 0; pointer-events: none; transform: translateY(8px); }
   .fab-emoji { font-size: 17px; line-height: 1; }
   @keyframes fab-in { from { opacity: 0; transform: translateY(16px) scale(.85); }
                       to { opacity: 1; transform: none; } }
@@ -1474,10 +1473,21 @@ HTML = """<!doctype html>
 (function () {
   var fab = document.querySelector('.fab');
   var foot = document.querySelector('footer.footer');
-  if (!fab || !foot || !('IntersectionObserver' in window)) return;
-  new IntersectionObserver(function (entries) {
-    fab.classList.toggle('fab-hide', entries[0].isIntersecting);
-  }).observe(foot);
+  if (!fab || !foot) return;
+  // Stay visible, but ride 20px above the footer once it scrolls into view.
+  var queued = false;
+  function place() {
+    queued = false;
+    var lift = window.innerHeight - foot.getBoundingClientRect().top;
+    fab.style.bottom = Math.max(20, lift + 20) + 'px';
+  }
+  function queue() {
+    if (!queued) { queued = true; requestAnimationFrame(place); }
+  }
+  window.addEventListener('scroll', queue, { passive: true });
+  window.addEventListener('resize', queue);
+  if ('ResizeObserver' in window) new ResizeObserver(queue).observe(document.body);
+  place();
 })();
 </script>
 <div class="modal-overlay" id="modalOverlay">
@@ -2054,7 +2064,6 @@ HOW_IT_WORKS_HTML = """<!doctype html>
   .fab:hover { transform: translateY(-3px);
                box-shadow: 0 16px 38px rgba(0,0,0,.24), 0 4px 12px rgba(0,0,0,.12); }
   .fab:active { transform: translateY(-1px) scale(.96); }
-  .fab.fab-hide { opacity: 0; pointer-events: none; transform: translateY(8px); }
   .fab-emoji { font-size: 17px; line-height: 1; }
   @keyframes fab-in { from { opacity: 0; transform: translateY(16px) scale(.85); }
                       to { opacity: 1; transform: none; } }
@@ -2135,10 +2144,21 @@ HOW_IT_WORKS_HTML = """<!doctype html>
 (function () {
   var fab = document.querySelector('.fab');
   var foot = document.querySelector('footer.footer');
-  if (!fab || !foot || !('IntersectionObserver' in window)) return;
-  new IntersectionObserver(function (entries) {
-    fab.classList.toggle('fab-hide', entries[0].isIntersecting);
-  }).observe(foot);
+  if (!fab || !foot) return;
+  // Stay visible, but ride 20px above the footer once it scrolls into view.
+  var queued = false;
+  function place() {
+    queued = false;
+    var lift = window.innerHeight - foot.getBoundingClientRect().top;
+    fab.style.bottom = Math.max(20, lift + 20) + 'px';
+  }
+  function queue() {
+    if (!queued) { queued = true; requestAnimationFrame(place); }
+  }
+  window.addEventListener('scroll', queue, { passive: true });
+  window.addEventListener('resize', queue);
+  if ('ResizeObserver' in window) new ResizeObserver(queue).observe(document.body);
+  place();
 })();
 </script>
 </body>
@@ -2237,7 +2257,6 @@ CREDITS_HTML = """<!doctype html>
   .fab:hover { transform: translateY(-3px);
                box-shadow: 0 16px 38px rgba(0,0,0,.24), 0 4px 12px rgba(0,0,0,.12); }
   .fab:active { transform: translateY(-1px) scale(.96); }
-  .fab.fab-hide { opacity: 0; pointer-events: none; transform: translateY(8px); }
   .fab-emoji { font-size: 17px; line-height: 1; }
   @keyframes fab-in { from { opacity: 0; transform: translateY(16px) scale(.85); }
                       to { opacity: 1; transform: none; } }
@@ -2294,10 +2313,21 @@ CREDITS_HTML = """<!doctype html>
 (function () {
   var fab = document.querySelector('.fab');
   var foot = document.querySelector('footer.footer');
-  if (!fab || !foot || !('IntersectionObserver' in window)) return;
-  new IntersectionObserver(function (entries) {
-    fab.classList.toggle('fab-hide', entries[0].isIntersecting);
-  }).observe(foot);
+  if (!fab || !foot) return;
+  // Stay visible, but ride 20px above the footer once it scrolls into view.
+  var queued = false;
+  function place() {
+    queued = false;
+    var lift = window.innerHeight - foot.getBoundingClientRect().top;
+    fab.style.bottom = Math.max(20, lift + 20) + 'px';
+  }
+  function queue() {
+    if (!queued) { queued = true; requestAnimationFrame(place); }
+  }
+  window.addEventListener('scroll', queue, { passive: true });
+  window.addEventListener('resize', queue);
+  if ('ResizeObserver' in window) new ResizeObserver(queue).observe(document.body);
+  place();
 })();
 </script>
 </body>
@@ -2458,7 +2488,6 @@ HISTORY_HTML = """<!doctype html>
   .fab:hover { transform: translateY(-3px);
                box-shadow: 0 16px 38px rgba(0,0,0,.24), 0 4px 12px rgba(0,0,0,.12); }
   .fab:active { transform: translateY(-1px) scale(.96); }
-  .fab.fab-hide { opacity: 0; pointer-events: none; transform: translateY(8px); }
   .fab-emoji { font-size: 17px; line-height: 1; }
   @keyframes fab-in { from { opacity: 0; transform: translateY(16px) scale(.85); }
                       to { opacity: 1; transform: none; } }
@@ -2495,10 +2524,21 @@ HISTORY_HTML = """<!doctype html>
 (function () {
   var fab = document.querySelector('.fab');
   var foot = document.querySelector('footer.footer');
-  if (!fab || !foot || !('IntersectionObserver' in window)) return;
-  new IntersectionObserver(function (entries) {
-    fab.classList.toggle('fab-hide', entries[0].isIntersecting);
-  }).observe(foot);
+  if (!fab || !foot) return;
+  // Stay visible, but ride 20px above the footer once it scrolls into view.
+  var queued = false;
+  function place() {
+    queued = false;
+    var lift = window.innerHeight - foot.getBoundingClientRect().top;
+    fab.style.bottom = Math.max(20, lift + 20) + 'px';
+  }
+  function queue() {
+    if (!queued) { queued = true; requestAnimationFrame(place); }
+  }
+  window.addEventListener('scroll', queue, { passive: true });
+  window.addEventListener('resize', queue);
+  if ('ResizeObserver' in window) new ResizeObserver(queue).observe(document.body);
+  place();
 })();
 </script>
 </body>
