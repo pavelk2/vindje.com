@@ -179,7 +179,17 @@ python3 overlooked.py --eval lamps --no-text                 # photos only
 
 Adding a category means data, not code: an entry in `CATEGORIES` in
 `overlooked.py` that points at a category in the data file, plus what each
-model looks like in a photo.
+model looks like in a photo. All six categories in the data file have an entry
+and a test set (`data/overlooked_eval_<key>.json`). Only lamps run every
+morning; chairs, bikes, jackets, bags and boats are marked `"daily": False`
+until their accuracy has been read, and can be hunted by hand:
+
+```bash
+OPENROUTER_API_KEY=sk-or-... python3 overlooked.py --dry-run --category chairs
+```
+
+Jackets and bags are fake-heavy, so every model there counts as copied: they
+can show up as possible matches, never as public strong ones.
 
 ## Configuration (all optional, via environment variables)
 

@@ -105,7 +105,7 @@ Add a variable → add a row here and in `README.md`, and set it in Vercel.
 | `app.py` | Everything for the web app: LLM calls, Marktplaats search, filtering, Upstash storage, ideas board, HTML templates, WSGI router. ~2500 lines, sectioned by `# ---- name` comment banners. |
 | `deals.py` | Daily deal hunt. Imports from `app.py`. Run by GitHub Actions. |
 | `digest.py` | Nightly saved-search email digest (issue #28). Imports from `app.py`. Run by GitHub Actions. |
-| `overlooked.py` | Unbranded finds recognized from photos (issue #50, pilot: lamps): daily hunt for `/flip`'s Overlooked section, plus its accuracy test. Imports from `app.py` and `deals.py`. Run by GitHub Actions. |
+| `overlooked.py` | Unbranded finds recognized from photos (issue #50: lamps daily; chairs, bikes, jackets, bags, boats in test): daily hunt for `/flip`'s Overlooked section, plus its accuracy test. Imports from `app.py` and `deals.py`. Run by GitHub Actions. |
 | `data/` | `vintage_resale_icons.json` (valuable models with resale and buy prices, kept as delivered) and the overlooked test sets. |
 | `mcp_server.py` | MCP server. Raw listings only, no AI on our side. |
 | `listing_cards_ui.py` | MCP Apps widget HTML for listing cards. |
@@ -161,9 +161,11 @@ open the PR. If the finds are junk, the `target` is too loose.
 **An overlooked category.** The models go in `data/vintage_resale_icons.json`.
 Then one entry in `CATEGORIES` in `overlooked.py`: which `source` category,
 which `/flip` page, a `looks` line per model (shape in a photo, not value),
-`designers`, and `copied` for models a photo can't tell from a copy. Build
-the test set with `--collect`, check its labels by hand against the links,
-and run `--eval` before you open the PR.
+`designers`, and `copied` for models a photo can't tell from a copy. A category
+without a `/flip` page sets its own search and Marktplaats categories in `page`.
+New categories start with `"daily": False`. Build the test set with `--collect`,
+check its labels by hand against the printed titles, and run `--eval` before
+you open the PR. Only after reading the numbers, drop `"daily": False`.
 
 **A page/route.** Five places, all of them:
 1. the `*_HTML` template string in `app.py`,
