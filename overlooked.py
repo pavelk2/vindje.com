@@ -18,6 +18,10 @@ production a step in .github/workflows/daily-deals.yml runs it every morning.
 
   python3 overlooked.py --dry-run         # hunt and print, save nothing
   python3 overlooked.py                   # hunt and save to Redis
+  python3 overlooked.py --dry-run --category bags   # a category not in DAILY
+
+Only the DAILY categories run by default. The others (bikes, chairs, jackets,
+bags, boats) have test sets and run on request until their numbers hold up.
 
 Accuracy test: the same recognition on listings whose title names the model,
 so the answer is known but hidden. Listings that name the brand tend to be
@@ -68,6 +72,10 @@ MODELS_FILE = os.path.join(HERE, "data", "vintage_resale_icons.json")
 CATEGORIES = {
     "lamps": {
         "source": "Lamps", "flip": "lamps", "noun": "lamps",
+        "clues": '"contragewicht", "opaline glas", "jaren 50", a stamp under the base',
+        "parts": 'Loose shades and parts are "unknown".',
+        "rule": "A different type of lamp (table, floor, wall, pendant) than the model is "
+                "never that model.",
         "queries": ["vintage bureaulamp", "vintage vloerlamp", "vintage hanglamp",
                     "vintage wandlamp", "oude lamp", "retro lamp", "jaren 60 lamp",
                     "jaren 70 lamp", "lamp contragewicht", "glazen blokken lamp",
@@ -141,10 +149,481 @@ CATEGORIES = {
             "Oluce Atollo 233": ["atollo"],
         },
     },
+    "bikes": {
+        "source": "Road Bikes", "flip": "bikes", "noun": "racing bikes",
+        "clues": '"columbus", "reynolds 531", "campagnolo", "jaren 80", a sticker on '
+                 'the frame',
+        "parts": 'A bare frame still counts; loose forks, wheels and parts are "unknown".',
+        "rule": "A modern, city, touring or mountain bike is never one of these models.",
+        # "record" is Campagnolo's groupset, on every good bike: not Gios's name
+        "generic": ["super", "sport", "team", "pro", "amsterdam", "built", "steel",
+                    "record"],
+        # Dutch "klein" is small, "look" is in "retro look"
+        "brand_stop": ["klein", "look", "torino"],
+        "aliases": {"Klein Quantum": ["klein quantum", "gary klein"],
+                    "Look KG86": ["look kg86", "look kg 86"]},
+        "designers": ["ernesto colnago", "ugo de rosa", "pinarello", "cino cinelli",
+                      "eddy merckx", "merckx"],
+        "copied": [],
+        "queries": ["oude racefiets", "vintage racefiets", "retro racefiets",
+                    "stalen racefiets", "racefiets jaren 80", "racefiets jaren 70",
+                    "racefiets campagnolo", "racefiets columbus", "racefiets reynolds",
+                    "koersfiets", "oude koersfiets", "italiaanse racefiets"],
+        "looks": {
+            "Colnago Master": "steel road frame with crimped, star-shaped tubes that show "
+                "ridges along their length, clover cut-outs in the lugs, often loud "
+                "Art Decor paint",
+            "Colnago Arabesque": "lugged steel frame with very ornate engraved lugs in "
+                "swirling patterns, often chrome plated",
+            "Colnago C40": "1990s frame of black round carbon tubes joined by lugs, "
+                "straight carbon fork, often Mapei multicolour cubes",
+            "Colnago Super / Mexico": "1970s-80s lugged steel frame with thin round tubes, "
+                "clover cut-outs in the lugs and a chromed clover fork crown",
+            "De Rosa Professional SLX": "1980s lugged steel frame with small heart-shaped "
+                "cut-outs in the lugs or fork crown, heart logo",
+            "Pinarello Montello SLX": "1980s lugged steel frame, often chrome with "
+                "'Spumoni' multicolour fade paint",
+            "Bianchi Specialissima (steel)": "lugged steel race frame in celeste, the pale "
+                "turquoise Bianchi green, eagle head badge",
+            "Eddy Merckx Corsa Extra": "late 1980s lugged steel frame, often in team paint: "
+                "7-Eleven red, white and green, Motorola, Telekom magenta",
+            "Eddy Merckx MX Leader": "1990s oversized steel frame with fluted, ribbed tubes, "
+                "often Motorola red, white and blue",
+            "Cinelli Supercorsa": "classic lugged steel frame, sloping fork crown, seat stays "
+                "joined flat behind the seat tube, winged C badge",
+            "Cinelli Laser": "1980s welded steel aero frame, smooth joints with small fins "
+                "where the tubes meet, no lugs",
+            "Tommasini Tecno": "lugged steel frame with chromed lugs and detailed "
+                "multicolour Italian paint",
+            "Gios Torino Super Record": "lugged steel frame in bright royal blue, chromed "
+                "fork, coins set into the fork crown",
+            "Raleigh Team Pro 753": "lugged steel frame in TI-Raleigh team colours: red with "
+                "yellow and black bands",
+            "Gazelle Champion Mondial AA": "Dutch lugged steel racer, often red or blue, "
+                "chromed fork ends and lugs, Gazelle head badge",
+            "Koga Miyata FullPro": "1980s Japanese lugged steel frame, often pearl white or "
+                "grey, Shimano Dura-Ace parts",
+            "RIH Sport (Amsterdam built)": "Dutch lugged steel frame, often orange-red or "
+                "blue, plain RIH lettering",
+            "Peugeot PX10": "white French racer with a chequered black band and coloured "
+                "stripes on the seat tube, ornate cut lugs",
+            "Look KG86": "1986 frame of black carbon tubes in aluminium lugs, often in "
+                "Mondrian blocks of red, yellow and blue",
+            "Klein Quantum": "fat oversized aluminium tubes with smooth welds, bright fade "
+                "paint, cables run inside the frame",
+        },
+        "search": {"RIH Sport (Amsterdam built)": "rih racefiets",
+                   "Raleigh Team Pro 753": "raleigh 753",
+                   "Bianchi Specialissima (steel)": "bianchi specialissima",
+                   "Colnago Super / Mexico": "colnago super"},
+    },
+    "chairs": {
+        "source": "Chairs", "flip": "chairs", "noun": "chairs",
+        "clues": '"teak", "skai", "buisframe", "jaren 60", a label under the seat',
+        "parts": 'Loose cushions, bare frames without a seat and parts are "unknown".',
+        "rule": "A different kind of seat (dining chair, lounge chair, office chair, "
+                "sofa) than the model is never that model.",
+        "generic": ["chair", "lounge", "armchair", "dining", "office", "soft", "pad",
+                    "chaise", "longue"],
+        "brand_stop": ["italia", "charlotte", "pierre", "herman", "carl", "fritz"],
+        "designers": ["eames", "arne jacobsen", "jacobsen", "wegner", "kjaerholm",
+                      "mogensen", "mies van der rohe", "breuer", "saarinen",
+                      "le corbusier", "corbusier", "perriand", "paulin", "martin visser",
+                      "ducaroy", "bellini", "jeanneret", "lafer", "aalto"],
+        "copied": ["Herman Miller Eames Lounge Chair 670/671", "Vitra Eames EA 117 / EA 119",
+                   "Fritz Hansen Egg Chair", "Fritz Hansen Swan Chair",
+                   "Carl Hansen CH24 Wishbone", "Knoll Barcelona Chair", "Knoll Wassily",
+                   "Cassina LC2", "Cassina LC4 Chaise Longue",
+                   "Pierre Jeanneret Chandigarh Office Chair"],
+        "queries": ["vintage fauteuil", "retro fauteuil", "design stoel", "vintage stoel",
+                    "jaren 60 fauteuil", "jaren 70 fauteuil", "leren fauteuil vintage",
+                    "buisframe stoel", "rotan fauteuil", "teak fauteuil", "deense fauteuil",
+                    "lounge stoel", "bureaustoel aluminium", "stoelen set vintage"],
+        "looks": {
+            "Herman Miller Eames Lounge Chair 670/671": "low lounge chair of three curved "
+                "plywood shells (seat, back, headrest) with black leather cushions, "
+                "five-star swivel base, matching ottoman",
+            "Vitra Eames EA 117 / EA 119": "office chair with fabric or leather stretched "
+                "tight between two polished cast aluminium side ribs, five-star base",
+            "Vitra Eames Soft Pad EA 217 / EA 219": "the aluminium office chair with thick "
+                "stitched leather pads in horizontal sections on seat and back",
+            "Fritz Hansen Egg Chair": "large upholstered shell curving up into a high back "
+                "with wing-like sides that wrap the sitter, four-star swivel base",
+            "Fritz Hansen Swan Chair": "lower upholstered shell with no straight lines, back "
+                "curving out into wing-shaped arms, four-star swivel base",
+            "Fritz Hansen PK22": "low lounge chair: leather or cane seat on a flat brushed "
+                "steel frame with two curved steel runners at the sides",
+            "Carl Hansen CH24 Wishbone": "wooden dining chair with a bent half-round top "
+                "rail that is also the armrest, Y-shaped back splat, woven paper cord seat",
+            "Carl Hansen CH25": "low wooden lounge chair with seat and back both woven of "
+                "paper cord, straight armrests",
+            "Getama GE290": "solid oak or teak armchair: flat plank armrests, back of wood "
+                "slats, loose cushions",
+            "PP Mobler Papa Bear (PP19)": "big upholstered wing chair with exposed wooden "
+                "arm ends shaped like a bear's paws",
+            "Fredericia Spanish Chair": "low oak frame with very wide flat armrests, seat "
+                "and back of thick saddle leather on straps",
+            "Knoll Barcelona Chair": "low square chair on an X-shaped flat chromed steel "
+                "frame, tufted leather cushions in square panels",
+            "Knoll Wassily": "bent chromed steel tube frame with strips of leather or canvas "
+                "as seat, back and armrests, no cushions",
+            "Knoll Womb Chair": "fabric-covered fibreglass shell wide enough to curl up in, "
+                "thin chrome rod legs, loose cushions",
+            "Cassina LC2": "cube armchair: square cushions held inside an exposed chromed "
+                "tubular steel cage",
+            "Cassina LC4 Chaise Longue": "long curved chromed tube cradle with a hide or "
+                "leather pad, on a black H-shaped base",
+            "Artifort Mushroom F560": "low round mushroom-shaped chair, one stretch-fabric "
+                "body with a hollow seat, no legs visible",
+            "Artifort Ribbon F582": "one fabric-covered ribbon looping into seat and back, "
+                "on a flat lacquered disc base",
+            "Artifort Orange Slice F437": "two identical curved shells like orange segments, "
+                "on a slim chrome four-leg frame",
+            "Spectrum SZ01 / SZ02": "low easy chair on a simple tubular steel frame with a "
+                "wide wicker or saddle leather seat",
+            "Gispen 412": "1930s lounge chair with a bent chromed tube cantilever frame and "
+                "upholstered seat and back",
+            "Ligne Roset Togo": "low legless all-foam seat with heavy pleated fabric, like a "
+                "bent tube, no frame visible",
+            "De Sede DS-600": "long snake of upholstered leather wedge elements linked "
+                "together, curving freely",
+            "B&B Italia Camaleonda": "modular sofa of deep square padded elements with "
+                "button-tufted channels held by rings and ropes",
+            "Charlotte Perriand Les Arcs Dining Chair": "dining chair with a chromed tube "
+                "frame and saddle leather seat and back panels",
+            "Pierre Jeanneret Chandigarh Office Chair": "teak chair with V-shaped legs at "
+                "the sides, cane woven seat and back",
+            "Percival Lafer MP-41 Lounge": "low 1970s Brazilian lounge chair on a solid wood "
+                "base, two leather cushions held by straps",
+            "Artek Armchair 400 Tank": "low armchair with wide flat birch plywood bands as "
+                "arms that curve down into the legs, upholstered cushion",
+        },
+        "search": {"Herman Miller Eames Lounge Chair 670/671": "eames lounge chair",
+                   "Vitra Eames EA 117 / EA 119": "vitra ea 117",
+                   "Vitra Eames Soft Pad EA 217 / EA 219": "vitra soft pad",
+                   "Charlotte Perriand Les Arcs Dining Chair": "perriand les arcs",
+                   "Pierre Jeanneret Chandigarh Office Chair": "jeanneret chandigarh",
+                   "Spectrum SZ01 / SZ02": "spectrum martin visser"},
+        # "Eames" alone names three of these: the numbers tell them apart
+        "keys": {"Vitra Eames EA 117 / EA 119": ["ea 117", "ea 119", "ea117", "ea119",
+                                                 "aluminium group", "aluminum group"],
+                 "Vitra Eames Soft Pad EA 217 / EA 219": ["soft pad", "softpad", "ea 217",
+                                                          "ea 219", "ea217", "ea219"]},
+        "aliases": {"Herman Miller Eames Lounge Chair 670/671": ["eames lounge"],
+                    "Pierre Jeanneret Chandigarh Office Chair": ["jeanneret"],
+                    "Charlotte Perriand Les Arcs Dining Chair": ["perriand"]},
+    },
+    "jackets": {
+        "source": "Jackets", "flip": None, "noun": "and archive jackets",
+        "clues": '"paardenleer", "made in usa", "made in england", "jaren 80", a label '
+                 'inside the collar',
+        "parts": 'Loose linings, patches and parts are "unknown".',
+        "rule": "A different kind of jacket (leather biker, denim, down, shell, coat) "
+                "than the model is never that model.",
+        "market": {"fresh_query": "vintage jas",
+                   # Heren- en damesjassen, leren jassen, motorkleding
+                   "fresh_categories": {630, 647, 648, 689, 2784, 2788},
+                   "watch": ["Wrangler", "Barbour", "Diesel", "Hugo Boss", "Zara"],
+                   "price_max": 150},
+        "generic": ["jacket", "leather", "vintage", "down", "parka", "type", "model",
+                    "shearling", "tech", "mountain", "collab", "trench", "tweed", "biker",
+                    "race"],
+        # Dutch "lang" is long; "stone washed", "made in canada", "real leather"
+        "brand_stop": ["north", "face", "real", "company", "studios", "stone", "island",
+                       "canada", "leathers", "leather", "lang", "jeff"],
+        "aliases": {"The North Face Steep Tech Apogee": ["north face"],
+                    "The North Face Supreme Collab Mountain / Nuptse": ["north face"],
+                    "C.P. Company Mille Miglia Goggle Jacket": ["cp company"],
+                    "Arc'teryx Alpha SV": ["arcteryx"],
+                    "The Real McCoy's Type A-2": ["real mccoys", "mccoys"]},
+        "designers": ["massimo osti", "osti", "scot schmidt", "lagerfeld", "supreme"],
+        "copied": ["Schott NYC Perfecto 618 / 613", "Levi's Type III 557 / 70505 Big E",
+                   "Burberry Vintage Trench", "Chanel Tweed Jacket",
+                   "Moncler Grenoble Vintage Down", "Canada Goose Expedition Parka",
+                   "The North Face Supreme Collab Mountain / Nuptse",
+                   "Jeff Hamilton NBA Championship Leather", "Carhartt Detroit Jacket",
+                   "Avirex A-2 / Icon Leather", "Lee 101-J Storm Rider"],
+        "queries": ["vintage leren jas", "leren motorjas", "vintage spijkerjas",
+                    "spijkerjack vintage", "oude leren jas", "vliegeniersjas",
+                    "bomberjack leer", "vintage donsjas", "trenchcoat",
+                    "waxjas", "vintage ski jas", "werkjas canvas"],
+        "looks": {
+            "Schott NYC Perfecto 618 / 613": "black heavy leather motorcycle jacket, "
+                "diagonal front zip, wide snap-down lapels, belt at the waist, epaulettes "
+                "(small stars on them on the 613)",
+            "Lewis Leathers Lightning / Cyclone": "British leather motorcycle jacket, "
+                "diagonal zip, quilted lining, zipped cuffs, belt and epaulettes",
+            "Vanson Model B": "very thick stiff leather biker jacket, diagonal zip, often "
+                "contrasting colour panels or stripes",
+            "Aero Leather Highwayman": "horsehide motorcycle jacket with a straight centre "
+                "zip, zipped chest pockets, short cut, half belt at the back",
+            "Avirex A-2 / Icon Leather": "leather flight or varsity jacket covered in large "
+                "embroidered patches, badges and lettering",
+            "Jeff Hamilton NBA Championship Leather": "leather jacket fully covered in NBA "
+                "team logos, colour panels and embroidered trophies",
+            "Rick Owens Stooges Leather": "slim black lamb leather biker, short body, "
+                "diagonal zip, no lapel snaps, long narrow sleeves",
+            "Acne Studios Velocite Shearling": "oversized shearling aviator jacket, leather "
+                "outside, thick fleece collar and lining, belted",
+            "Levi's Type I 506XX": "pre-1953 denim jacket with one flap chest pocket, pleats "
+                "down the front, a cinch buckle at the back waist",
+            "Levi's Type II 507XX": "denim jacket with two flap chest pockets, front pleats, "
+                "no cinch, buttoned adjusters at the sides of the waistband",
+            "Levi's Type III 557 / 70505 Big E": "1960s denim trucker with two pointed chest "
+                "pocket flaps and V-shaped seams running down from them",
+            "Lee 101-J Storm Rider": "denim jacket with a corduroy collar and a striped "
+                "blanket lining",
+            "Stone Island Ice Jacket": "technical jacket in fabric that changes colour with "
+                "temperature, compass badge on the left sleeve",
+            "Stone Island Tela Stella": "1980s jacket in stiff waxed military tarp canvas, "
+                "compass badge on the sleeve",
+            "C.P. Company Mille Miglia Goggle Jacket": "jacket whose zipped hood has two "
+                "goggle lenses built in over the eyes, small lens on the wrist",
+            "Arc'teryx Alpha SV": "technical hard shell rain jacket, large helmet hood, taped "
+                "seams, bird skeleton logo on the chest",
+            "The North Face Steep Tech Apogee": "1990s ski jacket in bold colour blocks, "
+                "padded shoulders and elbows, many zips",
+            "The North Face Supreme Collab Mountain / Nuptse": "Nuptse puffer or Mountain "
+                "shell in a loud all-over print with Supreme lettering",
+            "Moncler Grenoble Vintage Down": "shiny nylon down puffer with horizontal "
+                "quilting, felt rooster badge on the sleeve",
+            "Canada Goose Expedition Parka": "long heavy down parka, fur trimmed hood, many "
+                "large pockets, round Arctic map badge on the sleeve",
+            "Carhartt Detroit Jacket": "short boxy duck canvas jacket with a corduroy collar "
+                "and striped blanket lining, often brown",
+            "The Real McCoy's Type A-2": "brown horsehide WWII flight jacket, knit cuffs and "
+                "waistband, snap-down collar, two flap pockets",
+            "Belstaff Trialmaster": "waxed cotton motorcycle jacket with four flap pockets, "
+                "belt, cord collar and buckled throat strap",
+            "Dainese Vintage Race Leather": "1980s-90s motorcycle racing leather jacket in "
+                "bold colour blocks, padded shoulders and elbows",
+            "Chanel Tweed Jacket": "short boxy boucle tweed jacket with contrast braid trim, "
+                "patch pockets, CC buttons",
+            "Helmut Lang Bondage / Astro Biker": "slim minimal leather or denim jacket with "
+                "straps inside or across the back",
+            "Burberry Vintage Trench": "beige gabardine trench coat with epaulettes, storm "
+                "flap, belt with D-rings, nova check lining",
+        },
+        "search": {"Levi's Type I 506XX": "levis 506xx", "Levi's Type II 507XX": "levis 507xx",
+                   "Levi's Type III 557 / 70505 Big E": "levis big e jacket",
+                   "Avirex A-2 / Icon Leather": "avirex leren jas",
+                   "The North Face Supreme Collab Mountain / Nuptse": "supreme north face",
+                   "Burberry Vintage Trench": "burberry trenchcoat",
+                   "Moncler Grenoble Vintage Down": "moncler grenoble",
+                   "Jeff Hamilton NBA Championship Leather": "jeff hamilton jas",
+                   "Vanson Model B": "vanson leren jas"},
+        "keys": {"Avirex A-2 / Icon Leather": [], "Burberry Vintage Trench": [],
+                 "Vanson Model B": [],
+                 "Dainese Vintage Race Leather": [],
+                 "Levi's Type III 557 / 70505 Big E": ["big e", "557", "70505", "type 3",
+                                                       "type iii"]},
+    },
+    "bags": {
+        "source": "Bags", "flip": None, "noun": "and luxury bags",
+        "clues": '"echt leer", "met stofzak", "slot en sleutel", "jaren 90", a stamp '
+                 'inside',
+        "parts": 'Loose straps, dust bags, boxes and wallets on their own are "unknown".',
+        "rule": "No item is copied more than these bags: a logo pattern, quilting or a "
+                "famous shape alone is only \"possible\"; \"strong\" needs signs of "
+                "quality you can see (even stitching, solid hardware, a clean stamp).",
+        "market": {"fresh_query": "vintage handtas",
+                   # Tassen: handtassen, schoudertassen, overige
+                   "fresh_categories": {626, 1764, 1838, 1840},
+                   "watch": ["Michael Kors", "Guess", "Bulaggi", "Liu Jo", "Coach",
+                             "Furla", "Mulberry", "Longchamp"],
+                   "price_max": 500},
+        "generic": ["bag", "classic", "medium", "top", "handle", "tote", "mm", "pm",
+                    "mini", "on", "nylon", "re", "party", "accessoires", "lock"],
+        "brand_stop": ["yves", "saint", "laurent", "bottega"],
+        "aliases": {"Yves Saint Laurent Mombasa": ["ysl", "saint laurent"]},
+        "designers": ["galliano", "lagerfeld", "phoebe philo", "ghesquiere", "tom ford",
+                      "murakami"],
+        "copied": ["Hermes Birkin 30 / 35", "Hermes Kelly 28 / 32", "Chanel Classic Flap Medium",
+                   "Louis Vuitton Speedy 30", "Louis Vuitton Neverfull MM"],
+        "queries": ["vintage tas leer", "leren handtas", "vintage handtas", "designer tas",
+                    "leren schoudertas vintage", "tas met slot", "oude handtas",
+                    "vintage clutch", "tas bamboe handvat", "gevlochten leren tas",
+                    "monogram tas"],
+        "looks": {
+            "Hermes Birkin 30 / 35": "structured trapezoid leather handbag, two rolled top "
+                "handles, flap closed by a strap over a turn-lock, padlock and key bell",
+            "Hermes Kelly 28 / 32": "trapezoid leather handbag with one top handle, flap with "
+                "a strap and turn-lock, padlock, often a shoulder strap",
+            "Hermes Constance": "flap shoulder bag with a large metal H clasp on the front",
+            "Hermes Evelyne": "flat soft leather crossbody with a perforated H pattern on the "
+                "front, canvas strap",
+            "Hermes Picotin Lock": "small leather bucket bag with two handles, a tab with a "
+                "padlock across the top",
+            "Hermes Garden Party": "open tote in canvas or leather with leather trim, one "
+                "strap with a snap closing the top",
+            "Chanel Classic Flap Medium": "diamond-quilted leather flap bag with an "
+                "interlocking CC turn-lock, chain strap woven with leather",
+            "Chanel 2.55 Reissue": "quilted flap bag with a rectangular turn-lock and an "
+                "all-metal chain strap",
+            "Chanel Diana Flap": "soft slouchy quilted flap bag with a CC turn-lock and chain "
+                "strap",
+            "Chanel Wallet on Chain": "small flat quilted wallet with CC turn-lock on a long "
+                "chain strap",
+            "Louis Vuitton Speedy 30": "soft barrel bag in brown LV monogram canvas, natural "
+                "leather handles, zip top, padlock",
+            "Louis Vuitton Keepall 50 / 55": "large soft barrel duffle in monogram canvas "
+                "with leather handles",
+            "Louis Vuitton Neverfull MM": "wide open tote in monogram or checked canvas, thin "
+                "leather straps laced through the sides",
+            "Louis Vuitton Alma": "structured dome-shaped bag with two rounded handles and a "
+                "zip around the top",
+            "Louis Vuitton Pochette Accessoires": "small flat zip pouch in monogram canvas "
+                "with a short thin strap",
+            "Louis Vuitton Speedy Multicolore (Murakami)": "barrel bag with the LV monogram "
+                "printed in 33 bright colours on white or black",
+            "Dior Saddle": "kidney-shaped saddle bag with a curved flap and a hanging D "
+                "charm, often in monogram canvas",
+            "Dior Lady Dior": "boxy top handle bag with diamond cannage stitching, hanging "
+                "D-I-O-R letter charms",
+            "Fendi Baguette": "small long shoulder bag with a short strap and an FF clasp on "
+                "the flap",
+            "Fendi Peekaboo": "structured top handle bag that opens at both sides with twist "
+                "locks, the inside showing like a mouth",
+            "Gucci Jackie": "crescent hobo bag with a piston push-lock on the side",
+            "Gucci Bamboo Top Handle": "structured leather bag with a curved horseshoe handle "
+                "of glossy bent bamboo",
+            "Prada Re-Edition 2005 Nylon": "small black nylon shoulder bag with a triangle "
+                "logo plate and a little zip pouch hanging on it",
+            "Bottega Veneta Jodie": "small woven leather hobo with a knotted short handle",
+            "Bottega Veneta Cassette": "rectangular crossbody in a wide weave of thick leather "
+                "strips",
+            "Celine Luggage Tote": "trapezoid tote with wings sticking out at the sides and a "
+                "front zip pocket that looks like a smiling face",
+            "Celine Classic Box": "rigid box flap bag with a metal tab clasp and a long strap",
+            "Balenciaga City / Motorcycle": "slouchy distressed leather bag with studs, "
+                "buckles, long leather tassels on the zips",
+            "Loewe Puzzle": "geometric bag made of many leather panels like a puzzle, folds "
+                "flat",
+            "Goyard Saint Louis PM": "flat tote in coated canvas with a painted chevron "
+                "pattern of small Y shapes, thin straps",
+            "Delvaux Brillant": "structured trapezoid handbag with a large D-shaped buckle on "
+                "the front",
+            "Yves Saint Laurent Mombasa": "soft hobo bag with a curved horn handle",
+            "Chloe Paddington": "soft bag with a heavy oversized padlock hanging on the front",
+        },
+        "search": {"Chanel Classic Flap Medium": "chanel classic flap",
+                   "Chanel Wallet on Chain": "chanel wallet on chain",
+                   "Louis Vuitton Speedy Multicolore (Murakami)": "speedy multicolore",
+                   "Prada Re-Edition 2005 Nylon": "prada re edition"},
+        # "Dior", "chain" and "Louis" alone would name the wrong model
+        "keys": {"Dior Lady Dior": ["lady"], "Chanel Wallet on Chain": ["wallet on chain",
+                                                                         "woc"],
+                 "Goyard Saint Louis PM": ["saint louis"]},
+    },
+    "boats": {
+        "source": "Boats", "flip": None, "noun": "and classic boats",
+        "clues": '"polyester", "inboard diesel", "trailer", "lengte", "bouwjaar"',
+        "parts": 'Engines, sails, trailers and dinghies on their own are "unknown".',
+        "rule": "A boat of a clearly different length or kind (sloep, open sailboat, "
+                "sailing yacht, motor cruiser) than the model is never that model.",
+        "market": {"fresh_query": "boot",
+                   # Sloepen, kajuitzeiljachten, open zeilboten, motorboten, overige
+                   "fresh_categories": {1407, 985, 989, 990, 998},
+                   "watch": ["Bayliner", "Jeanneau", "Beneteau", "Bénéteau", "Linssen",
+                             "Quicksilver", "Sea Ray"],
+                   "price_min": 1000, "price_max": 20000},
+        "generic": ["boat", "motorboat", "mahogany", "family", "explorer", "touring",
+                    "sport", "international"],
+        "brand_stop": ["boats", "cornish", "nordic"],
+        "aliases": {"J/Boats J/22": ["j22", "j 22"], "J/Boats J/24": ["j24", "j 24"],
+                    "Nordic Folkboat Folkboat": ["folkboot", "nordic folkboot"]},
+        # one model per brand on the list: the brand alone names it
+        "keys": {"Interboat 19 / 6.5": [], "Makma Caribbean 21": [],
+                 "Oud Huijzer 575 / 616": [], "Maxima 630": [], "Maril 6Nine": [],
+                 "Randmeer Randmeer Touring": [], "Regenboog Regenboog": [],
+                 "Pampus Pampus": [], "Polyvalk Polyvalk": [],
+                 "Marieholm International Folkboat (IF)": ["if", "folkboat", "folkboot"],
+                 "Nordic Folkboat Folkboat": [], "Albin Vega 27": ["vega"],
+                 "Albin Albin 25": ["25"], "Contessa Contessa 26": [],
+                 "Victoire Victoire 26": [], "Hallberg-Rassy Monsun 31": ["monsun"],
+                 "Drascombe Lugger": [], "Cornish Crabbers Shrimper 19": [],
+                 "J/Boats J/22": ["j22", "j 22"], "J/Boats J/24": ["j24", "j 24"],
+                 "Boston Whaler 13 Sport / Montauk 17": [],
+                 "Pettersson Mahogany Motorboat": [], "Coronet 24 Family / Explorer": [],
+                 "Saga Saga 27": [], "Doerak 780 / 850": [], "Antaris Fifty5": []},
+        "designers": ["van de stadt", "tord sunden", "sunden", "pettersson"],
+        "copied": [],
+        "queries": ["sloep", "sloep met trailer", "tender sloep", "zeilboot", "open zeilboot",
+                    "kielboot", "kajuitzeiljacht", "klassiek zeiljacht", "houten boot",
+                    "motorkruiser", "toerboot", "klassieke motorboot"],
+        "looks": {
+            "Antaris Fifty5": "5.5 m open polyester sloep, wide beam, wood trim on the "
+                "gunwale, cushioned benches around an open cockpit, small console",
+            "Interboat 19 / 6.5": "6 m modern polyester sloep, upright bow, wide teak "
+                "gunwale, U-shaped bench and table, console with windscreen",
+            "Makma Caribbean 21": "classic-looking polyester sloep with varnished teak "
+                "gunwale and details, open cockpit, steering console",
+            "Oud Huijzer 575 / 616": "compact tender sloep with a round bow and a thick "
+                "fender all around, open cockpit",
+            "Maxima 630": "6.3 m tender sloep with a thick fender all around, outboard or "
+                "inboard, open cockpit",
+            "Maril 6Nine": "upmarket 6.9 m sloep, straight bow, teak deck, sharp modern lines",
+            "Randmeer Randmeer Touring": "6.5 m open keelboat, white polyester hull, small "
+                "cuddy at the front, tiller, sloop rig",
+            "Regenboog Regenboog": "9 m long narrow open wooden keelboat, varnished, big "
+                "sloop rig, low freeboard",
+            "Pampus Pampus": "8.5 m wooden one-design keelboat, long narrow low hull, small "
+                "open cockpit",
+            "Polyvalk Polyvalk": "6 m open sailing boat with white polyester hull, big open "
+                "cockpit, centreboard, small foredeck",
+            "Marieholm International Folkboat (IF)": "7.9 m polyester sloop with a long "
+                "keel, low cabin with small windows, rudder hung on the transom",
+            "Nordic Folkboat Folkboat": "7.6 m clinker hull of overlapping planks, long keel, "
+                "small cabin, rudder hung on the transom",
+            "Albin Vega 27": "27 ft polyester sailing yacht with high sides, small cabin "
+                "windows, fin keel",
+            "Contessa Contessa 26": "26 ft long-keel sailing yacht, low sheer, small cabin, "
+                "rudder hung on the transom",
+            "Victoire Victoire 26": "Dutch 26 ft polyester sailing yacht, compact cabin, "
+                "sturdy build",
+            "Hallberg-Rassy Monsun 31": "31 ft sailing yacht with a fixed windscreen over "
+                "the cockpit, blue stripe on a white hull, teak deck",
+            "Drascombe Lugger": "open boat with tan sails on two masts, pointed at both ends, "
+                "outboard in a well",
+            "Cornish Crabbers Shrimper 19": "small gaff-rigged sailboat with tan sails, "
+                "bowsprit and a small cabin, traditional look",
+            "J/Boats J/22": "22 ft white sports keelboat, low cabin with slit windows, open "
+                "cockpit",
+            "J/Boats J/24": "24 ft white sports keelboat, flat low cabin top, long open "
+                "cockpit",
+            "Boston Whaler 13 Sport / Montauk 17": "flat wide motorboat hull with a "
+                "three-ridged front, white, wooden console and seats on classics",
+            "Pettersson Mahogany Motorboat": "Swedish varnished mahogany motorboat with a "
+                "wooden cabin and round portholes, 1910-1950",
+            "Coronet 24 Family / Explorer": "1960s-70s Danish sport cruiser, deep V hull, "
+                "windscreen, small cabin, wood trim",
+            "Albin Albin 25": "25 ft white motor cruiser with a wheelhouse, aft cabin, slow "
+                "displacement hull",
+            "Saga Saga 27": "27 ft Norwegian motor cruiser pointed at both bow and stern, "
+                "wheelhouse",
+            "Doerak 780 / 850": "1970s Dutch steel motor cruiser, round bilge, wheelhouse, "
+                "rear deck",
+        },
+        "search": {"Interboat 19 / 6.5": "interboat", "Oud Huijzer 575 / 616": "oud huijzer",
+                   "Maxima 630": "maxima sloep", "Randmeer Randmeer Touring": "randmeer",
+                   "Regenboog Regenboog": "regenboog boot", "Pampus Pampus": "pampus",
+                   "Polyvalk Polyvalk": "polyvalk",
+                   "Marieholm International Folkboat (IF)": "marieholm",
+                   "Nordic Folkboat Folkboat": "folkboot",
+                   "Contessa Contessa 26": "contessa 26",
+                   "Victoire Victoire 26": "victoire 26", "Saga Saga 27": "saga 27", "Albin Albin 25": "albin 25",
+                   "J/Boats J/22": "j22", "J/Boats J/24": "j24",
+                   "Boston Whaler 13 Sport / Montauk 17": "boston whaler",
+                   "Pettersson Mahogany Motorboat": "pettersson",
+                   "Coronet 24 Family / Explorer": "coronet", "Doerak 780 / 850": "doerak"},
+    },
 }
 
 HUNT_PRICE_MAX = 250    # asking price cap, the same as the rest of /flip
 HUNT_PRICE_MIN = 10     # €1 "n.o.t.k." placeholders aren't real prices
+# Categories the daily run hunts (and /flip shows) when none are named. A
+# category joins once its --eval numbers hold up; the rest run on request.
+DAILY = ["lamps"]
 HUNT_MAX = 100          # photos sent to the model per category per day: the cost cap
 EVAL_PER_MODEL = 5      # positives kept per model
 EVAL_NEGATIVES = 30     # ordinary listings that name no listed brand
@@ -164,6 +643,17 @@ _REPLICA_RE = re.compile(r"replica|stijl|style|look ?a ?like|geinspireerd|inspir
                          r"\bvoor\b|boek|book|poster", re.I)
 
 
+def market(key):
+    """Where a category's listings live on Marktplaats: plain search, category
+    ids, brands that mean the seller knows. From its /flip page, or its own
+    "market" entry when it has none. Plus the asking price bounds."""
+    cat = CATEGORIES[key]
+    page = dict(FLIP_PAGES[cat["flip"]]) if cat.get("flip") else dict(cat["market"])
+    page.setdefault("price_min", HUNT_PRICE_MIN)
+    page.setdefault("price_max", HUNT_PRICE_MAX)
+    return page
+
+
 def _norm(text):
     """Lowercase, accents stripped, only letters and digits: 'Jieldé' -> 'jielde'."""
     text = unicodedata.normalize("NFKD", str(text or "")).encode("ascii", "ignore")
@@ -181,22 +671,28 @@ def load_models(key):
         if it.get("category") != cat["source"]:
             continue
         brand, model = it["brand"], it["model"]
-        words = [w for w in _norm(model).split() if w not in _GENERIC]
+        name = f"{brand} {model}"
+        generic = _GENERIC | set(cat.get("generic", ()))
+        stop = _BRAND_STOP | set(cat.get("brand_stop", ()))
+        words = [w for w in _norm(model).split() if w not in generic]
         # "PH 3/2" -> "ph32", matched with spaces squashed out ("PH 3 2", "PH3/2")
         # ("AJ" is too short to squash, so it only counts as a whole word)
         squashed = "".join(words)
         keys = [w for w in words if len(w) >= 3] + ([squashed] if squashed else [])
-        brand_words = [w for w in _norm(brand).split()
-                       if len(w) >= 4 and w not in _BRAND_STOP]
-        name = f"{brand} {model}"
+        # "keys" overrides: [] means the brand alone names the model (one model
+        # per brand, and sellers write "Interboat 19" or "Interboat 6.5")
+        keys = [_norm(k) for k in cat.get("keys", {}).get(name, keys)]
+        brand_words = [w for w in _norm(brand).split() if len(w) >= 4]
         aliases = [_norm(a) for a in cat.get("aliases", {}).get(name, [])]
+        # brand words that are also ordinary words ("klein", "lang", "stone")
+        brands = {_norm(brand), *brand_words, *aliases} - stop
         # plain words a seller would type: no "Table", "Floor (10A, UF4)"
         query = " ".join([brand] + [w for w in re.sub(r"\(.*?\)", "", model).split()
-                                    if _norm(w) not in _GENERIC])
+                                    if _norm(w) not in generic])
         models.append({
             "name": name,
             "query": cat.get("search", {}).get(name, query),
-            "brand_keys": sorted({_norm(brand), *brand_words, *aliases}),
+            "brand_keys": sorted(brands),
             "model_keys": sorted(set(keys)),
             "model_words": sorted(set(words + ([squashed] if squashed else []))),
             "look": cat.get("looks", {}).get(name, ""),
@@ -259,19 +755,17 @@ def masked_text(listing, key, models, limit=400):
 
 # ---------------------------------------------------------------- recognition
 
-RECOGNIZE_PROMPT = """You are an expert in vintage design %s. You see up to 3 photos of one
+RECOGNIZE_PROMPT = """You are an expert in vintage design %(noun)s. You see up to 3 photos of one
 second-hand listing, plus the seller's Dutch text with all brand, model and designer names
-cut out. The text can help ("contragewicht", "opaline glas", "jaren 50", a stamp under the
-base), but the seller may be wrong, and the photos decide.
+cut out. The text can help (%(clues)s), but the seller may be wrong, and the photos decide.
 
 Valuable models to look for (name: what it looks like. Notes on value and originality):
-%s
+%(catalog)s
 
 Decide which ONE model on the list the item in the photos is, or "unknown". Judge only what
 you see: shape, proportions, materials, construction, stamps and labels. Sellers rarely
-photograph stamps, so a missing stamp alone is no reason to doubt. Loose shades and parts
-are "unknown". When the item looks like none of the models, answer "unknown". A different
-type of lamp (table, floor, wall, pendant) than the model is never that model.
+photograph stamps, so a missing stamp alone is no reason to doubt. %(parts)s
+When the item looks like none of the models, answer "unknown". %(rule)s
 - "strong": the overall shape and its distinctive details clearly match the description,
   and nothing visible (cheap materials, wrong proportions, modern fittings) argues
   against it.
@@ -295,7 +789,7 @@ def recognize(key, models, images, text=""):
     result = llm_json(
         [
             {"role": "system",
-             "content": RECOGNIZE_PROMPT % (CATEGORIES[key]["noun"], catalog)},
+             "content": RECOGNIZE_PROMPT % dict(CATEGORIES[key], catalog=catalog)},
             {"role": "user", "content": content},
         ],
         max_tokens=400,
@@ -325,7 +819,7 @@ def collect(key):
     stored, so names can't leak into the test. Re-running tops up an existing
     set: only models with fewer than 3 cases are searched again."""
     models = load_models(key)
-    page = FLIP_PAGES[CATEGORIES[key]["flip"]]
+    page = market(key)
     designers = CATEGORIES[key].get("designers", [])
     cases = []
     if os.path.exists(_eval_path(key)):
@@ -365,8 +859,9 @@ def collect(key):
     found = []
     if negatives < EVAL_NEGATIVES:
         try:
-            found, _total = search_marktplaats(page["fresh_query"], price_min_euro=20,
-                                               price_max_euro=250, limit=60)
+            found, _total = search_marktplaats(
+                page["fresh_query"], price_min_euro=max(20, page["price_min"]),
+                price_max_euro=page["price_max"], limit=60)
         except Exception as e:
             print(f"  ! negatives search failed: {e}", file=sys.stderr)
     for l in found:
@@ -398,7 +893,7 @@ def refresh(key):
     and brand-free text in place. Adds nothing, so hand-checked labels stay;
     cases whose listing is gone are dropped."""
     models = load_models(key)
-    page = FLIP_PAGES[CATEGORIES[key]["flip"]]
+    page = market(key)
     with open(_eval_path(key), encoding="utf-8") as f:
         cases = json.load(f)["cases"]
     by_id = {c["id"]: c for c in cases}
@@ -410,7 +905,8 @@ def refresh(key):
             if any(c["truth"] == m["name"] for c in cases):
                 queries.append((q, {}))
     queries.append((page["fresh_query"],
-                    {"price_min_euro": 20, "price_max_euro": 250, "limit": 60}))
+                    {"price_min_euro": max(20, page["price_min"]),
+                     "price_max_euro": page["price_max"], "limit": 60}))
     for q, kw in queries:
         try:
             found, _total = search_marktplaats(q, **{"limit": 30, **kw})
@@ -520,12 +1016,12 @@ def hunt(key):
     models = load_models(key)
     by_name = {m["name"]: m for m in models}
     cat = CATEGORIES[key]
-    page = FLIP_PAGES[cat["flip"]]
+    page = market(key)
     designers = cat.get("designers", [])
     listings, seen = [], set()
     for q in cat["queries"]:
         try:
-            found, _total = search_marktplaats(q, price_max_euro=HUNT_PRICE_MAX,
+            found, _total = search_marktplaats(q, price_max_euro=page["price_max"],
                                                limit=60, exclude_bids=True)
         except Exception as e:
             print(f"  ! search '{q}' failed: {e}", file=sys.stderr)
@@ -533,7 +1029,8 @@ def hunt(key):
         for l in found:
             text = f"{l['title']} {l['description']}"
             ask = l.get("asking_euro")
-            if (l["id"] in seen or not ask or not HUNT_PRICE_MIN <= ask <= HUNT_PRICE_MAX
+            if (l["id"] in seen or not ask
+                    or not page["price_min"] <= ask <= page["price_max"]
                     or not l.get("images") or is_auction_lot(l)
                     or _NEW_RE.search(_norm(l["title"]))
                     or l.get("category_id") not in page["fresh_categories"]
@@ -578,17 +1075,20 @@ def hunt(key):
 
 
 def run(categories=None, save=True):
-    """Hunt every category (or the given keys) and store the record in Redis."""
+    """Hunt the DAILY categories (or the given keys) and store the record in Redis."""
     if not OPENROUTER_API_KEY:
         sys.exit("OPENROUTER_API_KEY is not set: recognition needs the LLM.")
-    keys = [k for k in CATEGORIES if categories is None or k in categories]
+    keys = [k for k in CATEGORIES if k in (categories or DAILY)]
     record = {"date": time.strftime("%Y-%m-%d", time.gmtime()), "ts": time.time(),
               "scanned": 0, "categories": []}
     for key in keys:
         print(f"{key}...")
         finds, scanned = hunt(key)
         record["scanned"] += scanned
-        record["categories"].append({"key": CATEGORIES[key]["flip"], "finds": finds})
+        # /flip reads its own page key; categories without a page are stored
+        # under their own key and shown nowhere yet
+        record["categories"].append({"key": CATEGORIES[key].get("flip") or key,
+                                     "finds": finds})
     if save:
         payload = json.dumps(record)
         try:
@@ -617,7 +1117,8 @@ if __name__ == "__main__":
     ap.add_argument("--dry-run", action="store_true",
                     help="daily hunt: print the finds as JSON, don't write to Redis")
     ap.add_argument("--category", action="append", choices=sorted(CATEGORIES),
-                    help="daily hunt: only this category (repeatable)")
+                    help="daily hunt: only this category (repeatable); default: "
+                         + ", ".join(DAILY))
     args = ap.parse_args()
     if args.collect:
         collect(args.collect)
