@@ -125,12 +125,12 @@ name isn't enough. Section banners stay in the
 and what it returned in outline. That's how we debug production from Vercel
 logs. Never log an API key or a full prompt payload.
 
-**HTML templates.** Seven page templates live as module-level strings in
+**HTML templates.** Eight page templates live as module-level strings in
 `app.py` (`HTML`, `HOW_IT_WORKS_HTML`, `CREDITS_HTML`, `HISTORY_HTML`,
-`IDEAS_HTML`, `UNSUBSCRIBE_HTML`, `FLIP_HTML`), each wrapped once by
+`IDEAS_HTML`, `UNSUBSCRIBE_HTML`, `FLIP_HTML`, `BECOME_CEO_HTML`), each wrapped once by
 `_with_gtm`. The CSS custom properties (`--ink`, `--body`, `--muted`,
-`--line`, `--line2`, `--field`) are duplicated in all seven. Change the
-palette in one, change it in all seven. `FLIP_HTML` serves `/flip`;
+`--line`, `--line2`, `--field`) are duplicated in all eight. Change the
+palette in one, change it in all eight. `FLIP_HTML` serves `/flip`;
 `?item=lamps|bikes|chairs` picks a `FLIP_PAGES` entry (default lamps). `digest.py`'s email HTML is separate: inline styles, not custom
 properties — most mail clients strip `<style>`/don't support `var()`.
 
