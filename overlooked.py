@@ -849,7 +849,10 @@ def collect(key):
         for l in found:
             if kept >= EVAL_PER_MODEL:
                 break
-            if names_model(l["title"], m) and not _REPLICA_RE.search(_norm(l["title"])):
+            # in the category's own section: no books, perfume or plants
+            # that happen to share a model's name ("Regenboog", "Kelly Caleche")
+            if (names_model(l["title"], m) and not _REPLICA_RE.search(_norm(l["title"]))
+                    and l.get("category_id") in page["fresh_categories"]):
                 kept += add(l, m["name"])
         note = "" if kept >= 3 else "  <- too few, check by hand"
         print(f"  {m['name']}: {kept}{note}")
